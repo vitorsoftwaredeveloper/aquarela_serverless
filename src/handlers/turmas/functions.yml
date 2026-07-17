@@ -1,0 +1,71 @@
+createTurma:
+  handler: src/handlers/turmas/createTurma.execute
+  events:
+    - httpApi:
+        method: POST
+        path: /v1/turmas
+        authorizer:
+          name: cognitoAuthorizer
+
+listTurmas:
+  handler: src/handlers/turmas/listTurmas.execute
+  events:
+    - httpApi:
+        method: GET
+        path: /v1/turmas
+        authorizer:
+          name: cognitoAuthorizer
+
+getTurmaById:
+  handler: src/handlers/turmas/getTurmaById.execute
+  events:
+    - httpApi:
+        method: GET
+        path: /v1/turmas/{id}
+        authorizer:
+          name: cognitoAuthorizer
+
+updateTurma:
+  handler: src/handlers/turmas/updateTurma.execute
+  events:
+    - httpApi:
+        method: PUT
+        path: /v1/turmas/{id}
+        authorizer:
+          name: cognitoAuthorizer
+
+removeTurma:
+  handler: src/handlers/turmas/removeTurma.execute
+  events:
+    - httpApi:
+        method: DELETE
+        path: /v1/turmas/{id}
+        authorizer:
+          name: cognitoAuthorizer
+
+listCriancasDaTurma:
+  handler: src/handlers/turmas/listCriancasDaTurma.execute
+  events:
+    - httpApi:
+        method: GET
+        path: /v1/turmas/{id}/criancas
+        authorizer:
+          name: cognitoAuthorizer
+
+vincularCrianca:
+  handler: src/handlers/turmas/vincularCrianca.execute
+  events:
+    - httpApi:
+        method: POST
+        path: /v1/turmas/{id}/criancas
+        authorizer:
+          name: cognitoAuthorizer
+
+desvincularCrianca:
+  handler: src/handlers/turmas/desvincularCrianca.execute
+  events:
+    - httpApi:
+        method: DELETE
+        path: /v1/turmas/{id}/criancas/{criancaId}
+        authorizer:
+          name: cognitoAuthorizer

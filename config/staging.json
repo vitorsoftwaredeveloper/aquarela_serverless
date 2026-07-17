@@ -1,0 +1,12 @@
+{
+  "environment": {
+    "DB": "/aquarela_serverless/staging/db",
+    "SERVICE": "aquarela_serverless",
+    "COGNITO_URL": "${ssm:/aquarela_serverless/staging/cognito_url}",
+    "CLIENT_ID": "${ssm:/aquarela_serverless/staging/client_id}",
+    "USER_POOL_ID": "${ssm:/aquarela_serverless/staging/user_pool_id}",
+    "REGION": "us-east-1",
+    "COGNITO_USER_POOL_ARN": "${ssm:/aquarela_serverless/staging/cognito_user_pool_arn}",
+    "FRONTEND_URL": "${ssm:/aquarela_serverless/staging/frontend_url}"
+  }
+}

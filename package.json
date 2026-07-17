@@ -1,0 +1,39 @@
+{
+  "name": "aquarela-serverless",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "nodemon",
+    "deploy:dev": "serverless deploy --stage dev",
+    "deploy:staging": "serverless deploy --stage staging",
+    "deploy:prod": "serverless deploy --stage prod",
+    "remove:staging": "serverless remove --stage staging",
+    "remove:prod": "serverless remove --stage prod",
+    "test": "jest --coverage",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "Aquarela Kids — back-end serverless (API, regra de negocio, acesso ao banco)",
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.159",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^24.10.1",
+    "jest": "^30.2.0",
+    "nodemon": "^3.1.11",
+    "osls": "github:oss-serverless/serverless#v3.76.1",
+    "serverless-esbuild": "^1.56.1",
+    "serverless-offline": "^14.4.0",
+    "serverless-prune-plugin": "^2.1.0",
+    "ts-jest": "^29.4.6",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.2"
+  },
+  "dependencies": {
+    "@aws-sdk/client-cognito-identity-provider": "^3.948.0",
+    "@aws-sdk/client-ssm": "^3.1079.0",
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "mongoose": "^9.0.0"
+  }
+}

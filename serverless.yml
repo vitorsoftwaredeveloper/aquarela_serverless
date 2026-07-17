@@ -1,0 +1,94 @@
+service: aquarela-serverless
+
+frameworkVersion: "3"
+
+custom:
+  environment: ${file(./config/${self:provider.stage}.json):environment}
+  esbuild: ${file(esbuild.config.js)}
+  prune:
+    automatic: true
+    number: 3
+
+package:
+  individually: true
+
+provider:
+  name: aws
+  runtime: nodejs24.x
+  region: ${opt:region, 'us-east-1'}
+  stage: ${opt:stage, 'dev'}
+  timeout: 27
+  environment:
+    STAGE: ${self:provider.stage}
+    DB: ${self:custom.environment.DB}
+
+  httpApi:
+    cors:
+      allowedOrigins:
+        - ${self:custom.environment.FRONTEND_URL}
+      allowedHeaders:
+        - Content-Type
+        - Authorization
+      allowedMethods:
+        - GET
+        - POST
+        - PUT
+        - DELETE
+        - OPTIONS
+        - PATCH
+      allowCredentials: true
+    authorizers:
+      cognitoAuthorizer:
+        type: jwt
+        identitySource: $request.header.Authorization
+        issuerUrl: ${self:custom.environment.COGNITO_URL}
+        audience:
+          - ${self:custom.environment.CLIENT_ID}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - cognito-idp:AdminCreateUser
+        - cognito-idp:AdminDeleteUser
+        - cognito-idp:AdminDisableUser
+        - cognito-idp:AdminEnableUser
+        - cognito-idp:AdminSetUserPassword
+        - cognito-idp:AdminUpdateUserAttributes
+        - cognito-idp:AdminAddUserToGroup
+        - cognito-idp:AdminRemoveUserFromGroup
+        - cognito-idp:AdminGetUser
+        - cognito-idp:ListUsers
+      Resource:
+        - ${self:custom.environment.COGNITO_USER_POOL_ARN}
+    - Effect: Allow
+      Action:
+        - ssm:GetParameter
+      Resource:
+        - arn:aws:ssm:${aws:region}:${aws:accountId}:parameter/aquarela_serverless/*
+    # Necessário apenas quando o parâmetro for SecureString (KMS alias/aws/ssm).
+    # Escopado por condição: só permite Decrypt via serviço SSM.
+    - Effect: Allow
+      Action:
+        - kms:Decrypt
+      Resource: "*"
+      Condition:
+        StringEquals:
+          kms:ViaService: ssm.${aws:region}.amazonaws.com
+
+plugins:
+  - serverless-esbuild
+  - serverless-prune-plugin
+
+functions:
+  - ${file(src/handlers/health/functions.yml)}
+  - ${file(src/handlers/usuarios/functions.yml)}
+  - ${file(src/handlers/professores/functions.yml)}
+  - ${file(src/handlers/turmas/functions.yml)}
+  - ${file(src/handlers/criancas/functions.yml)}
+
+resources:
+  extensions:
+    HttpApiStage:
+      Properties:
+        DefaultRouteSettings:
+          ThrottlingBurstLimit: 50
+          ThrottlingRateLimit: 25

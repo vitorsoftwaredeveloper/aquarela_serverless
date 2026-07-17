@@ -1,0 +1,53 @@
+createCrianca:
+  handler: src/handlers/criancas/createCrianca.execute
+  events:
+    - httpApi:
+        method: POST
+        path: /v1/criancas
+        authorizer:
+          name: cognitoAuthorizer
+
+listCriancas:
+  handler: src/handlers/criancas/listCriancas.execute
+  events:
+    - httpApi:
+        method: GET
+        path: /v1/criancas
+        authorizer:
+          name: cognitoAuthorizer
+
+getCriancaById:
+  handler: src/handlers/criancas/getCriancaById.execute
+  events:
+    - httpApi:
+        method: GET
+        path: /v1/criancas/{id}
+        authorizer:
+          name: cognitoAuthorizer
+
+updateCrianca:
+  handler: src/handlers/criancas/updateCrianca.execute
+  events:
+    - httpApi:
+        method: PUT
+        path: /v1/criancas/{id}
+        authorizer:
+          name: cognitoAuthorizer
+
+removeCrianca:
+  handler: src/handlers/criancas/removeCrianca.execute
+  events:
+    - httpApi:
+        method: DELETE
+        path: /v1/criancas/{id}
+        authorizer:
+          name: cognitoAuthorizer
+
+moverCriancaTurma:
+  handler: src/handlers/criancas/moverCriancaTurma.execute
+  events:
+    - httpApi:
+        method: PATCH
+        path: /v1/criancas/{id}/turma
+        authorizer:
+          name: cognitoAuthorizer

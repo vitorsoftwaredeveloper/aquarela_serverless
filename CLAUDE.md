@@ -1,0 +1,154 @@
+# CLAUDE.md — Aquarela Kids · Back-end (`aquarela_serverless`)
+
+> Contexto para agentes de IA e devs. Leia antes de codar. Fonte da verdade detalhada: pasta [`docs/`](./docs).
+
+---
+
+## 1. O que é o Aquarela Kids
+
+Sistema de gestão para **berçário e hotelzinho infantil** (crianças de 1 a 8 anos). Três públicos:
+
+- **Administração** — cadastros, financeiro (balanço mensal/anual, despesas, inadimplência), relatórios, simulador de preços, gestão de usuários.
+- **Professores** — registram a **agenda diária** de cada criança (alimentação, sono, atividades, medicação, intercorrências), gerenciam turmas/alunos e planos de aula.
+- **Pais/responsáveis** — leem a agenda/histórico do filho e **pagam a mensalidade via PIX** (meses pagos × em aberto).
+
+Simulador **público** de mensalidade para interessados (sem login).
+
+> A **criança não é usuário** — é a entidade acompanhada. Usuários = `admin`, `professor`, `responsavel` (+ visitante público).
+
+## 2. Papel deste repositório
+
+`aquarela_serverless` é o **back-end serverless**: a API que serve o front `aquarela_app` e detém **toda a regra de negócio e o acesso ao banco**.
+
+- Front-end: `https://github.com/vitorsoftwaredeveloper/aquarela_app`
+- Este repo é a **fonte da verdade** para autorização, validação, cálculos financeiros e persistência.
+
+## 3. Stack
+
+| Item | Escolha |
+|---|---|
+| Runtime | Node.js 24.x · TypeScript |
+| Framework | Serverless Framework v3 (fork `osls`/`oss-serverless`) |
+| Compute | AWS Lambda (`individually` + `serverless-esbuild`) |
+| API | API Gateway **HTTP API** (`httpApi`) |
+| Banco | **MongoDB** via **Mongoose** (não DynamoDB) |
+| Auth | AWS Cognito (JWT authorizer nativo do HTTP API) |
+| Validação | `ajv` (`JSONSchemaType`) + `ajv-formats` |
+| Storage | S3 (comprovantes/recibos) |
+| Config/Secrets | SSM Parameter Store (`config/<stage>.json`) |
+| Pagamentos | MercadoPago (PIX) |
+| Push | Firebase Admin — **fase 2+** |
+| Plugins SLS | `serverless-esbuild`, `serverless-prune-plugin`, `serverless-offline` |
+| Testes | Jest + ts-jest |
+| Dev local | `nodemon` + `serverless-offline` + MongoDB (docker-compose, **replicaSet**) |
+
+> ⚠️ O template de origem trazia itens de outro projeto (TTS de liturgia, módulo de dízimo) que **NÃO** se aplicam ao Aquarela Kids. Reaproveitamos só o MercadoPago/PIX para as mensalidades. Ignore qualquer resquício desses módulos.
+
+## 4. Arquitetura & estrutura — alvo
+
+```
+Cliente → API Gateway HTTP API → JWT Authorizer (Cognito) → Lambda
+  handler → validação (ajv) → service (regra) → repository (Mongoose)
+       ↘ MongoDB · S3 · SSM · MercadoPago (+ webhook de confirmação)
+```
+
+```
+src/
+├─ handlers/     # 1 entrypoint Lambda por rota (criancas, turmas, agenda, financeiro, pagamentos…)
+├─ services/     # regra de negócio
+├─ repositories/ # acesso a dados (Mongoose)
+├─ models/       # schemas Mongoose
+├─ schemas/      # JSONSchemaType (ajv) por payload
+├─ middlewares/  # auth, roleGuard, errorHandler
+├─ libs/         # mongo.ts, s3.ts, ssm.ts, mercadopago.ts
+└─ utils/ types/
+serverless.ts · config/<stage>.json
+```
+
+Conexão MongoDB em Lambda: **reutilizar** a conexão entre invocações e `context.callbackWaitsForEmptyEventLoop = false`.
+
+Detalhes: [`docs/03-Backend.md`](./docs/03-Backend.md).
+
+## 5. Domínio e regras críticas
+
+- **RBAC:** grupos Cognito `admin` / `professor` / `responsavel`. `roleGuard` lê `cognito:groups`.
+- **Autorização de dado (ownership) — obrigatória no service:** `responsavel` só acessa recursos das crianças vinculadas a ele; `professor` só das turmas que leciona. Nunca confiar no cliente.
+- **Validação:** todo payload de entrada passa por `ajv` antes do service.
+- **Erros padronizados:** `{ error: { code, message, details? } }` com HTTP status correto (400/401/403/404/409/422/500).
+- **Financeiro:** geração de `mensalidades` por criança/competência a partir de `configPrecos`/`crianca.financeiro`. Baixa via **webhook** MercadoPago, **idempotente** (`txid`/`payment_id`), sem dupla baixa. Recibo → S3.
+- **Transações** (replicaSet) ao gerar mensalidade + baixar pagamento.
+- **Soft delete** (`ativo:false`) para criança/turma/usuário — preserva histórico.
+- **LGPD/segurança:** dados de saúde de crianças. IAM por Lambda (menor privilégio); segredos só em SSM; webhook com assinatura verificada; logs sem PII; auditoria em edição de criança e baixas financeiras.
+
+## 6. Modelo de dados (MongoDB)
+
+Coleções principais: `usuarios`, `criancas`, `professores`, `turmas`, `agendasDiarias`, `planosAula`, `mensalidades`, `pagamentos`, `despesas`, `configPrecos`.
+
+Índices-chave: `agendasDiarias {criancaId, data}` único · `mensalidades {criancaId, ano, mes}` único · `pagamentos.txid` único · `criancas.cpf` único.
+
+Schema completo, índices e consultas: [`docs/04-Banco-de-Dados.md`](./docs/04-Banco-de-Dados.md).
+
+## 7. Endpoints (resumo — contrato completo em docs/03)
+
+`/usuarios` `/criancas` `/turmas` `/professores` · `/agenda` `/agenda/historico` · `/mensalidades` `/pagamentos` `/webhooks/mercadopago` `/financeiro/balanco` `/despesas` `/financeiro/inadimplentes` · `/simulador` `/config/precos`. Base `/v1`, JWT obrigatório exceto simulador/landing e webhook (assinado).
+
+## 8. Como rodar
+
+### Local (sem AWS)
+
+```bash
+npm install
+docker compose up -d          # Mongo local com replicaSet (necessário p/ transações)
+npm run dev                   # nodemon + serverless offline --config serverless.local.yml
+curl localhost:3000/v1/health # {"data":{"status":"ok", ...}}
+```
+
+`serverless.local.yml` sobe sem `authorizer` do Cognito e sem nenhuma
+variável vinda do SSM — por isso funciona antes do Cognito estar
+provisionado. Para simular um usuário autenticado localmente, mande headers
+`x-dev-sub`, `x-dev-role` (`admin`/`professor`/`responsavel`) e
+`x-dev-email` nas requisições (ver `src/middlewares/auth.ts`; esse fallback
+só é lido quando `STAGE` é `dev`/`local`, nunca em `staging`/`prod`). Rotas
+que chamam o Cognito de verdade (criar/remover usuário) só funcionam após o
+setup de AWS abaixo.
+
+Outros comandos: `npm test` (Jest), `npm run typecheck` (`tsc --noEmit`).
+
+### Setup manual de AWS (uma vez, antes do primeiro deploy)
+
+O deploy real (`npm run deploy:dev|staging|prod`) usa `serverless.yml`, que
+lê Cognito e Mongo via **SSM Parameter Store** — nada disso é provisionado
+automaticamente. Antes do primeiro deploy em cada stage:
+
+1. **Cognito:** criar um User Pool + App Client (sem secret, fluxo
+   `USER_PASSWORD_AUTH`/`ADMIN_USER_PASSWORD_AUTH`) e 3 grupos:
+   `admin`, `professor`, `responsavel`.
+2. **SSM Parameter Store** (`String`/`SecureString`), prefixo
+   `/aquarela_serverless/<stage>/...` (dev usa `/aquarela_serverless/...`
+   sem o stage no meio — ver `config/dev.json`):
+   - `cognito_url` → issuer do User Pool (`https://cognito-idp.<region>.amazonaws.com/<userPoolId>`)
+   - `client_id` → App Client ID
+   - `user_pool_id` → User Pool ID
+   - `cognito_user_pool_arn` → ARN do User Pool
+   - `db` (staging/prod) → connection string do MongoDB Atlas
+   - `frontend_url` (staging/prod) → origem do `aquarela_app` para CORS
+3. **MongoDB Atlas:** cluster com **replicaSet** habilitado (exigido para
+   transações), IP allowlist liberando os egress da AWS (ou VPC peering).
+4. Deploy: `npm run deploy:dev` (e `deploy:staging`/`deploy:prod` quando
+   existirem esses ambientes).
+
+Ver INF-02/INF-05/INF-11 em [`docs/06-Backlog.md`](./docs/06-Backlog.md) para o detalhamento desses passos como tarefas de backlog.
+
+## 9. Documentação (pasta `docs/`)
+
+| Arquivo | Conteúdo |
+|---|---|
+| `00-Visao-Produto-PRD.md` | Visão, personas, papéis, épicos, user stories, MVP |
+| `01-Design-UX.md` | UX/telas (referência) |
+| `02-Frontend.md` | O que o front consome desta API |
+| `03-Backend.md` | **Guia deste repo** (arquitetura, endpoints) |
+| `04-Banco-de-Dados.md` | **Modelo de dados** deste repo |
+| `05-Sugestoes-Produto.md` | Evoluções priorizadas |
+| `06-Backlog.md` | Tarefas por épico, estimativas, sprints |
+
+> Ao mudar contrato de API ou schema, **atualize `docs/03` e `docs/04`** — o front (`aquarela_app`) depende deles para não sair do contrato.

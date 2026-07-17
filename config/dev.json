@@ -1,0 +1,12 @@
+{
+  "environment": {
+    "DB": "mongodb://localhost:27017/aquarela_serverless?replicaSet=rs0",
+    "SERVICE": "aquarela_serverless",
+    "COGNITO_URL": "${ssm:/aquarela_serverless/cognito_url}",
+    "CLIENT_ID": "${ssm:/aquarela_serverless/client_id}",
+    "USER_POOL_ID": "${ssm:/aquarela_serverless/user_pool_id}",
+    "REGION": "us-east-1",
+    "COGNITO_USER_POOL_ARN": "${ssm:/aquarela_serverless/cognito_user_pool_arn}",
+    "FRONTEND_URL": "http://localhost:3000"
+  }
+}

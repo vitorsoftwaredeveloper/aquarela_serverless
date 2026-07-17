@@ -1,0 +1,59 @@
+createUsuario:
+  handler: src/handlers/usuarios/createUsuario.execute
+  environment:
+    USER_POOL_ID: ${self:custom.environment.USER_POOL_ID}
+  events:
+    - httpApi:
+        method: POST
+        path: /v1/usuarios
+        authorizer:
+          name: cognitoAuthorizer
+
+listUsuarios:
+  handler: src/handlers/usuarios/listUsuarios.execute
+  events:
+    - httpApi:
+        method: GET
+        path: /v1/usuarios
+        authorizer:
+          name: cognitoAuthorizer
+
+getMe:
+  handler: src/handlers/usuarios/getMe.execute
+  events:
+    - httpApi:
+        method: GET
+        path: /v1/me
+        authorizer:
+          name: cognitoAuthorizer
+
+getUsuarioById:
+  handler: src/handlers/usuarios/getUsuarioById.execute
+  events:
+    - httpApi:
+        method: GET
+        path: /v1/usuarios/{id}
+        authorizer:
+          name: cognitoAuthorizer
+
+updateUsuario:
+  handler: src/handlers/usuarios/updateUsuario.execute
+  environment:
+    USER_POOL_ID: ${self:custom.environment.USER_POOL_ID}
+  events:
+    - httpApi:
+        method: PUT
+        path: /v1/usuarios/{id}
+        authorizer:
+          name: cognitoAuthorizer
+
+removeUsuario:
+  handler: src/handlers/usuarios/removeUsuario.execute
+  environment:
+    USER_POOL_ID: ${self:custom.environment.USER_POOL_ID}
+  events:
+    - httpApi:
+        method: DELETE
+        path: /v1/usuarios/{id}
+        authorizer:
+          name: cognitoAuthorizer

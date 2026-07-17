@@ -1,0 +1,218 @@
+service: aquarela-serverless
+
+frameworkVersion: "3"
+
+# Ambiente 100% inline (sem `${file(./config/dev.json)}`): dev.json usa
+# `${ssm:...}` para as chaves do Cognito, e o Serverless resolve TODAS as
+# variáveis do objeto referenciado ao carregar o config — mesmo as que
+# nenhuma function local usa. Isso quebraria `serverless offline` sem
+# credenciais AWS/parâmetros já provisionados. Local.yml fica deliberadamente
+# sem Cognito; ver checklist de setup manual no CLAUDE.md.
+custom:
+  environment:
+    DB: mongodb://localhost:27017/aquarela_serverless?replicaSet=rs0
+    SERVICE: aquarela_serverless
+  esbuild: ${file(esbuild.config.js)}
+
+provider:
+  name: aws
+  runtime: nodejs24.x
+  region: ${opt:region, 'us-east-1'}
+  stage: ${opt:stage, 'dev'}
+  environment:
+    DB: ${self:custom.environment.DB}
+    STAGE: local
+    SERVICE_NAME: ${self:custom.environment.SERVICE}
+
+plugins:
+  - serverless-esbuild
+  - serverless-offline
+
+# Sem `authorizer` e sem variáveis vindas do SSM (COGNITO_URL/CLIENT_ID/
+# USER_POOL_ID) — assim `serverless offline` sobe sem precisar de acesso à
+# AWS. Papel/ownership localmente são simulados via headers x-dev-sub /
+# x-dev-role / x-dev-email (ver src/middlewares/auth.ts). Rotas que chamam
+# o Cognito (provisionar/desabilitar usuário) só funcionam de fato depois
+# do User Pool real ser criado (ver checklist no CLAUDE.md).
+functions:
+  health:
+    handler: src/handlers/health/getHealth.execute
+    events:
+      - httpApi:
+          method: GET
+          path: /v1/health
+
+  createUsuario:
+    handler: src/handlers/usuarios/createUsuario.execute
+    events:
+      - httpApi:
+          method: POST
+          path: /v1/usuarios
+
+  listUsuarios:
+    handler: src/handlers/usuarios/listUsuarios.execute
+    events:
+      - httpApi:
+          method: GET
+          path: /v1/usuarios
+
+  getMe:
+    handler: src/handlers/usuarios/getMe.execute
+    events:
+      - httpApi:
+          method: GET
+          path: /v1/me
+
+  getUsuarioById:
+    handler: src/handlers/usuarios/getUsuarioById.execute
+    events:
+      - httpApi:
+          method: GET
+          path: /v1/usuarios/{id}
+
+  updateUsuario:
+    handler: src/handlers/usuarios/updateUsuario.execute
+    events:
+      - httpApi:
+          method: PUT
+          path: /v1/usuarios/{id}
+
+  removeUsuario:
+    handler: src/handlers/usuarios/removeUsuario.execute
+    events:
+      - httpApi:
+          method: DELETE
+          path: /v1/usuarios/{id}
+
+  createProfessor:
+    handler: src/handlers/professores/createProfessor.execute
+    events:
+      - httpApi:
+          method: POST
+          path: /v1/professores
+
+  listProfessores:
+    handler: src/handlers/professores/listProfessores.execute
+    events:
+      - httpApi:
+          method: GET
+          path: /v1/professores
+
+  getProfessorById:
+    handler: src/handlers/professores/getProfessorById.execute
+    events:
+      - httpApi:
+          method: GET
+          path: /v1/professores/{id}
+
+  updateProfessor:
+    handler: src/handlers/professores/updateProfessor.execute
+    events:
+      - httpApi:
+          method: PUT
+          path: /v1/professores/{id}
+
+  removeProfessor:
+    handler: src/handlers/professores/removeProfessor.execute
+    events:
+      - httpApi:
+          method: DELETE
+          path: /v1/professores/{id}
+
+  createTurma:
+    handler: src/handlers/turmas/createTurma.execute
+    events:
+      - httpApi:
+          method: POST
+          path: /v1/turmas
+
+  listTurmas:
+    handler: src/handlers/turmas/listTurmas.execute
+    events:
+      - httpApi:
+          method: GET
+          path: /v1/turmas
+
+  getTurmaById:
+    handler: src/handlers/turmas/getTurmaById.execute
+    events:
+      - httpApi:
+          method: GET
+          path: /v1/turmas/{id}
+
+  updateTurma:
+    handler: src/handlers/turmas/updateTurma.execute
+    events:
+      - httpApi:
+          method: PUT
+          path: /v1/turmas/{id}
+
+  removeTurma:
+    handler: src/handlers/turmas/removeTurma.execute
+    events:
+      - httpApi:
+          method: DELETE
+          path: /v1/turmas/{id}
+
+  listCriancasDaTurma:
+    handler: src/handlers/turmas/listCriancasDaTurma.execute
+    events:
+      - httpApi:
+          method: GET
+          path: /v1/turmas/{id}/criancas
+
+  vincularCrianca:
+    handler: src/handlers/turmas/vincularCrianca.execute
+    events:
+      - httpApi:
+          method: POST
+          path: /v1/turmas/{id}/criancas
+
+  desvincularCrianca:
+    handler: src/handlers/turmas/desvincularCrianca.execute
+    events:
+      - httpApi:
+          method: DELETE
+          path: /v1/turmas/{id}/criancas/{criancaId}
+
+  createCrianca:
+    handler: src/handlers/criancas/createCrianca.execute
+    events:
+      - httpApi:
+          method: POST
+          path: /v1/criancas
+
+  listCriancas:
+    handler: src/handlers/criancas/listCriancas.execute
+    events:
+      - httpApi:
+          method: GET
+          path: /v1/criancas
+
+  getCriancaById:
+    handler: src/handlers/criancas/getCriancaById.execute
+    events:
+      - httpApi:
+          method: GET
+          path: /v1/criancas/{id}
+
+  updateCrianca:
+    handler: src/handlers/criancas/updateCrianca.execute
+    events:
+      - httpApi:
+          method: PUT
+          path: /v1/criancas/{id}
+
+  removeCrianca:
+    handler: src/handlers/criancas/removeCrianca.execute
+    events:
+      - httpApi:
+          method: DELETE
+          path: /v1/criancas/{id}
+
+  moverCriancaTurma:
+    handler: src/handlers/criancas/moverCriancaTurma.execute
+    events:
+      - httpApi:
+          method: PATCH
+          path: /v1/criancas/{id}/turma

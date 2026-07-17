@@ -1,0 +1,44 @@
+createProfessor:
+  handler: src/handlers/professores/createProfessor.execute
+  events:
+    - httpApi:
+        method: POST
+        path: /v1/professores
+        authorizer:
+          name: cognitoAuthorizer
+
+listProfessores:
+  handler: src/handlers/professores/listProfessores.execute
+  events:
+    - httpApi:
+        method: GET
+        path: /v1/professores
+        authorizer:
+          name: cognitoAuthorizer
+
+getProfessorById:
+  handler: src/handlers/professores/getProfessorById.execute
+  events:
+    - httpApi:
+        method: GET
+        path: /v1/professores/{id}
+        authorizer:
+          name: cognitoAuthorizer
+
+updateProfessor:
+  handler: src/handlers/professores/updateProfessor.execute
+  events:
+    - httpApi:
+        method: PUT
+        path: /v1/professores/{id}
+        authorizer:
+          name: cognitoAuthorizer
+
+removeProfessor:
+  handler: src/handlers/professores/removeProfessor.execute
+  events:
+    - httpApi:
+        method: DELETE
+        path: /v1/professores/{id}
+        authorizer:
+          name: cognitoAuthorizer
