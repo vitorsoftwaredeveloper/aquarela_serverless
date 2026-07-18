@@ -1,0 +1,35 @@
+createAgenda:
+  handler: src/handlers/agendas/createAgenda.execute
+  events:
+    - httpApi:
+        method: POST
+        path: /v1/agenda
+        authorizer:
+          name: cognitoAuthorizer
+
+updateAgenda:
+  handler: src/handlers/agendas/updateAgenda.execute
+  events:
+    - httpApi:
+        method: PUT
+        path: /v1/agenda/{id}
+        authorizer:
+          name: cognitoAuthorizer
+
+getAgenda:
+  handler: src/handlers/agendas/getAgenda.execute
+  events:
+    - httpApi:
+        method: GET
+        path: /v1/agenda
+        authorizer:
+          name: cognitoAuthorizer
+
+getHistoricoAgenda:
+  handler: src/handlers/agendas/getHistoricoAgenda.execute
+  events:
+    - httpApi:
+        method: GET
+        path: /v1/agenda/historico
+        authorizer:
+          name: cognitoAuthorizer

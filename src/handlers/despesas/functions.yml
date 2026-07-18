@@ -1,0 +1,17 @@
+createDespesa:
+  handler: src/handlers/despesas/createDespesa.execute
+  events:
+    - httpApi:
+        method: POST
+        path: /v1/despesas
+        authorizer:
+          name: cognitoAuthorizer
+
+listDespesas:
+  handler: src/handlers/despesas/listDespesas.execute
+  events:
+    - httpApi:
+        method: GET
+        path: /v1/despesas
+        authorizer:
+          name: cognitoAuthorizer

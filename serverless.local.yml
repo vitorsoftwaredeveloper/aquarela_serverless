@@ -12,6 +12,9 @@ custom:
   environment:
     DB: mongodb://localhost:27017/aquarela_serverless?replicaSet=rs0
     SERVICE: aquarela_serverless
+    # Chave só de desenvolvimento local (dado descartável no Mongo local) —
+    # nunca reaproveitar em staging/prod, que buscam a própria via SSM.
+    ENCRYPTION_KEY: f1b17b2618c9d09d7e3bcb5a7c4ec0b8d9431f127b56375328a0bbe5685ac7b3
   esbuild: ${file(esbuild.config.js)}
 
 provider:
@@ -23,6 +26,7 @@ provider:
     DB: ${self:custom.environment.DB}
     STAGE: local
     SERVICE_NAME: ${self:custom.environment.SERVICE}
+    ENCRYPTION_KEY: ${self:custom.environment.ENCRYPTION_KEY}
 
 plugins:
   - serverless-esbuild
@@ -209,3 +213,87 @@ functions:
       - httpApi:
           method: PATCH
           path: /v1/criancas/{id}/turma
+
+  createAgenda:
+    handler: src/handlers/agendas/createAgenda.execute
+    events:
+      - httpApi:
+          method: POST
+          path: /v1/agenda
+
+  updateAgenda:
+    handler: src/handlers/agendas/updateAgenda.execute
+    events:
+      - httpApi:
+          method: PUT
+          path: /v1/agenda/{id}
+
+  getAgenda:
+    handler: src/handlers/agendas/getAgenda.execute
+    events:
+      - httpApi:
+          method: GET
+          path: /v1/agenda
+
+  getHistoricoAgenda:
+    handler: src/handlers/agendas/getHistoricoAgenda.execute
+    events:
+      - httpApi:
+          method: GET
+          path: /v1/agenda/historico
+
+  listMensalidades:
+    handler: src/handlers/mensalidades/listMensalidades.execute
+    events:
+      - httpApi:
+          method: GET
+          path: /v1/mensalidades
+
+  createPagamento:
+    handler: src/handlers/pagamentos/createPagamento.execute
+    events:
+      - httpApi:
+          method: POST
+          path: /v1/pagamentos
+
+  getPagamentoStatus:
+    handler: src/handlers/pagamentos/getPagamentoStatus.execute
+    events:
+      - httpApi:
+          method: GET
+          path: /v1/pagamentos/{txid}
+
+  mercadopagoWebhook:
+    handler: src/handlers/webhooks/mercadopago.execute
+    events:
+      - httpApi:
+          method: POST
+          path: /v1/webhooks/mercadopago
+
+  createDespesa:
+    handler: src/handlers/despesas/createDespesa.execute
+    events:
+      - httpApi:
+          method: POST
+          path: /v1/despesas
+
+  listDespesas:
+    handler: src/handlers/despesas/listDespesas.execute
+    events:
+      - httpApi:
+          method: GET
+          path: /v1/despesas
+
+  getBalanco:
+    handler: src/handlers/financeiro/getBalanco.execute
+    events:
+      - httpApi:
+          method: GET
+          path: /v1/financeiro/balanco
+
+  getInadimplentes:
+    handler: src/handlers/financeiro/getInadimplentes.execute
+    events:
+      - httpApi:
+          method: GET
+          path: /v1/financeiro/inadimplentes

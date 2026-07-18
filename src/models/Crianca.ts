@@ -57,7 +57,11 @@ export const CriancaSchema = new Schema(
   {
     nome: { type: String, required: true, trim: true },
     dataNascimento: { type: Date, required: true },
-    cpf: { type: String, required: true, unique: true, trim: true },
+    // Cifrado em repouso (LGPD) — ver src/repositories/transforms/criancaCrypto.ts.
+    // IV aleatório por gravação, então não pode carregar o índice único;
+    // `cpfHash` (HMAC determinístico) garante a unicidade no lugar dele.
+    cpf: { type: String, required: true, trim: true },
+    cpfHash: { type: String, required: true, unique: true },
     foto: { type: String },
     // Divergência deliberada de docs/04: opcional para suportar
     // desvincular a criança de uma turma sem removê-la (ver DELETE

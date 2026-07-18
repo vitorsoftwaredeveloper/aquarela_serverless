@@ -21,6 +21,7 @@ provider:
   environment:
     STAGE: ${self:provider.stage}
     DB: ${self:custom.environment.DB}
+    ENCRYPTION_KEY: ${self:custom.environment.ENCRYPTION_KEY}
 
   httpApi:
     cors:
@@ -83,6 +84,12 @@ functions:
   - ${file(src/handlers/professores/functions.yml)}
   - ${file(src/handlers/turmas/functions.yml)}
   - ${file(src/handlers/criancas/functions.yml)}
+  - ${file(src/handlers/agendas/functions.yml)}
+  - ${file(src/handlers/mensalidades/functions.yml)}
+  - ${file(src/handlers/pagamentos/functions.yml)}
+  - ${file(src/handlers/webhooks/functions.yml)}
+  - ${file(src/handlers/despesas/functions.yml)}
+  - ${file(src/handlers/financeiro/functions.yml)}
 
 resources:
   extensions:

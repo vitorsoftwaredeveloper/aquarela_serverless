@@ -1,0 +1,13 @@
+gerarMensalidades:
+  handler: src/handlers/mensalidades/gerarMensalidades.execute
+  events:
+    - schedule: cron(0 6 1 * ? *)
+
+listMensalidades:
+  handler: src/handlers/mensalidades/listMensalidades.execute
+  events:
+    - httpApi:
+        method: GET
+        path: /v1/mensalidades
+        authorizer:
+          name: cognitoAuthorizer

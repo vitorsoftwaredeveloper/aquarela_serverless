@@ -1,0 +1,9 @@
+mercadopagoWebhook:
+  handler: src/handlers/webhooks/mercadopago.execute
+  environment:
+    MERCADOPAGO_ACCESS_TOKEN: ${self:custom.environment.MERCADOPAGO_ACCESS_TOKEN}
+    MERCADOPAGO_WEBHOOK_SECRET: ${self:custom.environment.MERCADOPAGO_WEBHOOK_SECRET}
+  events:
+    - httpApi:
+        method: POST
+        path: /v1/webhooks/mercadopago

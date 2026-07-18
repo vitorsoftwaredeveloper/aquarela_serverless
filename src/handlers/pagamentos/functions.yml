@@ -1,0 +1,19 @@
+createPagamento:
+  handler: src/handlers/pagamentos/createPagamento.execute
+  environment:
+    MERCADOPAGO_ACCESS_TOKEN: ${self:custom.environment.MERCADOPAGO_ACCESS_TOKEN}
+  events:
+    - httpApi:
+        method: POST
+        path: /v1/pagamentos
+        authorizer:
+          name: cognitoAuthorizer
+
+getPagamentoStatus:
+  handler: src/handlers/pagamentos/getPagamentoStatus.execute
+  events:
+    - httpApi:
+        method: GET
+        path: /v1/pagamentos/{txid}
+        authorizer:
+          name: cognitoAuthorizer

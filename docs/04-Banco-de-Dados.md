@@ -48,13 +48,15 @@ Perfil de app espelhando o Cognito.
 ```
 {
   _id,
-  nome, dataNascimento: Date, cpf: string (idx, unique), foto?: string(S3),
+  nome, dataNascimento: Date,
+  cpf: string (cifrado), cpfHash: string (idx, unique),  // ver nota de criptografia
+  foto?: string(S3),
   turmaId?: ObjectId | null (idx),   // opcional — ver nota abaixo
   responsaveis: [{
-    usuarioId?: ObjectId, nome, cpf, parentesco,
+    usuarioId?: ObjectId, nome, cpf: string (cifrado), parentesco,
     telefone, email, podeRetirar: boolean
   }],
-  saude: {
+  saude: {                            // todos os campos abaixo cifrados
     alergias: [string],
     restricoesAlimentares: [string],
     medicacoesContinuas: [{ nome, dose, horario, observacao? }],
@@ -68,9 +70,9 @@ Perfil de app espelhando o Cognito.
   createdAt, updatedAt
 }
 ```
-Índices: `cpf` (unique), `turmaId`, texto em `nome`.
+Índices: `cpfHash` (unique), `turmaId`, texto em `nome`.
 
-> **Implementado com 2 divergências deliberadas desta especificação** (ver
+> **Implementado com 3 divergências deliberadas desta especificação** (ver
 > `aquarela_serverless`):
 > - `turmaId` é **opcional/nullable**, não obrigatório — necessário para
 >   `DELETE /turmas/{id}/criancas/{criancaId}` (desvincular sem apagar a
@@ -78,6 +80,13 @@ Perfil de app espelhando o Cognito.
 > - Adicionado `auditoria` (array embutido, capado às últimas 50 entradas)
 >   para atender CAD-09 (quem/quando alterou o cadastro, especialmente
 >   campos de saúde) sem precisar de uma coleção nova nesta fase.
+> - **Criptografia em repouso (LGPD):** `cpf`, `responsaveis[].cpf` e todo
+>   `saude.*` são cifrados (AES-256-GCM, IV aleatório por gravação — ver
+>   `src/libs/crypto.ts`) antes de gravar; o service continua lendo/gravando
+>   texto plano, a cifragem acontece no `crianca.repository.ts`. Como o
+>   ciphertext varia a cada gravação, a unicidade de CPF não pode mais viver
+>   num índice sobre `cpf` — `cpfHash` (HMAC-SHA256 determinístico, mesma
+>   chave) carrega esse índice único no lugar dele.
 
 ### `professores`
 ```
@@ -176,7 +185,7 @@ Usado pelo simulador e pela geração de mensalidades.
 | Coleção | Índice | Motivo |
 |---|---|---|
 | usuarios | `cognitoSub` unique, `email` unique | login/lookup |
-| criancas | `cpf` unique, `turmaId` | busca e listagem por turma |
+| criancas | `cpfHash` unique, `turmaId` | busca e listagem por turma |
 | agendasDiarias | `{criancaId, data}` unique; `{criancaId, data:-1}` | dia e histórico |
 | mensalidades | `{criancaId, ano, mes}` unique; `status` | financeiro do pai/inadimplência |
 | pagamentos | `txid` unique | conciliação/idempotência |

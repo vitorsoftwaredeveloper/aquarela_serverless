@@ -1,0 +1,17 @@
+getBalanco:
+  handler: src/handlers/financeiro/getBalanco.execute
+  events:
+    - httpApi:
+        method: GET
+        path: /v1/financeiro/balanco
+        authorizer:
+          name: cognitoAuthorizer
+
+getInadimplentes:
+  handler: src/handlers/financeiro/getInadimplentes.execute
+  events:
+    - httpApi:
+        method: GET
+        path: /v1/financeiro/inadimplentes
+        authorizer:
+          name: cognitoAuthorizer

@@ -60,7 +60,7 @@ src/
 ├─ models/       # schemas Mongoose
 ├─ schemas/      # JSONSchemaType (ajv) por payload
 ├─ middlewares/  # auth, roleGuard, errorHandler
-├─ libs/         # mongo.ts, s3.ts, ssm.ts, mercadopago.ts
+├─ libs/         # mongo.ts, s3.ts, ssm.ts, mercadopago.ts, crypto.ts
 └─ utils/ types/
 serverless.ts · config/<stage>.json
 ```
@@ -78,7 +78,7 @@ Detalhes: [`docs/03-Backend.md`](./docs/03-Backend.md).
 - **Financeiro:** geração de `mensalidades` por criança/competência a partir de `configPrecos`/`crianca.financeiro`. Baixa via **webhook** MercadoPago, **idempotente** (`txid`/`payment_id`), sem dupla baixa. Recibo → S3.
 - **Transações** (replicaSet) ao gerar mensalidade + baixar pagamento.
 - **Soft delete** (`ativo:false`) para criança/turma/usuário — preserva histórico.
-- **LGPD/segurança:** dados de saúde de crianças. IAM por Lambda (menor privilégio); segredos só em SSM; webhook com assinatura verificada; logs sem PII; auditoria em edição de criança e baixas financeiras.
+- **LGPD/segurança:** dados de saúde de crianças. IAM por Lambda (menor privilégio); segredos só em SSM; webhook com assinatura verificada; logs sem PII; auditoria em edição de criança e baixas financeiras. **Criptografia em repouso:** `criancas.cpf`, `criancas.responsaveis[].cpf` e `criancas.saude.*` são cifrados (AES-256-GCM) antes de gravar e decifrados só na leitura — ver `src/libs/crypto.ts` e `src/repositories/transforms/criancaCrypto.ts`. Como o IV é aleatório por gravação, a unicidade do CPF não pode mais usar índice direto: `criancas.cpfHash` (HMAC determinístico, mesma chave) carrega o índice único no lugar de `cpf`.
 
 ## 6. Modelo de dados (MongoDB)
 
@@ -125,6 +125,14 @@ automaticamente. Antes do primeiro deploy em cada stage:
    - `cognito_user_pool_arn` → ARN do User Pool
    - `db` (staging/prod) → connection string do MongoDB Atlas
    - `frontend_url` (staging/prod) → origem do `aquarela_app` para CORS
+   - `mercadopago_access_token` → access token da conta MercadoPago
+     (`SecureString`; sandbox em dev, produção em prod)
+   - `mercadopago_webhook_secret` → segredo de assinatura do webhook
+     (`SecureString`), gerado no painel do MercadoPago
+   - `encryption_key` → chave AES-256 (`SecureString`, hex de 64 chars —
+     gerar com `openssl rand -hex 32`) para os campos cifrados de `criancas`
+     (CPF, dados de saúde). **Perder essa chave torna os dados
+     irrecuperáveis** — guardar backup fora do SSM (ex.: cofre da equipe).
 3. **MongoDB Atlas:** cluster com **replicaSet** habilitado (exigido para
    transações), IP allowlist liberando os egress da AWS (ou VPC peering).
 4. Deploy: `npm run deploy:dev` (e `deploy:staging`/`deploy:prod` quando

@@ -167,14 +167,18 @@ Base: `/v1`. Todos exigem JWT, exceto os marcados como público.
 import { JSONSchemaType } from "ajv";
 interface CriarAgendaBody {
   criancaId: string; data: string;
-  alimentacao?: { refeicao: string; aceitacao: "tudo"|"parte"|"recusou" }[];
+  alimentacao?: { refeicao: "cafe"|"almoco"|"lanche"|"janta"; aceitacao: "tudo"|"parte"|"recusou"; obs?: string }[];
   sono?: { inicio: string; fim: string }[];
-  medicacoes?: { nome: string; dose: string; hora: string }[];
-  intercorrencia?: { tipo: string; descricao: string };
+  atividades?: string[];
+  humor?: "feliz"|"tranquilo"|"neutro"|"choroso";
+  higiene?: { fraldas?: number; obs?: string };
+  medicacoesAdministradas?: { nome: string; dose: string; hora: string; aplicadaPor: string }[];
+  intercorrencias?: { tipo: "febre"|"queda"|"doenca"|"outro"; descricao: string; hora: string; notificado?: boolean }[];
   observacoes?: string;
 }
-const schema: JSONSchemaType<CriarAgendaBody> = { /* ... */ };
+const schema: JSONSchemaType<CriarAgendaBody> = { /* ver src/schemas/agendas/createAgenda.schema.ts */ };
 ```
+`PUT /agenda/{id}` aceita o mesmo corpo sem `criancaId`/`data` (imutáveis após criação — ver `src/schemas/agendas/updateAgenda.schema.ts`).
 Validar todo payload de entrada antes do service. `ajv-formats` para data/hora/e-mail.
 
 ---

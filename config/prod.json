@@ -7,6 +7,9 @@
     "USER_POOL_ID": "${ssm:/aquarela_serverless/prod/user_pool_id}",
     "REGION": "us-east-1",
     "COGNITO_USER_POOL_ARN": "${ssm:/aquarela_serverless/prod/cognito_user_pool_arn}",
-    "FRONTEND_URL": "${ssm:/aquarela_serverless/prod/frontend_url}"
+    "FRONTEND_URL": "${ssm:/aquarela_serverless/prod/frontend_url}",
+    "MERCADOPAGO_ACCESS_TOKEN": "/aquarela_serverless/prod/mercadopago_access_token",
+    "MERCADOPAGO_WEBHOOK_SECRET": "/aquarela_serverless/prod/mercadopago_webhook_secret",
+    "ENCRYPTION_KEY": "/aquarela_serverless/prod/encryption_key"
   }
 }
