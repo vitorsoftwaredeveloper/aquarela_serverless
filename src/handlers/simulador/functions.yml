@@ -1,0 +1,6 @@
+simular:
+  handler: src/handlers/simulador/simular.execute
+  events:
+    - httpApi:
+        method: GET
+        path: /v1/simulador

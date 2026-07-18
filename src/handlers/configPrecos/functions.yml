@@ -1,0 +1,17 @@
+getConfigPrecos:
+  handler: src/handlers/configPrecos/getConfigPrecos.execute
+  events:
+    - httpApi:
+        method: GET
+        path: /v1/config/precos
+        authorizer:
+          name: cognitoAuthorizer
+
+updateConfigPrecos:
+  handler: src/handlers/configPrecos/updateConfigPrecos.execute
+  events:
+    - httpApi:
+        method: PUT
+        path: /v1/config/precos
+        authorizer:
+          name: cognitoAuthorizer

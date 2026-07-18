@@ -90,6 +90,8 @@ functions:
   - ${file(src/handlers/webhooks/functions.yml)}
   - ${file(src/handlers/despesas/functions.yml)}
   - ${file(src/handlers/financeiro/functions.yml)}
+  - ${file(src/handlers/configPrecos/functions.yml)}
+  - ${file(src/handlers/simulador/functions.yml)}
 
 resources:
   extensions:
