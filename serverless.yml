@@ -79,7 +79,6 @@ plugins:
   - serverless-prune-plugin
 
 functions:
-  - ${file(src/handlers/health/functions.yml)}
   - ${file(src/handlers/usuarios/functions.yml)}
   - ${file(src/handlers/professores/functions.yml)}
   - ${file(src/handlers/turmas/functions.yml)}

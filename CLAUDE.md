@@ -25,22 +25,22 @@ Simulador **público** de mensalidade para interessados (sem login).
 
 ## 3. Stack
 
-| Item | Escolha |
-|---|---|
-| Runtime | Node.js 24.x · TypeScript |
-| Framework | Serverless Framework v3 (fork `osls`/`oss-serverless`) |
-| Compute | AWS Lambda (`individually` + `serverless-esbuild`) |
-| API | API Gateway **HTTP API** (`httpApi`) |
-| Banco | **MongoDB** via **Mongoose** (não DynamoDB) |
-| Auth | AWS Cognito (JWT authorizer nativo do HTTP API) |
-| Validação | `ajv` (`JSONSchemaType`) + `ajv-formats` |
-| Storage | S3 (comprovantes/recibos) |
-| Config/Secrets | SSM Parameter Store (`config/<stage>.json`) |
-| Pagamentos | MercadoPago (PIX) |
-| Push | Firebase Admin — **fase 2+** |
-| Plugins SLS | `serverless-esbuild`, `serverless-prune-plugin`, `serverless-offline` |
-| Testes | Jest + ts-jest |
-| Dev local | `nodemon` + `serverless-offline` + MongoDB (docker-compose, **replicaSet**) |
+| Item           | Escolha                                                                     |
+| -------------- | --------------------------------------------------------------------------- |
+| Runtime        | Node.js 24.x · TypeScript                                                   |
+| Framework      | Serverless Framework v3 (fork `osls`/`oss-serverless`)                      |
+| Compute        | AWS Lambda (`individually` + `serverless-esbuild`)                          |
+| API            | API Gateway **HTTP API** (`httpApi`)                                        |
+| Banco          | **MongoDB** via **Mongoose** (não DynamoDB)                                 |
+| Auth           | AWS Cognito (JWT authorizer nativo do HTTP API)                             |
+| Validação      | `ajv` (`JSONSchemaType`) + `ajv-formats`                                    |
+| Storage        | S3 (comprovantes/recibos)                                                   |
+| Config/Secrets | SSM Parameter Store (`config/<stage>.json`)                                 |
+| Pagamentos     | MercadoPago (PIX)                                                           |
+| Push           | Firebase Admin — **fase 2+**                                                |
+| Plugins SLS    | `serverless-esbuild`, `serverless-prune-plugin`, `serverless-offline`       |
+| Testes         | Jest + ts-jest                                                              |
+| Dev local      | `nodemon` + `serverless-offline` + MongoDB (docker-compose, **replicaSet**) |
 
 > ⚠️ O template de origem trazia itens de outro projeto (TTS de liturgia, módulo de dízimo) que **NÃO** se aplicam ao Aquarela Kids. Reaproveitamos só o MercadoPago/PIX para as mensalidades. Ignore qualquer resquício desses módulos.
 
@@ -96,13 +96,6 @@ Schema completo, índices e consultas: [`docs/04-Banco-de-Dados.md`](./docs/04-B
 
 ### Local (sem AWS)
 
-```bash
-npm install
-docker compose up -d          # Mongo local com replicaSet (necessário p/ transações)
-npm run dev                   # nodemon + serverless offline --config serverless.local.yml
-curl localhost:3000/v1/health # {"data":{"status":"ok", ...}}
-```
-
 `serverless.local.yml` sobe sem `authorizer` do Cognito e sem nenhuma
 variável vinda do SSM — por isso funciona antes do Cognito estar
 provisionado. Para simular um usuário autenticado localmente, mande headers
@@ -141,14 +134,14 @@ Ver INF-02/INF-05/INF-11 em [`docs/06-Backlog.md`](./docs/06-Backlog.md) para o 
 
 ## 9. Documentação (pasta `docs/`)
 
-| Arquivo | Conteúdo |
-|---|---|
+| Arquivo                   | Conteúdo                                           |
+| ------------------------- | -------------------------------------------------- |
 | `00-Visao-Produto-PRD.md` | Visão, personas, papéis, épicos, user stories, MVP |
-| `01-Design-UX.md` | UX/telas (referência) |
-| `02-Frontend.md` | O que o front consome desta API |
-| `03-Backend.md` | **Guia deste repo** (arquitetura, endpoints) |
-| `04-Banco-de-Dados.md` | **Modelo de dados** deste repo |
-| `05-Sugestoes-Produto.md` | Evoluções priorizadas |
-| `06-Backlog.md` | Tarefas por épico, estimativas, sprints |
+| `01-Design-UX.md`         | UX/telas (referência)                              |
+| `02-Frontend.md`          | O que o front consome desta API                    |
+| `03-Backend.md`           | **Guia deste repo** (arquitetura, endpoints)       |
+| `04-Banco-de-Dados.md`    | **Modelo de dados** deste repo                     |
+| `05-Sugestoes-Produto.md` | Evoluções priorizadas                              |
+| `06-Backlog.md`           | Tarefas por épico, estimativas, sprints            |
 
 > Ao mudar contrato de API ou schema, **atualize `docs/03` e `docs/04`** — o front (`aquarela_app`) depende deles para não sair do contrato.

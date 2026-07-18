@@ -35,13 +35,6 @@ plugins:
 # o Cognito (provisionar/desabilitar usuário) só funcionam de fato depois
 # do User Pool real ser criado (ver checklist no CLAUDE.md).
 functions:
-  health:
-    handler: src/handlers/health/getHealth.execute
-    events:
-      - httpApi:
-          method: GET
-          path: /v1/health
-
   createUsuario:
     handler: src/handlers/usuarios/createUsuario.execute
     events:

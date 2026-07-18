@@ -1,6 +1,0 @@
-health:
-  handler: src/handlers/health/getHealth.execute
-  events:
-    - httpApi:
-        method: GET
-        path: /v1/health
