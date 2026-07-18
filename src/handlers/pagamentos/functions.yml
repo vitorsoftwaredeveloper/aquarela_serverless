@@ -2,6 +2,14 @@ createPagamento:
   handler: src/handlers/pagamentos/createPagamento.execute
   environment:
     MERCADOPAGO_ACCESS_TOKEN: ${self:custom.environment.MERCADOPAGO_ACCESS_TOKEN}
+  iamRoleStatementsInherit: true
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - ssm:GetParameter
+      Resource:
+        - ${self:custom.ssmParameterArn}/mercadopago_access_token
+        - ${self:custom.ssmParameterArn}/*/mercadopago_access_token
   events:
     - httpApi:
         method: POST

@@ -8,6 +8,7 @@ custom:
   prune:
     automatic: true
     number: 3
+  ssmParameterArn: arn:aws:ssm:${aws:region}:${aws:accountId}:parameter/aquarela_serverless
 
 package:
   individually: true
@@ -45,26 +46,20 @@ provider:
         issuerUrl: ${self:custom.environment.COGNITO_URL}
         audience:
           - ${self:custom.environment.CLIENT_ID}
+  # Baseline compartilhado por toda função (via serverless-iam-roles-per-function
+  # + iamRoleStatementsInherit: true) — só o que é lido em praticamente toda
+  # invocação (conexão Mongo, chave de criptografia). Permissões mais
+  # específicas (Cognito, MercadoPago) ficam só nas functions.yml que
+  # realmente as usam — ver src/handlers/usuarios, /pagamentos, /webhooks.
   iamRoleStatements:
-    - Effect: Allow
-      Action:
-        - cognito-idp:AdminCreateUser
-        - cognito-idp:AdminDeleteUser
-        - cognito-idp:AdminDisableUser
-        - cognito-idp:AdminEnableUser
-        - cognito-idp:AdminSetUserPassword
-        - cognito-idp:AdminUpdateUserAttributes
-        - cognito-idp:AdminAddUserToGroup
-        - cognito-idp:AdminRemoveUserFromGroup
-        - cognito-idp:AdminGetUser
-        - cognito-idp:ListUsers
-      Resource:
-        - ${self:custom.environment.COGNITO_USER_POOL_ARN}
     - Effect: Allow
       Action:
         - ssm:GetParameter
       Resource:
-        - arn:aws:ssm:${aws:region}:${aws:accountId}:parameter/aquarela_serverless/*
+        - ${self:custom.ssmParameterArn}/db
+        - ${self:custom.ssmParameterArn}/*/db
+        - ${self:custom.ssmParameterArn}/encryption_key
+        - ${self:custom.ssmParameterArn}/*/encryption_key
     # Necessário apenas quando o parâmetro for SecureString (KMS alias/aws/ssm).
     # Escopado por condição: só permite Decrypt via serviço SSM.
     - Effect: Allow
@@ -77,6 +72,7 @@ provider:
 
 plugins:
   - serverless-esbuild
+  - serverless-iam-roles-per-function
   - serverless-prune-plugin
 
 functions:

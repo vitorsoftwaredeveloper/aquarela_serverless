@@ -3,6 +3,16 @@ mercadopagoWebhook:
   environment:
     MERCADOPAGO_ACCESS_TOKEN: ${self:custom.environment.MERCADOPAGO_ACCESS_TOKEN}
     MERCADOPAGO_WEBHOOK_SECRET: ${self:custom.environment.MERCADOPAGO_WEBHOOK_SECRET}
+  iamRoleStatementsInherit: true
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - ssm:GetParameter
+      Resource:
+        - ${self:custom.ssmParameterArn}/mercadopago_access_token
+        - ${self:custom.ssmParameterArn}/*/mercadopago_access_token
+        - ${self:custom.ssmParameterArn}/mercadopago_webhook_secret
+        - ${self:custom.ssmParameterArn}/*/mercadopago_webhook_secret
   events:
     - httpApi:
         method: POST

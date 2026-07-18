@@ -38,7 +38,7 @@ Simulador **público** de mensalidade para interessados (sem login).
 | Config/Secrets | SSM Parameter Store (`config/<stage>.json`)                                 |
 | Pagamentos     | MercadoPago (PIX)                                                           |
 | Push           | Firebase Admin — **fase 2+**                                                |
-| Plugins SLS    | `serverless-esbuild`, `serverless-prune-plugin`, `serverless-offline`       |
+| Plugins SLS    | `serverless-esbuild`, `serverless-prune-plugin`, `serverless-offline`, `serverless-iam-roles-per-function` |
 | Testes         | Jest + ts-jest                                                              |
 | Dev local      | `nodemon` + `serverless-offline` + MongoDB (docker-compose, **replicaSet**) |
 

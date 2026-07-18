@@ -2,6 +2,18 @@ createUsuario:
   handler: src/handlers/usuarios/createUsuario.execute
   environment:
     USER_POOL_ID: ${self:custom.environment.USER_POOL_ID}
+  # AdminDeleteUser: rollback do Cognito se a gravação em `usuarios` falhar
+  # depois do createCognitoUser (ver createUsuario.ts).
+  iamRoleStatementsInherit: true
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - cognito-idp:AdminCreateUser
+        - cognito-idp:AdminAddUserToGroup
+        - cognito-idp:AdminGetUser
+        - cognito-idp:AdminDeleteUser
+      Resource:
+        - ${self:custom.environment.COGNITO_USER_POOL_ARN}
   events:
     - httpApi:
         method: POST
@@ -40,6 +52,14 @@ updateUsuario:
   handler: src/handlers/usuarios/updateUsuario.execute
   environment:
     USER_POOL_ID: ${self:custom.environment.USER_POOL_ID}
+  iamRoleStatementsInherit: true
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - cognito-idp:AdminAddUserToGroup
+        - cognito-idp:AdminRemoveUserFromGroup
+      Resource:
+        - ${self:custom.environment.COGNITO_USER_POOL_ARN}
   events:
     - httpApi:
         method: PUT
@@ -51,6 +71,13 @@ removeUsuario:
   handler: src/handlers/usuarios/removeUsuario.execute
   environment:
     USER_POOL_ID: ${self:custom.environment.USER_POOL_ID}
+  iamRoleStatementsInherit: true
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - cognito-idp:AdminDisableUser
+      Resource:
+        - ${self:custom.environment.COGNITO_USER_POOL_ARN}
   events:
     - httpApi:
         method: DELETE
