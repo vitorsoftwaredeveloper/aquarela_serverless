@@ -22,19 +22,24 @@ export function createInstanceMongoose<T>(
     },
     findOne: async (filter: any, projection?: any, options?: any) => {
       await db();
-      return await mongooseModel
-        .findOne(filter, projection, { ...options })
-        .lean();
+      return await mongooseModel.findOne(filter, projection, {
+        ...options,
+        lean: true,
+      });
     },
     find: async (filter: any, projection?: any, options?: any) => {
       await db();
-      return await mongooseModel.find(filter, projection, options).lean();
+      return await mongooseModel.find(filter, projection, {
+        ...options,
+        lean: true,
+      });
     },
     findById: async (id: any, projection?: any, options?: any) => {
       await db();
-      return await mongooseModel
-        .findById(id, projection, { ...options })
-        .lean();
+      return await mongooseModel.findById(id, projection, {
+        ...options,
+        lean: true,
+      });
     },
     deleteOne: async (filter: any, options?: any) => {
       await db();
