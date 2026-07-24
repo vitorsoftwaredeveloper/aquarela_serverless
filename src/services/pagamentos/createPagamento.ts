@@ -48,24 +48,59 @@ export const createPagamentoService = async (
     return pendente;
   }
 
-  const cobranca = await criarCobrancaPix({
-    valor: mensalidade.valor,
-    descricao: `Mensalidade ${mensalidade.mes}/${mensalidade.ano}`,
-    payerEmail: requester.email,
-  });
+  // Reserva o slot pendente ANTES de chamar o MercadoPago. O índice único
+  // parcial (mensalidadeId + status:"pendente") garante que só UMA reserva
+  // vence, mesmo com requests concorrentes. Como a cobrança MercadoPago só é
+  // criada depois de vencer a corrida, o perdedor devolve o pagamento
+  // existente sem gerar uma segunda cobrança (evita a duplicata).
+  let reserva: Awaited<ReturnType<typeof PagamentoRepository.insertOne>>;
+  try {
+    reserva = await PagamentoRepository.insertOne({
+      mensalidadeId,
+      criancaId: mensalidade.criancaId,
+      metodo: "pix",
+      provedor: "mercadopago",
+      txid: randomUUID(),
+      valor: mensalidade.valor,
+      status: "pendente",
+    });
+  } catch (error: any) {
+    if (error?.code === 11000) {
+      const existente = (await PagamentoRepository.findOne({
+        mensalidadeId,
+        status: "pendente",
+      })) as IPagamento | null;
+      if (existente) {
+        return existente;
+      }
+    }
+    throw error;
+  }
 
-  const created = await PagamentoRepository.insertOne({
-    mensalidadeId,
-    criancaId: mensalidade.criancaId,
-    metodo: "pix",
-    provedor: "mercadopago",
-    txid: randomUUID(),
-    providerPaymentId: cobranca.providerPaymentId,
-    valor: mensalidade.valor,
-    status: "pendente",
-    pixCopiaECola: cobranca.pixCopiaECola,
-    qrBase64: cobranca.qrBase64,
-  });
+  // Só o vencedor chega aqui: uma única cobrança PIX é criada.
+  try {
+    const cobranca = await criarCobrancaPix({
+      valor: mensalidade.valor,
+      descricao: `Mensalidade ${mensalidade.mes}/${mensalidade.ano}`,
+      payerEmail: requester.email,
+    });
 
-  return (await PagamentoRepository.findById(created._id)) as IPagamento;
+    await PagamentoRepository.updateOne(
+      { _id: reserva._id },
+      {
+        $set: {
+          providerPaymentId: cobranca.providerPaymentId,
+          pixCopiaECola: cobranca.pixCopiaECola,
+          qrBase64: cobranca.qrBase64,
+        },
+      },
+    );
+
+    return (await PagamentoRepository.findById(reserva._id)) as IPagamento;
+  } catch (error) {
+    // MercadoPago falhou: remove a reserva pra não deixar um pendente sem QR
+    // travando o índice único (e a próxima tentativa do responsável).
+    await PagamentoRepository.deleteOne({ _id: reserva._id });
+    throw error;
+  }
 };

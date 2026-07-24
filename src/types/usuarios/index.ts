@@ -21,6 +21,11 @@ export interface ICreateUsuarioPayload {
   telefone?: string;
 }
 
+/** Retorno do create: usuário + senha temporária entregue UMA vez ao admin. */
+export interface ICreateUsuarioResult extends IUsuario {
+  senhaTemporaria: string;
+}
+
 export interface IUpdateUsuarioPayload {
   nome?: string;
   telefone?: string;

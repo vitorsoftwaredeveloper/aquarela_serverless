@@ -8,6 +8,9 @@ export interface ITurma {
   ativo: boolean;
   createdAt?: Date;
   updatedAt?: Date;
+  /** Só populado em `GET /turmas` para o professor (ver listTurmas service). */
+  totalCriancas?: number;
+  agendasPendentes?: number;
 }
 
 export interface ICreateTurmaPayload {

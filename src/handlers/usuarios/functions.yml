@@ -71,11 +71,12 @@ removeUsuario:
   handler: src/handlers/usuarios/removeUsuario.execute
   environment:
     USER_POOL_ID: ${self:custom.environment.USER_POOL_ID}
+  # Hard delete (ver removeUsuario.ts): remove de vez do Cognito.
   iamRoleStatementsInherit: true
   iamRoleStatements:
     - Effect: Allow
       Action:
-        - cognito-idp:AdminDisableUser
+        - cognito-idp:AdminDeleteUser
       Resource:
         - ${self:custom.environment.COGNITO_USER_POOL_ARN}
   events:

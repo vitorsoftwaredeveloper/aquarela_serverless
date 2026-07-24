@@ -32,3 +32,11 @@ export const PagamentoSchema = new Schema(
   },
   { timestamps: true },
 );
+
+// Impede duas cobranças PIX pendentes simultâneas para a mesma mensalidade
+// (evita a corrida entre "verifica se já existe pendente" e "insere" em
+// src/services/pagamentos/createPagamento.ts).
+PagamentoSchema.index(
+  { mensalidadeId: 1 },
+  { unique: true, partialFilterExpression: { status: "pendente" } },
+);

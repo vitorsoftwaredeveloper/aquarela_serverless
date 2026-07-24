@@ -89,7 +89,7 @@ config/<stage>.json          # referências a SSM
 
 Base: `/v1`. Todos exigem JWT, exceto os marcados como público.
 
-> **Convenção de CRUD.** Todas as entidades de cadastro (`usuarios`, `professores`, `turmas`, `criancas`) expõem o ciclo completo **create / read / update / delete**. `DELETE` é sempre **soft delete** (`ativo: false`) para preservar histórico de agenda e financeiro — nada é apagado fisicamente. Ver seção 9 (LGPD) e a doc de banco.
+> **Convenção de CRUD.** Todas as entidades de cadastro (`usuarios`, `professores`, `turmas`, `criancas`) expõem o ciclo completo **create / read / update / delete**. `professores` e `turmas` usam **soft delete** (`ativo: false`), preservando histórico. `usuarios` e `criancas` usam **hard delete** (remoção definitiva, inclusive do Cognito no caso de `usuarios`) — para só bloquear acesso sem apagar, use `PUT` com `ativo:false`. Ver seção 9 (LGPD) e a doc de banco.
 
 ### Auth/usuários (CRUD completo)
 | Método | Rota | Papel | Descrição |
@@ -98,7 +98,7 @@ Base: `/v1`. Todos exigem JWT, exceto os marcados como público.
 | GET | `/usuarios` | admin | Listar usuários (filtros: papel, ativo) |
 | GET | `/usuarios/{id}` | admin | Detalhe do usuário |
 | PUT | `/usuarios/{id}` | admin | Atualizar dados/papel |
-| DELETE | `/usuarios/{id}` | admin | Remover usuário (soft delete + desabilitar no Cognito) |
+| DELETE | `/usuarios/{id}` | admin | Remover usuário (hard delete: banco + Cognito; bloqueado `409` se houver criança/turma vinculada) |
 | GET | `/me` | todos | Dados do usuário logado + papel |
 
 ### Professores (CRUD completo)
@@ -130,13 +130,13 @@ Base: `/v1`. Todos exigem JWT, exceto os marcados como público.
 | GET | `/criancas` | admin/professor | Listar (filtro por turma, nome, ativo) |
 | GET | `/criancas/{id}` | admin/professor/responsavel* | Detalhe (*só o próprio filho) |
 | PUT | `/criancas/{id}` | admin | Editar dados/saúde/responsáveis |
-| DELETE | `/criancas/{id}` | admin | Remover (soft delete — preserva agenda/financeiro) |
+| DELETE | `/criancas/{id}` | admin | Remover (hard delete — apaga também agenda/mensalidades/pagamentos da criança; desvincula responsáveis sem apagá-los) |
 
 **Regras de vínculo e remoção:**
 - Uma criança pertence a **uma turma por vez**. Vincular a uma nova turma (ou `PATCH .../turma`) substitui o vínculo anterior.
 - **Remover turma** com crianças ativas é bloqueado (`409`): o admin deve antes realocar/desvincular as crianças (o front pode oferecer "mover todos para a turma X").
 - **Remover professor** vinculado a uma turma retorna aviso/`409`; trocar a professora da turma é feito via `PUT /turmas/{id}`.
-- Todo `DELETE` é **soft delete** (`ativo:false`) e idempotente; itens inativos não aparecem nas listas por padrão (filtro `ativo=false` para recuperá-los).
+- `DELETE /criancas/{id}` é **hard delete** (definitivo, apaga histórico próprio da criança em cadeia — agenda, mensalidades, pagamentos). Para só bloquear acesso preservando histórico, use `PUT /criancas/{id}` com `ativo:false`.
 
 ### Agenda diária
 | POST | `/agenda` | professor | Criar registro (criança+data) |
@@ -146,6 +146,7 @@ Base: `/v1`. Todos exigem JWT, exceto os marcados como público.
 
 ### Financeiro / Pagamentos
 | GET | `/mensalidades?criancaId=&ano=` | responsavel*/admin | Meses pagos/em aberto |
+> Geração de mensalidade: `POST /criancas` já cria, na hora do cadastro, a mensalidade de cada mês do mês corrente até dezembro do ano corrente (`gerarMensalidadesIniciaisService`) — sem isso a criança ficaria sem cobrança até o cron mensal (`gerarMensalidadesDoMes`, dia 1 de cada mês) gerar a competência seguinte. Ambos idempotentes via índice único `{criancaId, ano, mes}`. Mensalidade não é proporcional a cadastro no meio do mês — sempre o valor cheio de `crianca.financeiro.valorMensalidade`.
 | POST | `/pagamentos` | responsavel | Gerar cobrança PIX (retorna copia-e-cola + txid) |
 | GET | `/pagamentos/{txid}` | responsavel | Status do pagamento |
 | POST | `/webhooks/mercadopago` | público (assinado) | Confirmação de pagamento |
@@ -156,6 +157,12 @@ Base: `/v1`. Todos exigem JWT, exceto os marcados como público.
 ### Simulador
 | GET | `/simulador?meses=&plano=` | público | Cálculo de estimativa (ou 100% no cliente) |
 | GET/PUT | `/config/precos` | admin | Valores base da mensalidade |
+
+### Mural de avisos
+| POST | `/avisos` | admin | Criar aviso (título, corpo, `turmaId` opcional) |
+| GET | `/avisos?ativo=` | admin/professor/responsavel | Listar avisos — admin vê todos (filtro `ativo` opcional); professor/responsável só `ativo:true` e visível pra eles (sem `turmaId` = todos, ou `turmaId` de turma que lecionam/filho está matriculado) |
+| PUT | `/avisos/{id}` | admin | Editar título/corpo/`turmaId` |
+| DELETE | `/avisos/{id}` | admin | Soft delete (`ativo:false`) |
 
 **Erros:** padrão `{ error: { code, message, details? } }` com HTTP status adequado (400 validação, 401/403 auth, 404, 409 conflito, 422 regra de negócio, 500).
 

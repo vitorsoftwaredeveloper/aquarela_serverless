@@ -24,6 +24,7 @@ criancas ──1:N── mensalidades ──1:1── pagamentos
 turmas   ──1:N── planosAula
 (admin)  ── despesas
          ── configPrecos (singleton)
+         ── avisos ──(opcional)── turmas
 ```
 
 ---
@@ -178,6 +179,15 @@ Uma por criança + competência (mês/ano).
 ```
 Usado pelo simulador e pela geração de mensalidades.
 
+### `avisos`
+```
+{ _id, titulo, corpo,
+  autorId: ObjectId (usuarios),
+  turmaId?: ObjectId (turmas),   // ausente = visível a todos; presente = só à turma
+  ativo: boolean, createdAt, updatedAt }
+```
+Soft delete (`ativo:false`). Leitura: admin vê tudo; professor/responsável só `ativo:true` sem `turmaId` ou com `turmaId` de turma que lecionam/filho está matriculado.
+
 ---
 
 ## 4. Índices (resumo)
@@ -190,6 +200,7 @@ Usado pelo simulador e pela geração de mensalidades.
 | mensalidades | `{criancaId, ano, mes}` unique; `status` | financeiro do pai/inadimplência |
 | pagamentos | `txid` unique | conciliação/idempotência |
 | despesas | `data` | balanço por período |
+| avisos | `{ativo, createdAt:-1}` | listagem por mais recente |
 
 ---
 

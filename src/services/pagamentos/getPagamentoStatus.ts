@@ -3,12 +3,23 @@ import { IPagamento } from "../../types/pagamentos";
 import { IUsuario } from "../../types/usuarios";
 import { loadCriancaParaFinanceiro } from "../shared/financeiroAccess";
 import { httpError, STATUS_CODE } from "../../utils/errors";
+import { processarWebhookMercadoPago } from "../webhooks/processarWebhookMercadoPago";
+
+// Em dev/local o MercadoPago não consegue entregar o webhook em `localhost`,
+// então esse é o único stage onde vale consultar o provedor diretamente a
+// partir do polling do front. Nunca ativa em staging/prod — lá a baixa é
+// sempre via webhook assinado (mesmo gate de `isDevFallbackAllowed` em
+// src/middlewares/auth.ts).
+const isDevFallbackAllowed = (): boolean => {
+  const stage = (process.env.STAGE || "").toLowerCase();
+  return stage === "dev" || stage === "local" || stage === "";
+};
 
 export const getPagamentoStatusService = async (
   requester: IUsuario,
   txid: string,
 ): Promise<IPagamento> => {
-  const pagamento = (await PagamentoRepository.findOne({
+  let pagamento = (await PagamentoRepository.findOne({
     txid,
   })) as IPagamento | null;
   if (!pagamento) {
@@ -21,5 +32,16 @@ export const getPagamentoStatusService = async (
 
   await loadCriancaParaFinanceiro(requester, pagamento.criancaId);
 
-  return pagamento;
+  if (
+    pagamento.status === "pendente" &&
+    pagamento.providerPaymentId &&
+    isDevFallbackAllowed()
+  ) {
+    await processarWebhookMercadoPago(pagamento.providerPaymentId);
+    pagamento = (await PagamentoRepository.findOne({
+      txid,
+    })) as IPagamento | null;
+  }
+
+  return pagamento as IPagamento;
 };

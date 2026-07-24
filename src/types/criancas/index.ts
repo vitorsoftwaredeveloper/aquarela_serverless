@@ -63,6 +63,19 @@ export interface ICreateCriancaPayload {
   financeiro: IFinanceiroCrianca;
 }
 
+/** Acesso de responsável criado junto com a criança (senha entregue 1x ao admin). */
+export interface IAcessoResponsavelCriado {
+  nome: string;
+  email: string;
+  senhaTemporaria: string;
+}
+
+/** Retorno do create: a criança + acessos de responsável recém-criados. */
+export interface ICreateCriancaResult {
+  crianca: ICrianca;
+  acessosResponsaveis: IAcessoResponsavelCriado[];
+}
+
 export interface IUpdateCriancaPayload {
   nome?: string;
   dataNascimento?: string;
@@ -70,4 +83,6 @@ export interface IUpdateCriancaPayload {
   responsaveis?: IResponsavel[];
   saude?: ISaude;
   financeiro?: IFinanceiroCrianca;
+  /** Ativar/desativar o acesso sem apagar a criança (ver DELETE, que é definitivo). */
+  ativo?: boolean;
 }

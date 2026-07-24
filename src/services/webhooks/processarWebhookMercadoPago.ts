@@ -48,6 +48,20 @@ export const processarWebhookMercadoPago = async (
         { $set: { status: "pago", pagamentoId: pagamento._id } },
         { session },
       );
+
+      // Expira qualquer outra cobrança pendente da mesma mensalidade. Com o
+      // índice único isso nunca deveria existir, mas cobre o caso de uma
+      // duplicata que escapou antes do índice — assim a mensalidade paga não
+      // deixa um pagamento "pendente" órfão para sempre.
+      await PagamentoRepository.model.updateMany(
+        {
+          mensalidadeId: pagamento.mensalidadeId,
+          status: "pendente",
+          _id: { $ne: pagamento._id },
+        },
+        { $set: { status: "expirado" } },
+        { session },
+      );
     });
   } finally {
     await session.endSession();

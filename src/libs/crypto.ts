@@ -53,8 +53,11 @@ export const decrypt = async (ciphertext: string): Promise<string> => {
 
   const key = await resolveKey();
   const raw = ciphertext.slice(ENCRYPTED_PREFIX.length);
-  const [ivHex, authTagHex, encryptedHex] = raw.split(":");
-  if (!ivHex || !authTagHex || !encryptedHex) {
+  const parts = raw.split(":");
+  // IV e authTag são obrigatórios; o ciphertext PODE ser vazio — encrypt("")
+  // produz `ENC:<iv>:<tag>:` (AES-GCM de string vazia = 0 bytes). Não é inválido.
+  const [ivHex, authTagHex, encryptedHex] = parts;
+  if (parts.length !== 3 || !ivHex || !authTagHex || encryptedHex === undefined) {
     throw new Error("Formato de valor cifrado inválido.");
   }
 

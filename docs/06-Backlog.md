@@ -14,7 +14,7 @@
 - **Dep.:** tarefas que precisam estar prontas antes.
 - **AC:** critérios de aceite resumidos.
 
-Épicos: **0** Fundação · **A** Cadastros · **B** Agenda diária · **C** Portal dos pais · **D** Financeiro/PIX · **E** Simulador · **F** Pedagógico · **G** Qualidade/Go-live.
+Épicos: **0** Fundação · **A** Cadastros · **B** Agenda diária · **C** Portal dos pais · **D** Financeiro/PIX · **E** Simulador · **F** Pedagógico · **G** Qualidade/Go-live · **H** Mural de avisos.
 
 Resumo de esforço do MVP no fim do documento.
 
@@ -172,6 +172,22 @@ Base para todos os demais épicos. Não entrega valor ao usuário final, mas des
 
 ---
 
+## Épico H — Mural de avisos (AVI)
+
+Front (`aquarela_app`) já tem tela de criação (admin) e leitura (responsável). Falta o back: modelo, validação, RBAC e endpoints.
+
+| ID     | Tarefa                                                    | Prio | Pts | Camada | Dep.    | AC                                                                              |
+| ------ | ---------------------------------------------------------- | ---- | --- | ------ | ------- | -------------------------------------------------------------------------------- |
+| AVI-01 | Modelo `avisos` (BE) + índice `{ativo, createdAt}`        | 🔴   | 2   | BE     | INF-06  | Campos: título, corpo, autorId, publicoAlvo, ativo, timestamps                   |
+| AVI-02 | Schema ajv + endpoint `POST /avisos` (criar)               | 🔴   | 3   | BE     | AVI-01  | Só `admin`; validação de payload; 201 + id gerado                                |
+| AVI-03 | Endpoint `GET /avisos` (listar)                             | 🔴   | 3   | BE     | AVI-01  | `admin` vê todos; `professor`/`responsavel` só `ativo:true`, ordenado por data   |
+| AVI-04 | Endpoint `PUT`/`DELETE /avisos/{id}` (editar/soft delete)  | 🟡   | 3   | BE     | AVI-01  | Só `admin`; `DELETE` marca `ativo:false`, não remove documento                   |
+| AVI-05 | Atualizar `docs/03-Backend.md` e `docs/04-Banco-de-Dados.md` com contrato | 🔴 | 1 | BE | AVI-01…04 | Contrato de `/avisos` documentado p/ o front não sair do combinado |
+
+**Subtotal Épico H:** 12 pts (MVP: 12 pts).
+
+---
+
 ## Resumo de esforço
 
 | Épico                 | Total (pts) | MVP (pts) |
@@ -184,7 +200,8 @@ Base para todos os demais épicos. Não entrega valor ao usuário final, mas des
 | E — Simulador         | 17          | 11        |
 | F — Pedagógico        | 16          | 3         |
 | G — Qualidade/Go-live | 29          | 23        |
-| **Total**             | **310**     | **254**   |
+| H — Mural de avisos   | 12          | 12        |
+| **Total**             | **322**     | **266**   |
 
 > Ordem de grandeza (não compromisso). Com um time de 2–3 devs a ~20–25 pts/sprint de 2 semanas, o MVP (~254 pts) fica em torno de **5 a 6 sprints (10–12 semanas)**. Refine as estimativas em planning com o time.
 

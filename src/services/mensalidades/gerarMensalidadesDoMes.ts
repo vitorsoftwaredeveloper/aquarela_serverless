@@ -1,7 +1,6 @@
 import { CriancaRepository } from "../../repositories/crianca.repository";
-import { MensalidadeRepository } from "../../repositories/mensalidade.repository";
 import { ICrianca } from "../../types/criancas";
-import { DUPLICATE_KEY_ERROR_CODE } from "../../utils/errors";
+import { criarMensalidadeSeNaoExiste } from "./criarMensalidadeSeNaoExiste";
 
 export interface IGerarMensalidadesResult {
   geradas: number;
@@ -26,26 +25,16 @@ export const gerarMensalidadesDoMesService = async (
   let ignoradas = 0;
 
   for (const crianca of criancas) {
-    const vencimento = new Date(
-      Date.UTC(ano, mes - 1, crianca.financeiro.diaVencimento),
+    const criada = await criarMensalidadeSeNaoExiste(
+      crianca._id,
+      crianca.financeiro,
+      ano,
+      mes,
     );
-
-    try {
-      await MensalidadeRepository.insertOne({
-        criancaId: crianca._id,
-        ano,
-        mes,
-        valor: crianca.financeiro.valorMensalidade,
-        vencimento,
-        status: "aberto",
-      });
+    if (criada) {
       geradas += 1;
-    } catch (error: any) {
-      if (error.code === DUPLICATE_KEY_ERROR_CODE) {
-        ignoradas += 1;
-        continue;
-      }
-      throw error;
+    } else {
+      ignoradas += 1;
     }
   }
 

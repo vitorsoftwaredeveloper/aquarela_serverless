@@ -34,6 +34,15 @@ export const listCriancasService = async (
     }
 
     query.turmaId = filters.turmaId ? filters.turmaId : { $in: turmaIds };
+  } else if (requester.papel === "responsavel") {
+    // Mesma checagem de posse do getCriancaById: vínculo em
+    // usuarios.criancasVinculadas OU usuarioId gravado no responsável
+    // embutido (cobre crianças cadastradas antes desse vínculo existir).
+    query.$or = [
+      { _id: { $in: requester.criancasVinculadas ?? [] } },
+      { "responsaveis.usuarioId": String(requester._id) },
+    ];
+    if (filters.turmaId) query.turmaId = filters.turmaId;
   } else if (filters.turmaId) {
     query.turmaId = filters.turmaId;
   }

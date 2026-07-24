@@ -33,6 +33,12 @@ export const execute = withErrorHandling(
       secret,
     });
 
+    console.log("mercadopago webhook signature check", {
+      dataId: String(dataId),
+      xRequestId,
+      valid: assinaturaValida,
+    });
+
     if (!assinaturaValida) {
       throw httpError(
         STATUS_CODE.UNAUTHORIZED,

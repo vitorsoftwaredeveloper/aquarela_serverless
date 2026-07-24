@@ -1,7 +1,12 @@
+import mongoose from "mongoose";
+import { db } from "../../libs/mongo";
 import { ProfessorRepository } from "../../repositories/professor.repository";
 import { UsuarioRepository } from "../../repositories/usuario.repository";
-import { ICreateProfessorPayload, IProfessor } from "../../types/professores";
-import { IUsuario } from "../../types/usuarios";
+import { createCognitoUser, removeCognitoUser } from "../../libs/cognito";
+import {
+  ICreateProfessorPayload,
+  IProfessorCriado,
+} from "../../types/professores";
 import { isValidCpf } from "../../utils/cpf";
 import {
   httpError,
@@ -9,62 +14,82 @@ import {
   DUPLICATE_KEY_ERROR_CODE,
 } from "../../utils/errors";
 
+/**
+ * Cria usuário (Cognito + `usuarios`) e professor juntos. Usuário e professor
+ * são gravados em uma transação (replicaSet); se qualquer etapa falhar depois
+ * do Cognito já ter criado a conta, o usuário do Cognito é removido (rollback
+ * manual, já que Cognito não participa da transação do Mongo).
+ */
 export const createProfessorService = async (
   payload: ICreateProfessorPayload,
-): Promise<IProfessor> => {
+): Promise<IProfessorCriado> => {
   if (!isValidCpf(payload.cpf)) {
     throw httpError(STATUS_CODE.BAD_REQUEST, "INVALID_CPF", "CPF inválido.");
   }
 
-  const usuario = (await UsuarioRepository.findById(
-    payload.usuarioId,
-  )) as IUsuario | null;
+  const email = payload.email.toLowerCase();
 
-  if (!usuario || !usuario.ativo) {
-    throw httpError(
-      STATUS_CODE.NOT_FOUND,
-      "USUARIO_NOT_FOUND",
-      "Usuário não encontrado.",
-    );
-  }
-
-  if (usuario.papel !== "professor") {
-    throw httpError(
-      STATUS_CODE.UNPROCESSABLE_ENTITY,
-      "USUARIO_PAPEL_INVALIDO",
-      "O usuário vinculado precisa ter papel 'professor'.",
-    );
-  }
-
-  const existingProfessor = await ProfessorRepository.findOne({
-    usuarioId: payload.usuarioId,
-  });
-  if (existingProfessor) {
+  const existing = await UsuarioRepository.findOne({ email });
+  if (existing) {
     throw httpError(
       STATUS_CODE.CONFLICT,
-      "USUARIO_JA_VINCULADO",
-      "Este usuário já está vinculado a um cadastro de professor.",
+      "EMAIL_IN_USE",
+      "Já existe um usuário com este email.",
     );
   }
 
+  const { sub: cognitoSub, temporaryPassword } = await createCognitoUser(
+    email,
+    "professor",
+  );
+
   try {
-    const created = await ProfessorRepository.insertOne({
-      usuarioId: payload.usuarioId,
-      nome: payload.nome,
-      cpf: payload.cpf,
-      telefone: payload.telefone,
-      email: payload.email.toLowerCase(),
-      formacao: payload.formacao,
-      ativo: true,
+    await db();
+    const session = await mongoose.startSession();
+
+    let professor;
+    try {
+      await session.withTransaction(async () => {
+        const usuario = await UsuarioRepository.insertOne(
+          {
+            cognitoSub,
+            nome: payload.nome,
+            email,
+            papel: "professor",
+            telefone: payload.telefone,
+            ativo: true,
+          },
+          { session },
+        );
+
+        professor = await ProfessorRepository.insertOne(
+          {
+            usuarioId: usuario._id,
+            nome: payload.nome,
+            cpf: payload.cpf,
+            telefone: payload.telefone,
+            email,
+            formacao: payload.formacao,
+            ativo: true,
+          },
+          { session },
+        );
+      });
+    } finally {
+      await session.endSession();
+    }
+
+    return { ...(professor as any).toObject(), senhaTemporaria: temporaryPassword };
+  } catch (error: any) {
+    await removeCognitoUser(email).catch((rollbackError) => {
+      console.error("Failed to rollback Cognito user:", rollbackError);
     });
 
-    return (await ProfessorRepository.findById(created._id)) as IProfessor;
-  } catch (error: any) {
     if (error.code === DUPLICATE_KEY_ERROR_CODE) {
       throw httpError(
         STATUS_CODE.CONFLICT,
-        "USUARIO_JA_VINCULADO",
-        "Este usuário já está vinculado a um cadastro de professor.",
+        "EMAIL_IN_USE",
+        "Já existe um usuário com este email.",
       );
     }
     throw error;

@@ -12,12 +12,16 @@ export interface IProfessor {
 }
 
 export interface ICreateProfessorPayload {
-  usuarioId: string;
   nome: string;
   cpf: string;
   telefone: string;
   email: string;
   formacao?: string;
+}
+
+/** Retorno do create: professor + senha temporária entregue UMA vez ao admin. */
+export interface IProfessorCriado extends IProfessor {
+  senhaTemporaria: string;
 }
 
 export interface IUpdateProfessorPayload {

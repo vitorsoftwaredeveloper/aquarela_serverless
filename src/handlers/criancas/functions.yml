@@ -1,5 +1,19 @@
 createCrianca:
   handler: src/handlers/criancas/createCrianca.execute
+  environment:
+    USER_POOL_ID: ${self:custom.environment.USER_POOL_ID}
+  # Reusa createUsuarioService para garantir o acesso do responsável (Cognito):
+  # mesmas permissões de usuarios/functions.yml#createUsuario.
+  iamRoleStatementsInherit: true
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - cognito-idp:AdminCreateUser
+        - cognito-idp:AdminAddUserToGroup
+        - cognito-idp:AdminGetUser
+        - cognito-idp:AdminDeleteUser
+      Resource:
+        - ${self:custom.environment.COGNITO_USER_POOL_ARN}
   events:
     - httpApi:
         method: POST

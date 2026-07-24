@@ -1,5 +1,19 @@
 createProfessor:
   handler: src/handlers/professores/createProfessor.execute
+  environment:
+    USER_POOL_ID: ${self:custom.environment.USER_POOL_ID}
+  # Cria usuário dedicado (Cognito + `usuarios`) junto do professor — ver
+  # createProfessor.ts. AdminDeleteUser: rollback se a transação Mongo falhar.
+  iamRoleStatementsInherit: true
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - cognito-idp:AdminCreateUser
+        - cognito-idp:AdminAddUserToGroup
+        - cognito-idp:AdminGetUser
+        - cognito-idp:AdminDeleteUser
+      Resource:
+        - ${self:custom.environment.COGNITO_USER_POOL_ARN}
   events:
     - httpApi:
         method: POST
@@ -27,6 +41,16 @@ getProfessorById:
 
 updateProfessor:
   handler: src/handlers/professores/updateProfessor.execute
+  environment:
+    USER_POOL_ID: ${self:custom.environment.USER_POOL_ID}
+  # Sincroniza email com o usuário/Cognito vinculado quando o email muda.
+  iamRoleStatementsInherit: true
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - cognito-idp:AdminUpdateUserAttributes
+      Resource:
+        - ${self:custom.environment.COGNITO_USER_POOL_ARN}
   events:
     - httpApi:
         method: PUT
@@ -36,6 +60,16 @@ updateProfessor:
 
 removeProfessor:
   handler: src/handlers/professores/removeProfessor.execute
+  environment:
+    USER_POOL_ID: ${self:custom.environment.USER_POOL_ID}
+  # Remove em definitivo o usuário/Cognito vinculado junto do soft delete do professor.
+  iamRoleStatementsInherit: true
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - cognito-idp:AdminDeleteUser
+      Resource:
+        - ${self:custom.environment.COGNITO_USER_POOL_ARN}
   events:
     - httpApi:
         method: DELETE

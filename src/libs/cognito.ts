@@ -23,15 +23,23 @@ const createCognitoClient = (): CognitoIdentityProviderClient => {
   return cognitoClient;
 };
 
+export interface ICreateCognitoUserResult {
+  sub: string;
+  /** Senha temporária gerada. O admin repassa ao usuário (fluxo "admin define e comunica"). */
+  temporaryPassword: string;
+}
+
 /**
- * Cria o usuário no Cognito com senha definitiva (o convite/troca de senha
- * fica a cargo do fluxo "esqueci minha senha" no login), adiciona ao grupo
- * correspondente ao papel e devolve o `sub` para espelhar em `usuarios`.
+ * Cria o usuário no Cognito com uma senha temporária gerada, adiciona ao grupo
+ * do papel e devolve `sub` + `temporaryPassword`. O e-mail de convite do Cognito
+ * é **suprimido** (`MessageAction: "SUPPRESS"`): a entrega da senha inicial é
+ * responsabilidade do admin (repassa a temp; o usuário troca no 1º login via
+ * challenge NEW_PASSWORD).
  */
 export const createCognitoUser = async (
   email: string,
   papel: "admin" | "professor" | "responsavel",
-): Promise<string> => {
+): Promise<ICreateCognitoUserResult> => {
   console.log("IN - createCognitoUser");
 
   const cognito = createCognitoClient();
@@ -44,6 +52,7 @@ export const createCognitoUser = async (
         UserPoolId: userPoolId,
         Username: email,
         TemporaryPassword: temporaryPassword,
+        MessageAction: "SUPPRESS",
         UserAttributes: [
           { Name: "email", Value: email },
           { Name: "email_verified", Value: "true" },
@@ -67,7 +76,7 @@ export const createCognitoUser = async (
       ?.Value as string;
 
     console.log("OUT - createCognitoUser");
-    return sub;
+    return { sub, temporaryPassword };
   } catch (error) {
     console.error("Error creating Cognito user:", error);
     throw error;

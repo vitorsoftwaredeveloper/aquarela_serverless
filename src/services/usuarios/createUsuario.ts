@@ -1,6 +1,10 @@
 import { UsuarioRepository } from "../../repositories/usuario.repository";
 import { createCognitoUser, removeCognitoUser } from "../../libs/cognito";
-import { ICreateUsuarioPayload, IUsuario } from "../../types/usuarios";
+import {
+  ICreateUsuarioPayload,
+  ICreateUsuarioResult,
+  IUsuario,
+} from "../../types/usuarios";
 import {
   httpError,
   STATUS_CODE,
@@ -9,7 +13,7 @@ import {
 
 export const createUsuarioService = async (
   payload: ICreateUsuarioPayload,
-): Promise<IUsuario> => {
+): Promise<ICreateUsuarioResult> => {
   const email = payload.email.toLowerCase();
 
   const existing = await UsuarioRepository.findOne({ email });
@@ -21,7 +25,10 @@ export const createUsuarioService = async (
     );
   }
 
-  const cognitoSub = await createCognitoUser(email, payload.papel);
+  const { sub: cognitoSub, temporaryPassword } = await createCognitoUser(
+    email,
+    payload.papel,
+  );
 
   try {
     const created = await UsuarioRepository.insertOne({
@@ -33,7 +40,10 @@ export const createUsuarioService = async (
       ativo: true,
     });
 
-    return (await UsuarioRepository.findById(created._id)) as IUsuario;
+    const usuario = (await UsuarioRepository.findById(created._id)) as IUsuario;
+
+    // Entregue UMA vez ao admin (não é persistido nem retornado em outras rotas).
+    return { ...usuario, senhaTemporaria: temporaryPassword };
   } catch (error: any) {
     await removeCognitoUser(email).catch((rollbackError) => {
       console.error("Failed to rollback Cognito user:", rollbackError);

@@ -318,3 +318,31 @@ functions:
       - httpApi:
           method: GET
           path: /v1/simulador
+
+  createAviso:
+    handler: src/handlers/avisos/createAviso.execute
+    events:
+      - httpApi:
+          method: POST
+          path: /v1/avisos
+
+  listAvisos:
+    handler: src/handlers/avisos/listAvisos.execute
+    events:
+      - httpApi:
+          method: GET
+          path: /v1/avisos
+
+  updateAviso:
+    handler: src/handlers/avisos/updateAviso.execute
+    events:
+      - httpApi:
+          method: PUT
+          path: /v1/avisos/{id}
+
+  removeAviso:
+    handler: src/handlers/avisos/removeAviso.execute
+    events:
+      - httpApi:
+          method: DELETE
+          path: /v1/avisos/{id}

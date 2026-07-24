@@ -73,6 +73,7 @@ export const updateCriancaSchema: JSONSchemaType<IUpdateCriancaPayload> = {
       additionalProperties: false,
       nullable: true,
     },
+    ativo: { type: "boolean", nullable: true },
   },
   required: [],
   additionalProperties: false,

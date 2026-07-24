@@ -14,8 +14,8 @@ export const execute = withErrorHandling(
       parseRequestBody(event.body),
     );
 
-    const crianca = await createCriancaService(payload);
+    const result = await createCriancaService(payload);
 
-    return sendSuccessResponse(crianca, STATUS_CODE.CREATED);
+    return sendSuccessResponse(result, STATUS_CODE.CREATED);
   }),
 );
