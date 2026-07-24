@@ -1,0 +1,35 @@
+createPlanoAula:
+  handler: src/handlers/planosAula/createPlanoAula.execute
+  events:
+    - httpApi:
+        method: POST
+        path: /v1/planosAula
+        authorizer:
+          name: cognitoAuthorizer
+
+listPlanosAula:
+  handler: src/handlers/planosAula/listPlanosAula.execute
+  events:
+    - httpApi:
+        method: GET
+        path: /v1/planosAula
+        authorizer:
+          name: cognitoAuthorizer
+
+updatePlanoAula:
+  handler: src/handlers/planosAula/updatePlanoAula.execute
+  events:
+    - httpApi:
+        method: PUT
+        path: /v1/planosAula/{id}
+        authorizer:
+          name: cognitoAuthorizer
+
+removePlanoAula:
+  handler: src/handlers/planosAula/removePlanoAula.execute
+  events:
+    - httpApi:
+        method: DELETE
+        path: /v1/planosAula/{id}
+        authorizer:
+          name: cognitoAuthorizer

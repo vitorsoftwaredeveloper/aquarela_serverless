@@ -118,7 +118,7 @@ Base: `/v1`. Todos exigem JWT, exceto os marcados como público.
 | GET | `/turmas/{id}` | admin/professor | Detalhe da turma |
 | PUT | `/turmas/{id}` | admin | Atualizar dados / trocar professora |
 | DELETE | `/turmas/{id}` | admin | Remover turma (só se vazia, ou realocando as crianças — ver regra) |
-| GET | `/turmas/{id}/criancas` | admin/professor | Listar alunos da turma |
+| GET | `/turmas/{id}/criancas` | admin/professor | Listar alunos da turma — cada criança inclui `agendaRegistradaHoje: boolean` (se já tem registro de agenda na data corrente) |
 | POST | `/turmas/{id}/criancas` | admin | **Vincular** criança à turma (body: `criancaId`) |
 | DELETE | `/turmas/{id}/criancas/{criancaId}` | admin | **Desvincular** criança da turma |
 | PATCH | `/criancas/{id}/turma` | admin | **Mover** criança para outra turma (body: `turmaId`) |
@@ -156,13 +156,20 @@ Base: `/v1`. Todos exigem JWT, exceto os marcados como público.
 
 ### Simulador
 | GET | `/simulador?meses=&plano=` | público | Cálculo de estimativa (ou 100% no cliente) |
-| GET/PUT | `/config/precos` | admin | Valores base da mensalidade |
+| GET | `/config/precos/planos` | público | Lista `planos` (nome, tipo, valores, descontos) — usado pela landing page e pela tela do simulador no front |
+| GET/PUT | `/config/precos` | admin | Valores base da mensalidade (fonte de verdade; edição) |
 
 ### Mural de avisos
 | POST | `/avisos` | admin | Criar aviso (título, corpo, `turmaId` opcional) |
 | GET | `/avisos?ativo=` | admin/professor/responsavel | Listar avisos — admin vê todos (filtro `ativo` opcional); professor/responsável só `ativo:true` e visível pra eles (sem `turmaId` = todos, ou `turmaId` de turma que lecionam/filho está matriculado) |
 | PUT | `/avisos/{id}` | admin | Editar título/corpo/`turmaId` |
 | DELETE | `/avisos/{id}` | admin | Soft delete (`ativo:false`) |
+
+### Planos de aula
+| POST | `/planosAula` | admin/professor | Criar plano (título, descrição, data, `turmaId`, `objetivos?`, `materiais?`); `professorId` é derivado da turma, não do payload |
+| GET | `/planosAula?turmaId=` | admin/professor | Listar planos — admin vê todos; professor só das turmas que leciona (com `turmaId`, valida ownership; sem `turmaId`, filtra por suas turmas) |
+| PUT | `/planosAula/{id}` | admin/professor | Editar plano — professor só nas turmas que leciona (ownership validada na turma atual e, se `turmaId` mudar, na nova também) |
+| DELETE | `/planosAula/{id}` | admin/professor | Remover plano (hard delete — sem soft delete, coleção não é registro de auditoria) |
 
 **Erros:** padrão `{ error: { code, message, details? } }` com HTTP status adequado (400 validação, 401/403 auth, 404, 409 conflito, 422 regra de negócio, 500).
 

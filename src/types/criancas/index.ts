@@ -50,6 +50,7 @@ export interface ICrianca {
   ativo: boolean;
   createdAt?: Date;
   updatedAt?: Date;
+  agendaRegistradaHoje?: boolean;
 }
 
 export interface ICreateCriancaPayload {

@@ -312,6 +312,13 @@ functions:
           method: PUT
           path: /v1/config/precos
 
+  listPlanos:
+    handler: src/handlers/configPrecos/listPlanos.execute
+    events:
+      - httpApi:
+          method: GET
+          path: /v1/config/precos/planos
+
   simular:
     handler: src/handlers/simulador/simular.execute
     events:
@@ -346,3 +353,31 @@ functions:
       - httpApi:
           method: DELETE
           path: /v1/avisos/{id}
+
+  createPlanoAula:
+    handler: src/handlers/planosAula/createPlanoAula.execute
+    events:
+      - httpApi:
+          method: POST
+          path: /v1/planosAula
+
+  listPlanosAula:
+    handler: src/handlers/planosAula/listPlanosAula.execute
+    events:
+      - httpApi:
+          method: GET
+          path: /v1/planosAula
+
+  updatePlanoAula:
+    handler: src/handlers/planosAula/updatePlanoAula.execute
+    events:
+      - httpApi:
+          method: PUT
+          path: /v1/planosAula/{id}
+
+  removePlanoAula:
+    handler: src/handlers/planosAula/removePlanoAula.execute
+    events:
+      - httpApi:
+          method: DELETE
+          path: /v1/planosAula/{id}

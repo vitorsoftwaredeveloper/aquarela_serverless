@@ -7,6 +7,13 @@ getConfigPrecos:
         authorizer:
           name: cognitoAuthorizer
 
+listPlanos:
+  handler: src/handlers/configPrecos/listPlanos.execute
+  events:
+    - httpApi:
+        method: GET
+        path: /v1/config/precos/planos
+
 updateConfigPrecos:
   handler: src/handlers/configPrecos/updateConfigPrecos.execute
   events:

@@ -89,6 +89,7 @@ functions:
   - ${file(src/handlers/configPrecos/functions.yml)}
   - ${file(src/handlers/simulador/functions.yml)}
   - ${file(src/handlers/avisos/functions.yml)}
+  - ${file(src/handlers/planosAula/functions.yml)}
 
 resources:
   extensions:
