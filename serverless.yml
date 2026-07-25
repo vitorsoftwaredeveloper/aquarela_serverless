@@ -10,6 +10,23 @@ custom:
     number: 3
   ssmParameterArn: arn:aws:ssm:${aws:region}:${aws:accountId}:parameter/aquarela_serverless
 
+  fotosBucket: ${self:service}-${self:provider.stage}-fotos-${aws:accountId}
+  fotosObjectArn: arn:aws:s3:::${self:custom.fotosBucket}/criancas/*
+  fotosLeituraIamStatements:
+    - Effect: Allow
+      Action:
+        - s3:GetObject
+      Resource:
+        - ${self:custom.fotosObjectArn}
+  fotosEscritaIamStatements:
+    - Effect: Allow
+      Action:
+        - s3:GetObject
+        - s3:PutObject
+        - s3:DeleteObject
+      Resource:
+        - ${self:custom.fotosObjectArn}
+
 package:
   individually: true
 
@@ -23,11 +40,14 @@ provider:
     STAGE: ${self:provider.stage}
     DB: ${self:custom.environment.DB}
     ENCRYPTION_KEY: ${self:custom.environment.ENCRYPTION_KEY}
+    FOTOS_BUCKET: ${self:custom.fotosBucket}
+    REGION: ${self:custom.environment.REGION}
 
   httpApi:
     cors:
       allowedOrigins:
         - ${self:custom.environment.FRONTEND_URL}
+        - http://localhost:3000
       allowedHeaders:
         - Content-Type
         - Authorization
@@ -46,11 +66,7 @@ provider:
         issuerUrl: ${self:custom.environment.COGNITO_URL}
         audience:
           - ${self:custom.environment.CLIENT_ID}
-  # Baseline compartilhado por toda função (via serverless-iam-roles-per-function
-  # + iamRoleStatementsInherit: true) — só o que é lido em praticamente toda
-  # invocação (conexão Mongo, chave de criptografia). Permissões mais
-  # específicas (Cognito, MercadoPago) ficam só nas functions.yml que
-  # realmente as usam — ver src/handlers/usuarios, /pagamentos, /webhooks.
+
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -60,8 +76,7 @@ provider:
         - ${self:custom.ssmParameterArn}/*/db
         - ${self:custom.ssmParameterArn}/encryption_key
         - ${self:custom.ssmParameterArn}/*/encryption_key
-    # Necessário apenas quando o parâmetro for SecureString (KMS alias/aws/ssm).
-    # Escopado por condição: só permite Decrypt via serviço SSM.
+
     - Effect: Allow
       Action:
         - kms:Decrypt
@@ -92,6 +107,59 @@ functions:
   - ${file(src/handlers/planosAula/functions.yml)}
 
 resources:
+  Resources:
+    FotosBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:custom.fotosBucket}
+        PublicAccessBlockConfiguration:
+          BlockPublicAcls: true
+          BlockPublicPolicy: true
+          IgnorePublicAcls: true
+          RestrictPublicBuckets: true
+        OwnershipControls:
+          Rules:
+            - ObjectOwnership: BucketOwnerEnforced
+        BucketEncryption:
+          ServerSideEncryptionConfiguration:
+            - ServerSideEncryptionByDefault:
+                SSEAlgorithm: AES256
+        CorsConfiguration:
+          CorsRules:
+            - AllowedMethods:
+                - GET
+              AllowedOrigins:
+                - ${self:custom.environment.FRONTEND_URL}
+                - http://localhost:3000
+              AllowedHeaders:
+                - "*"
+              ExposedHeaders:
+                - ETag
+              MaxAge: 3000
+        LifecycleConfiguration:
+          Rules:
+            - Id: AbortarUploadsIncompletos
+              Status: Enabled
+              AbortIncompleteMultipartUpload:
+                DaysAfterInitiation: 1
+
+    FotosBucketPolicy:
+      Type: AWS::S3::BucketPolicy
+      Properties:
+        Bucket: !Ref FotosBucket
+        PolicyDocument:
+          Statement:
+            - Sid: NegarTrafegoSemTls
+              Effect: Deny
+              Principal: "*"
+              Action: s3:*
+              Resource:
+                - arn:aws:s3:::${self:custom.fotosBucket}
+                - arn:aws:s3:::${self:custom.fotosBucket}/*
+              Condition:
+                Bool:
+                  aws:SecureTransport: false
+
   extensions:
     HttpApiStage:
       Properties:

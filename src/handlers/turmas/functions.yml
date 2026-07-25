@@ -45,6 +45,8 @@ removeTurma:
 
 listCriancasDaTurma:
   handler: src/handlers/turmas/listCriancasDaTurma.execute
+  iamRoleStatementsInherit: true
+  iamRoleStatements: ${self:custom.fotosLeituraIamStatements}
   events:
     - httpApi:
         method: GET

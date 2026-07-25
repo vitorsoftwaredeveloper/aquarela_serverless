@@ -34,7 +34,7 @@ Simulador **público** de mensalidade para interessados (sem login).
 | Banco          | **MongoDB** via **Mongoose** (não DynamoDB)                                 |
 | Auth           | AWS Cognito (JWT authorizer nativo do HTTP API)                             |
 | Validação      | `ajv` (`JSONSchemaType`) + `ajv-formats`                                    |
-| Storage        | S3 (comprovantes/recibos)                                                   |
+| Storage        | S3 (fotos de criança, comprovantes/recibos)                                 |
 | Config/Secrets | SSM Parameter Store (`config/<stage>.json`)                                 |
 | Pagamentos     | MercadoPago (PIX)                                                           |
 | Push           | Firebase Admin — **fase 2+**                                                |
@@ -79,6 +79,8 @@ Detalhes: [`docs/03-Backend.md`](./docs/03-Backend.md).
 - **Transações** (replicaSet) ao gerar mensalidade + baixar pagamento.
 - **Soft delete** (`ativo:false`) para criança/turma/usuário — preserva histórico.
 - **LGPD/segurança:** dados de saúde de crianças. IAM por Lambda (menor privilégio); segredos só em SSM; webhook com assinatura verificada; logs sem PII; auditoria em edição de criança e baixas financeiras. **Criptografia em repouso:** `criancas.cpf`, `criancas.responsaveis[].cpf` e `criancas.saude.*` são cifrados (AES-256-GCM) antes de gravar e decifrados só na leitura — ver `src/libs/crypto.ts` e `src/repositories/transforms/criancaCrypto.ts`. Como o IV é aleatório por gravação, a unicidade do CPF não pode mais usar índice direto: `criancas.cpfHash` (HMAC determinístico, mesma chave) carrega o índice único no lugar de `cpf`.
+- **Foto da criança:** bucket S3 privado provisionado pelo próprio `serverless.yml` (`FotosBucket`, sem acesso público, SSE-AES256, TLS obrigatório). O Mongo guarda só a **key** (`criancas.foto`); a imagem chega em base64 no corpo de `POST /criancas`/`PUT /criancas/{id}` (teto 2MB decodificados — payload de Lambda é 6MB e base64 infla 33%), com checagem de magic bytes contra o `contentType` declarado, e é lida por URL pré-assinada de 1h (`fotoUrl`). Nada de URL permanente. Ver `src/libs/s3.ts` e `src/services/shared/fotoCrianca.ts`.
+- **Edição por responsável:** `PUT /criancas/{id}` aceita `admin` e `responsavel`. O responsável só edita o próprio filho e nunca `financeiro`/`ativo` (senão baixaria a própria mensalidade) — `CAMPOS_EXCLUSIVOS_ADMIN` em `src/services/shared/criancaAccess.ts`. Turma, remoção e `DELETE .../foto` seguem admin-only.
 
 ## 6. Modelo de dados (MongoDB)
 

@@ -1,3 +1,4 @@
+import { Types } from "mongoose";
 import { CriancaRepository } from "../../repositories/crianca.repository";
 import { TurmaRepository } from "../../repositories/turma.repository";
 import { UsuarioRepository } from "../../repositories/usuario.repository";
@@ -17,12 +18,13 @@ import {
   STATUS_CODE,
   DUPLICATE_KEY_ERROR_CODE,
 } from "../../utils/errors";
+import {
+  gravarFoto,
+  removerFotoDoBucket,
+  validarFotoBase64,
+  withFotoUrl,
+} from "../shared/fotoCrianca";
 
-/**
- * Garante um usuário (papel=responsavel) para o e-mail do responsável.
- * Reaproveita o existente; cria (Cognito + banco) quando não existe.
- * Devolve o `_id` e, se criado agora, a senha temporária para o admin repassar.
- */
 const ensureResponsavelUsuario = async (
   responsavel: IResponsavel,
 ): Promise<{ usuarioId: string; acessoCriado?: IAcessoResponsavelCriado }> => {
@@ -57,7 +59,11 @@ export const createCriancaService = async (
   payload: ICreateCriancaPayload,
 ): Promise<ICreateCriancaResult> => {
   if (!isValidCpf(payload.cpf)) {
-    throw httpError(STATUS_CODE.BAD_REQUEST, "INVALID_CPF", "CPF da criança inválido.");
+    throw httpError(
+      STATUS_CODE.BAD_REQUEST,
+      "INVALID_CPF",
+      "CPF da criança inválido.",
+    );
   }
 
   for (const responsavel of payload.responsaveis) {
@@ -73,7 +79,11 @@ export const createCriancaService = async (
   if (payload.turmaId) {
     const turma = await TurmaRepository.findById(payload.turmaId);
     if (!turma || !(turma as any).ativo) {
-      throw httpError(STATUS_CODE.NOT_FOUND, "NOT_FOUND", "Turma não encontrada.");
+      throw httpError(
+        STATUS_CODE.NOT_FOUND,
+        "NOT_FOUND",
+        "Turma não encontrada.",
+      );
     }
   }
 
@@ -90,6 +100,8 @@ export const createCriancaService = async (
     );
   }
 
+  const fotoBytes = payload.foto ? validarFotoBase64(payload.foto) : undefined;
+
   // Garante o acesso (usuário papel=responsavel) de cada responsável e vincula
   // o `usuarioId` no responsável embutido, antes de gravar a criança.
   const acessosResponsaveis: IAcessoResponsavelCriado[] = [];
@@ -104,13 +116,20 @@ export const createCriancaService = async (
     responsaveisComAcesso.push({ ...responsavel, usuarioId });
   }
 
+  const criancaId = new Types.ObjectId();
+  const fotoKey =
+    fotoBytes && payload.foto
+      ? await gravarFoto(String(criancaId), fotoBytes, payload.foto.contentType)
+      : undefined;
+
   let crianca;
   try {
     const created = await CriancaRepository.insertOne({
+      _id: criancaId,
       nome: payload.nome,
       dataNascimento: new Date(payload.dataNascimento),
       cpf: payload.cpf,
-      foto: payload.foto,
+      foto: fotoKey,
       turmaId: payload.turmaId ?? null,
       responsaveis: responsaveisComAcesso,
       saude: payload.saude ?? {},
@@ -125,6 +144,8 @@ export const createCriancaService = async (
     // mensal (gerarMensalidadesDoMes) só roda dia 1 e não cobriria esse mês.
     await gerarMensalidadesIniciaisService(crianca._id, crianca.financeiro);
   } catch (error: any) {
+    await removerFotoDoBucket(fotoKey);
+
     if (error.code === DUPLICATE_KEY_ERROR_CODE) {
       throw httpError(
         STATUS_CODE.CONFLICT,
@@ -145,5 +166,5 @@ export const createCriancaService = async (
     ),
   );
 
-  return { crianca, acessosResponsaveis };
+  return { crianca: await withFotoUrl(crianca), acessosResponsaveis };
 };

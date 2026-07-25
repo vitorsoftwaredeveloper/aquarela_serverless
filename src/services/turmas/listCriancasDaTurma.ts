@@ -3,6 +3,7 @@ import { AgendaRepository } from "../../repositories/agenda.repository";
 import { ICrianca } from "../../types/criancas";
 import { IUsuario } from "../../types/usuarios";
 import { getTurmaByIdService } from "./getTurmaById";
+import { withFotoUrls } from "../shared/fotoCrianca";
 
 const hojeMeiaNoite = (): Date => {
   const d = new Date();
@@ -34,8 +35,10 @@ export const listCriancasDaTurmaService = async (
     agendasHoje.map((agenda) => String(agenda.criancaId)),
   );
 
-  return criancas.map((crianca) => ({
-    ...crianca,
-    agendaRegistradaHoje: registradasHoje.has(String(crianca._id)),
-  }));
+  return withFotoUrls(
+    criancas.map((crianca) => ({
+      ...crianca,
+      agendaRegistradaHoje: registradasHoje.has(String(crianca._id)),
+    })),
+  );
 };

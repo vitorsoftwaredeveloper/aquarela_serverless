@@ -51,7 +51,7 @@ Perfil de app espelhando o Cognito.
   _id,
   nome, dataNascimento: Date,
   cpf: string (cifrado), cpfHash: string (idx, unique),  // ver nota de criptografia
-  foto?: string(S3),
+  foto?: string,                     // KEY do objeto no S3, nunca URL nem binário
   turmaId?: ObjectId | null (idx),   // opcional — ver nota abaixo
   responsaveis: [{
     usuarioId?: ObjectId, nome, cpf: string (cifrado), parentesco,
@@ -73,6 +73,10 @@ Perfil de app espelhando o Cognito.
 ```
 Índices: `cpfHash` (unique), `turmaId`, texto em `nome`.
 
+> `turmaNome` **não é persistido** — `GET /criancas` resolve o nome da
+> turma a partir de `turmaId` (lookup em `turmas`) e devolve no payload de
+> resposta, sem gravar no documento.
+
 > **Implementado com 3 divergências deliberadas desta especificação** (ver
 > `aquarela_serverless`):
 > - `turmaId` é **opcional/nullable**, não obrigatório — necessário para
@@ -88,6 +92,14 @@ Perfil de app espelhando o Cognito.
 >   ciphertext varia a cada gravação, a unicidade de CPF não pode mais viver
 >   num índice sobre `cpf` — `cpfHash` (HMAC-SHA256 determinístico, mesma
 >   chave) carrega esse índice único no lugar dele.
+> - **`foto` guarda a key do S3**, não o binário nem uma URL. O objeto vive
+>   no bucket privado `<service>-<stage>-fotos-<accountId>`, sob
+>   `criancas/{criancaId}/{uuid}.{jpg|png|webp}`. Deliberadamente **não**
+>   se armazena a imagem no Mongo: base64 infla o documento em ~33%, entra
+>   no working set em RAM e estouraria a resposta de uma listagem de turma.
+>   A imagem sobe em base64 no corpo de `POST /criancas` / `PUT /criancas/{id}`
+>   (teto de 2MB decodificados) e a leitura sai por `fotoUrl` pré-assinada
+>   de 1h — ver `docs/03-Backend.md`.
 
 ### `professores`
 ```

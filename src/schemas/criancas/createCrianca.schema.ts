@@ -1,5 +1,6 @@
 import { JSONSchemaType } from "ajv";
 import { ICreateCriancaPayload } from "../../types/criancas";
+import { fotoUploadSchema } from "./foto.schema";
 
 const responsavelSchema = {
   type: "object",
@@ -22,7 +23,7 @@ export const createCriancaSchema: JSONSchemaType<ICreateCriancaPayload> = {
     nome: { type: "string", minLength: 3 },
     dataNascimento: { type: "string", format: "date" },
     cpf: { type: "string", minLength: 11, maxLength: 14 },
-    foto: { type: "string", nullable: true },
+    foto: { ...fotoUploadSchema, nullable: true },
     turmaId: { type: "string", nullable: true },
     responsaveis: {
       type: "array",

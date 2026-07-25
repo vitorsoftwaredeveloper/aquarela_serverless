@@ -4,6 +4,7 @@ import { ICrianca } from "../../types/criancas";
 import { IUsuario } from "../../types/usuarios";
 import { resolveProfessorId } from "../../utils/requester";
 import { httpError, STATUS_CODE } from "../../utils/errors";
+import { withFotoUrls } from "../shared/fotoCrianca";
 
 export interface IListCriancasFilters {
   turmaId?: string;
@@ -35,9 +36,6 @@ export const listCriancasService = async (
 
     query.turmaId = filters.turmaId ? filters.turmaId : { $in: turmaIds };
   } else if (requester.papel === "responsavel") {
-    // Mesma checagem de posse do getCriancaById: vínculo em
-    // usuarios.criancasVinculadas OU usuarioId gravado no responsável
-    // embutido (cobre crianças cadastradas antes desse vínculo existir).
     query.$or = [
       { _id: { $in: requester.criancasVinculadas ?? [] } },
       { "responsaveis.usuarioId": String(requester._id) },
@@ -51,7 +49,31 @@ export const listCriancasService = async (
     query.nome = { $regex: filters.nome, $options: "i" };
   }
 
-  return (await CriancaRepository.find(query, null, {
+  const criancas = (await CriancaRepository.find(query, null, {
     sort: { nome: 1 },
   })) as ICrianca[];
+
+  return withFotoUrls(await withTurmaNomes(criancas));
+};
+
+const withTurmaNomes = async (criancas: ICrianca[]): Promise<ICrianca[]> => {
+  const turmaIds = [
+    ...new Set(criancas.map((crianca) => crianca.turmaId).filter(Boolean)),
+  ] as string[];
+  if (turmaIds.length === 0) return criancas;
+
+  const turmas = await TurmaRepository.find(
+    { _id: { $in: turmaIds } },
+    { nome: 1 },
+  );
+  const nomesPorTurmaId = new Map(
+    turmas.map((turma: any) => [String(turma._id), turma.nome as string]),
+  );
+
+  return criancas.map((crianca) => ({
+    ...crianca,
+    turmaNome: crianca.turmaId
+      ? (nomesPorTurmaId.get(String(crianca.turmaId)) ?? null)
+      : null,
+  }));
 };

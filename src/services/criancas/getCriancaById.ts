@@ -4,14 +4,8 @@ import { ICrianca } from "../../types/criancas";
 import { IUsuario } from "../../types/usuarios";
 import { resolveProfessorId } from "../../utils/requester";
 import { httpError, STATUS_CODE } from "../../utils/errors";
-
-const isResponsavelDaCrianca = (crianca: ICrianca, usuario: IUsuario): boolean =>
-  crianca.responsaveis.some(
-    (responsavel) => String(responsavel.usuarioId ?? "") === String(usuario._id),
-  ) ||
-  (usuario.criancasVinculadas ?? []).some(
-    (id) => String(id) === String(crianca._id),
-  );
+import { withFotoUrl } from "../shared/fotoCrianca";
+import { isResponsavelDaCrianca } from "../shared/criancaAccess";
 
 export const getCriancaByIdService = async (
   requester: IUsuario,
@@ -39,5 +33,5 @@ export const getCriancaByIdService = async (
     throw httpError(STATUS_CODE.FORBIDDEN, "FORBIDDEN", "Acesso permitido apenas ao próprio filho.");
   }
 
-  return crianca;
+  return withFotoUrl(crianca);
 };

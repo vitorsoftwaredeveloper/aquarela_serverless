@@ -27,6 +27,8 @@ provider:
     STAGE: local
     SERVICE_NAME: ${self:custom.environment.SERVICE}
     ENCRYPTION_KEY: ${self:custom.environment.ENCRYPTION_KEY}
+    FOTOS_BUCKET: ${env:FOTOS_BUCKET, ''}
+    REGION: ${self:provider.region}
 
 plugins:
   - serverless-esbuild
@@ -213,6 +215,13 @@ functions:
       - httpApi:
           method: PATCH
           path: /v1/criancas/{id}/turma
+
+  removeFotoCrianca:
+    handler: src/handlers/criancas/removeFotoCrianca.execute
+    events:
+      - httpApi:
+          method: DELETE
+          path: /v1/criancas/{id}/foto
 
   createAgenda:
     handler: src/handlers/agendas/createAgenda.execute

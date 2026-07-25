@@ -8,7 +8,10 @@ import { resolveRequester } from "../../utils/requester";
 import { sendSuccessResponse } from "../../utils/http";
 
 export const execute = withErrorHandling(
-  requireRole("admin")(async (event, auth): Promise<APIGatewayProxyResult> => {
+  requireRole(
+    "admin",
+    "responsavel",
+  )(async (event, auth): Promise<APIGatewayProxyResult> => {
     const requester = await resolveRequester(auth);
     const payload = validateBody(
       updateCriancaSchema,

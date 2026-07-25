@@ -14,6 +14,13 @@ createCrianca:
         - cognito-idp:AdminDeleteUser
       Resource:
         - ${self:custom.environment.COGNITO_USER_POOL_ARN}
+    - Effect: Allow
+      Action:
+        - s3:GetObject
+        - s3:PutObject
+        - s3:DeleteObject
+      Resource:
+        - ${self:custom.fotosObjectArn}
   events:
     - httpApi:
         method: POST
@@ -23,6 +30,8 @@ createCrianca:
 
 listCriancas:
   handler: src/handlers/criancas/listCriancas.execute
+  iamRoleStatementsInherit: true
+  iamRoleStatements: ${self:custom.fotosLeituraIamStatements}
   events:
     - httpApi:
         method: GET
@@ -32,6 +41,8 @@ listCriancas:
 
 getCriancaById:
   handler: src/handlers/criancas/getCriancaById.execute
+  iamRoleStatementsInherit: true
+  iamRoleStatements: ${self:custom.fotosLeituraIamStatements}
   events:
     - httpApi:
         method: GET
@@ -41,6 +52,8 @@ getCriancaById:
 
 updateCrianca:
   handler: src/handlers/criancas/updateCrianca.execute
+  iamRoleStatementsInherit: true
+  iamRoleStatements: ${self:custom.fotosEscritaIamStatements}
   events:
     - httpApi:
         method: PUT
@@ -50,10 +63,23 @@ updateCrianca:
 
 removeCrianca:
   handler: src/handlers/criancas/removeCrianca.execute
+  iamRoleStatementsInherit: true
+  iamRoleStatements: ${self:custom.fotosEscritaIamStatements}
   events:
     - httpApi:
         method: DELETE
         path: /v1/criancas/{id}
+        authorizer:
+          name: cognitoAuthorizer
+
+removeFotoCrianca:
+  handler: src/handlers/criancas/removeFotoCrianca.execute
+  iamRoleStatementsInherit: true
+  iamRoleStatements: ${self:custom.fotosEscritaIamStatements}
+  events:
+    - httpApi:
+        method: DELETE
+        path: /v1/criancas/{id}/foto
         authorizer:
           name: cognitoAuthorizer
 

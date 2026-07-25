@@ -42,7 +42,9 @@ export interface ICrianca {
   dataNascimento: Date;
   cpf: string;
   foto?: string;
+  fotoUrl?: string;
   turmaId?: string | null;
+  turmaNome?: string | null;
   responsaveis: IResponsavel[];
   saude: ISaude;
   financeiro: IFinanceiroCrianca;
@@ -57,7 +59,7 @@ export interface ICreateCriancaPayload {
   nome: string;
   dataNascimento: string;
   cpf: string;
-  foto?: string;
+  foto?: IFotoUpload;
   turmaId?: string;
   responsaveis: IResponsavel[];
   saude?: ISaude;
@@ -80,10 +82,16 @@ export interface ICreateCriancaResult {
 export interface IUpdateCriancaPayload {
   nome?: string;
   dataNascimento?: string;
-  foto?: string;
+  foto?: IFotoUpload;
   responsaveis?: IResponsavel[];
   saude?: ISaude;
   financeiro?: IFinanceiroCrianca;
-  /** Ativar/desativar o acesso sem apagar a criança (ver DELETE, que é definitivo). */
   ativo?: boolean;
+}
+
+export type TipoImagemFoto = "image/jpeg" | "image/png" | "image/webp";
+
+export interface IFotoUpload {
+  contentType: TipoImagemFoto;
+  base64: string;
 }

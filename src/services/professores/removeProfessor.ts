@@ -6,9 +6,9 @@ import { IUsuario } from "../../types/usuarios";
 import { httpError, STATUS_CODE } from "../../utils/errors";
 
 /**
- * Soft delete do professor (`ativo:false`, preserva histórico). O usuário
- * dedicado criado junto (Cognito + `usuarios`) é removido em definitivo —
- * senão o professor "removido" continuava logando.
+ * Hard delete do professor e do usuário dedicado (Cognito + `usuarios`)
+ * juntos: manter o professor soft-deleted após apagar o usuário deixaria
+ * `Professor.usuarioId` (required, ref "usuarios") órfão.
  */
 export const removeProfessorService = async (
   professorId: string,
@@ -22,8 +22,6 @@ export const removeProfessorService = async (
     );
   }
 
-  if (!professor.ativo) return; // soft delete idempotente
-
   const turmaVinculada = await TurmaRepository.findOne({
     professorId,
     ativo: true,
@@ -35,11 +33,6 @@ export const removeProfessorService = async (
       "Não é possível remover: professor possui turma(s) ativa(s) vinculada(s). Troque a professora da turma antes.",
     );
   }
-
-  await ProfessorRepository.updateOne(
-    { _id: professorId },
-    { $set: { ativo: false } },
-  );
 
   const usuarioVinculado = (await UsuarioRepository.findById(
     (professor as any).usuarioId,
@@ -57,4 +50,6 @@ export const removeProfessorService = async (
     }
     await UsuarioRepository.deleteOne({ _id: usuarioVinculado._id });
   }
+
+  await ProfessorRepository.deleteOne({ _id: professorId });
 };

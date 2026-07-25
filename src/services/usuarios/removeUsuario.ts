@@ -63,4 +63,10 @@ export const removeUsuarioService = async (
   }
 
   await UsuarioRepository.deleteOne({ _id: usuarioId });
+
+  // Apaga o Professor junto: senão `Professor.usuarioId` (required, ref
+  // "usuarios") fica órfão apontando pro usuário recém-removido.
+  if (professor) {
+    await ProfessorRepository.deleteOne({ _id: professor._id });
+  }
 };

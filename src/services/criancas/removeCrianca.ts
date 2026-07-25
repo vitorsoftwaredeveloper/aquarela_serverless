@@ -5,6 +5,7 @@ import { MensalidadeRepository } from "../../repositories/mensalidade.repository
 import { PagamentoRepository } from "../../repositories/pagamento.repository";
 import { UsuarioRepository } from "../../repositories/usuario.repository";
 import { httpError, STATUS_CODE } from "../../utils/errors";
+import { removerFotoDoBucket } from "../shared/fotoCrianca";
 
 /**
  * Remoção DEFINITIVA (hard delete), diferente das demais entidades de
@@ -15,10 +16,16 @@ import { httpError, STATUS_CODE } from "../../utils/errors";
  * mensalidades, pagamentos), a remoção é em CADEIA: apaga também tudo que
  * pertence só a ela, e desvincula (sem apagar) os usuários responsáveis.
  */
-export const removeCriancaService = async (criancaId: string): Promise<void> => {
+export const removeCriancaService = async (
+  criancaId: string,
+): Promise<void> => {
   const crianca = await CriancaRepository.findById(criancaId);
   if (!crianca) {
-    throw httpError(STATUS_CODE.NOT_FOUND, "NOT_FOUND", "Criança não encontrada.");
+    throw httpError(
+      STATUS_CODE.NOT_FOUND,
+      "NOT_FOUND",
+      "Criança não encontrada.",
+    );
   }
 
   await db();
@@ -35,4 +42,6 @@ export const removeCriancaService = async (criancaId: string): Promise<void> => 
   ]);
 
   await CriancaRepository.deleteOne({ _id: criancaId });
+
+  await removerFotoDoBucket(crianca.foto);
 };

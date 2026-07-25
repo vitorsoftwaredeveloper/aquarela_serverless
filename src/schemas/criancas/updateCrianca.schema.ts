@@ -1,12 +1,13 @@
 import { JSONSchemaType } from "ajv";
 import { IUpdateCriancaPayload } from "../../types/criancas";
+import { fotoUploadSchema } from "./foto.schema";
 
 export const updateCriancaSchema: JSONSchemaType<IUpdateCriancaPayload> = {
   type: "object",
   properties: {
     nome: { type: "string", minLength: 3, nullable: true },
     dataNascimento: { type: "string", format: "date", nullable: true },
-    foto: { type: "string", nullable: true },
+    foto: { ...fotoUploadSchema, nullable: true },
     responsaveis: {
       type: "array",
       items: {

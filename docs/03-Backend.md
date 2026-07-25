@@ -126,11 +126,40 @@ Base: `/v1`. Todos exigem JWT, exceto os marcados como público.
 ### Crianças (CRUD completo)
 | Método | Rota | Papel | Descrição |
 |---|---|---|---|
-| POST | `/criancas` | admin | Cadastrar criança (+ vínculo de turma e responsáveis) |
-| GET | `/criancas` | admin/professor | Listar (filtro por turma, nome, ativo) |
+| POST | `/criancas` | admin | Cadastrar criança (+ vínculo de turma, responsáveis e **foto**) |
+| GET | `/criancas` | admin/professor | Listar (filtro por turma, nome, ativo) — cada criança inclui `turmaNome` (nome da turma vinculada, resolvido a partir de `turmaId`; `null` se sem turma) |
 | GET | `/criancas/{id}` | admin/professor/responsavel* | Detalhe (*só o próprio filho) |
-| PUT | `/criancas/{id}` | admin | Editar dados/saúde/responsáveis |
-| DELETE | `/criancas/{id}` | admin | Remover (hard delete — apaga também agenda/mensalidades/pagamentos da criança; desvincula responsáveis sem apagá-los) |
+| PUT | `/criancas/{id}` | admin/responsavel* | Editar dados/saúde/responsáveis/**foto** (*só o próprio filho, e sem `financeiro`/`ativo`) |
+| DELETE | `/criancas/{id}` | admin | Remover (hard delete — apaga também agenda/mensalidades/pagamentos da criança **e a foto no S3**; desvincula responsáveis sem apagá-los) |
+| DELETE | `/criancas/{id}/foto` | admin | Remove a foto (bucket + cadastro). `204`, idempotente |
+
+**Quem edita o quê:**
+
+| | admin | responsável (próprio filho) |
+|---|---|---|
+| `nome`, `dataNascimento`, `responsaveis`, `saude`, `foto` | ✅ | ✅ |
+| `financeiro`, `ativo` | ✅ | ❌ `403 FORBIDDEN` |
+| turma (`PATCH /criancas/{id}/turma`) | ✅ | ❌ |
+| `DELETE /criancas/{id}`, `DELETE .../foto` | ✅ | ❌ |
+
+`financeiro` fora do alcance do responsável é o ponto crítico: sem isso ele baixaria a própria `valorMensalidade`. Regra em `src/services/shared/criancaAccess.ts` (`CAMPOS_EXCLUSIVOS_ADMIN`), aplicada no service — o handler só filtra papel.
+
+**Foto da criança (base64 no corpo, guardada no S3):**
+
+`POST /criancas` e `PUT /criancas/{id}` aceitam o campo opcional:
+
+```json
+"foto": { "contentType": "image/jpeg", "base64": "/9j/4AAQSk..." }
+```
+
+- `contentType`: `image/jpeg` | `image/png` | `image/webp`.
+- `base64`: conteúdo **puro**, sem o prefixo `data:<tipo>;base64,` (o front recorta com `dataUrl.split(",")[1]`). Prefixo presente = `400 VALIDATION_ERROR`.
+- **Teto de 2MB decodificados.** O payload síncrono de Lambda é limitado a 6MB e base64 infla ~33% — o front deve redimensionar no canvas antes de enviar (avatar 800px/jpeg 0.8 ≈ 150KB). Acima do teto: `422 FOTO_MUITO_GRANDE`.
+- Os bytes iniciais são conferidos contra o `contentType` declarado; divergir (ex.: PDF ou SVG rotulado como JPEG) = `422 TIPO_IMAGEM_INVALIDO`. Base64 que decodifica para nada = `400 FOTO_INVALIDA`.
+
+No Mongo fica só a **key** do objeto (`criancas/{criancaId}/{uuid}.{ext}`), nunca o binário. No `PUT`, a nova imagem é gravada antes do update (se o S3 falhar, o cadastro fica intacto) e a foto anterior é apagada só depois. No `POST`, a imagem é validada antes de provisionar os acessos dos responsáveis no Cognito, e o objeto é removido se o insert falhar.
+
+**Leitura:** `GET /criancas`, `GET /criancas/{id}`, `GET /turmas/{id}/criancas` e as respostas de `POST`/`PUT` devolvem `fotoUrl` — URL pré-assinada válida por **1h**, ausente quando a criança não tem foto. Assinar é HMAC local: **não gera request ao S3**, então uma listagem de 40 crianças custa CPU, não chamadas — o download sai do browser direto para o bucket. `foto` (a key) não deve ser usada pelo front.
 
 **Regras de vínculo e remoção:**
 - Uma criança pertence a **uma turma por vez**. Vincular a uma nova turma (ou `PATCH .../turma`) substitui o vínculo anterior.
