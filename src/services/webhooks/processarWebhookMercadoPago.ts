@@ -11,22 +11,7 @@ import { IPagamento } from "../../types/pagamentos";
  * na API antes de dar baixa. Transação (replicaSet) garante que pagamento e
  * mensalidade mudam de status juntos.
  */
-export const processarWebhookMercadoPago = async (
-  providerPaymentId: string,
-): Promise<void> => {
-  const pagamento = (await PagamentoRepository.findOne({
-    providerPaymentId,
-  })) as IPagamento | null;
-
-  if (!pagamento || pagamento.status === "pago") {
-    return;
-  }
-
-  const remoto = await buscarPagamento(providerPaymentId);
-  if (remoto.status !== "approved") {
-    return;
-  }
-
+const confirmarPagamento = async (pagamento: IPagamento): Promise<void> => {
   await db();
   const session = await mongoose.startSession();
 
@@ -34,12 +19,14 @@ export const processarWebhookMercadoPago = async (
     await session.withTransaction(async () => {
       const pagamentoUpdate = (await PagamentoRepository.updateOne(
         { _id: pagamento._id, status: { $ne: "pago" } },
-        { $set: { status: "pago", pagoEm: new Date() } },
+        {
+          $set: { status: "pago", pagoEm: new Date() },
+          $unset: { qrBase64: "", pixCopiaECola: "" },
+        },
         { session },
       )) as { modifiedCount: number };
 
       if (pagamentoUpdate.modifiedCount === 0) {
-        // outra invocação concorrente já deu baixa neste pagamento.
         return;
       }
 
@@ -49,10 +36,6 @@ export const processarWebhookMercadoPago = async (
         { session },
       );
 
-      // Expira qualquer outra cobrança pendente da mesma mensalidade. Com o
-      // índice único isso nunca deveria existir, mas cobre o caso de uma
-      // duplicata que escapou antes do índice — assim a mensalidade paga não
-      // deixa um pagamento "pendente" órfão para sempre.
       await PagamentoRepository.model.updateMany(
         {
           mensalidadeId: pagamento.mensalidadeId,
@@ -65,5 +48,50 @@ export const processarWebhookMercadoPago = async (
     });
   } finally {
     await session.endSession();
+  }
+};
+
+const estornarPagamento = async (pagamento: IPagamento): Promise<void> => {
+  await db();
+  const session = await mongoose.startSession();
+
+  try {
+    await session.withTransaction(async () => {
+      await MensalidadeRepository.updateOne(
+        { _id: pagamento.mensalidadeId, pagamentoId: pagamento._id },
+        { $set: { status: "aberto" }, $unset: { pagamentoId: "" } },
+        { session },
+      );
+
+      await PagamentoRepository.model.deleteOne(
+        { _id: pagamento._id },
+        { session },
+      );
+    });
+  } finally {
+    await session.endSession();
+  }
+};
+
+export const processarWebhookMercadoPago = async (
+  providerPaymentId: string,
+): Promise<void> => {
+  const pagamento = (await PagamentoRepository.findOne({
+    providerPaymentId,
+  })) as IPagamento | null;
+
+  if (!pagamento) {
+    return;
+  }
+
+  const remoto = await buscarPagamento(providerPaymentId);
+
+  if (remoto.status === "approved" && pagamento.status !== "pago") {
+    await confirmarPagamento(pagamento);
+    return;
+  }
+
+  if (remoto.status === "refunded") {
+    await estornarPagamento(pagamento);
   }
 };

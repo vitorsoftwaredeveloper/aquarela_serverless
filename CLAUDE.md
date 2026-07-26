@@ -2,6 +2,10 @@
 
 > Contexto para agentes de IA e devs. Leia antes de codar. Fonte da verdade detalhada: pasta [`docs/`](./docs).
 
+## 0. Modo de resposta
+
+Toda resposta neste repo usa o modo caveman (skill `/caveman`, nível `ultra`) por padrão, sem precisar invocar manualmente a cada comando.
+
 ---
 
 ## 1. O que é o Aquarela Kids
@@ -75,7 +79,7 @@ Detalhes: [`docs/03-Backend.md`](./docs/03-Backend.md).
 - **Autorização de dado (ownership) — obrigatória no service:** `responsavel` só acessa recursos das crianças vinculadas a ele; `professor` só das turmas que leciona. Nunca confiar no cliente.
 - **Validação:** todo payload de entrada passa por `ajv` antes do service.
 - **Erros padronizados:** `{ error: { code, message, details? } }` com HTTP status correto (400/401/403/404/409/422/500).
-- **Financeiro:** geração de `mensalidades` por criança/competência a partir de `configPrecos`/`crianca.financeiro`. Baixa via **webhook** MercadoPago, **idempotente** (`txid`/`payment_id`), sem dupla baixa. Recibo → S3.
+- **Financeiro:** geração de `mensalidades` por criança/competência a partir de `configPrecos`/`crianca.financeiro`. Baixa via **webhook** MercadoPago, **idempotente** (`txid`/`payment_id`), sem dupla baixa. Recibo → S3. **Estorno:** quando o MercadoPago reporta `status: refunded`, o `pagamento` é removido do banco e a `mensalidade` vinculada volta para `aberto` (perde o `pagamentoId`) — ver `src/services/webhooks/processarWebhookMercadoPago.ts`.
 - **Transações** (replicaSet) ao gerar mensalidade + baixar pagamento.
 - **Soft delete** (`ativo:false`) para criança/turma/usuário — preserva histórico.
 - **LGPD/segurança:** dados de saúde de crianças. IAM por Lambda (menor privilégio); segredos só em SSM; webhook com assinatura verificada; logs sem PII; auditoria em edição de criança e baixas financeiras. **Criptografia em repouso:** `criancas.cpf`, `criancas.responsaveis[].cpf` e `criancas.saude.*` são cifrados (AES-256-GCM) antes de gravar e decifrados só na leitura — ver `src/libs/crypto.ts` e `src/repositories/transforms/criancaCrypto.ts`. Como o IV é aleatório por gravação, a unicidade do CPF não pode mais usar índice direto: `criancas.cpfHash` (HMAC determinístico, mesma chave) carrega o índice único no lugar de `cpf`.

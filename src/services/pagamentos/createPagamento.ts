@@ -45,14 +45,13 @@ export const createPagamentoService = async (
     status: "pendente",
   })) as IPagamento | null;
   if (pendente) {
-    return pendente;
+    throw httpError(
+      STATUS_CODE.CONFLICT,
+      "PAGAMENTO_PENDENTE",
+      "Já existe um pagamento pendente para esta mensalidade. Aguarde a resolução do pagamento até 1 hora após a criação.",
+    );
   }
 
-  // Reserva o slot pendente ANTES de chamar o MercadoPago. O índice único
-  // parcial (mensalidadeId + status:"pendente") garante que só UMA reserva
-  // vence, mesmo com requests concorrentes. Como a cobrança MercadoPago só é
-  // criada depois de vencer a corrida, o perdedor devolve o pagamento
-  // existente sem gerar uma segunda cobrança (evita a duplicata).
   let reserva: Awaited<ReturnType<typeof PagamentoRepository.insertOne>>;
   try {
     reserva = await PagamentoRepository.insertOne({
@@ -66,18 +65,15 @@ export const createPagamentoService = async (
     });
   } catch (error: any) {
     if (error?.code === 11000) {
-      const existente = (await PagamentoRepository.findOne({
-        mensalidadeId,
-        status: "pendente",
-      })) as IPagamento | null;
-      if (existente) {
-        return existente;
-      }
+      throw httpError(
+        STATUS_CODE.CONFLICT,
+        "PAGAMENTO_PENDENTE",
+        "Já existe um pagamento pendente para esta mensalidade.",
+      );
     }
     throw error;
   }
 
-  // Só o vencedor chega aqui: uma única cobrança PIX é criada.
   try {
     const cobranca = await criarCobrancaPix({
       valor: mensalidade.valor,

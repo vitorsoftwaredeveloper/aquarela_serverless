@@ -43,5 +43,18 @@ export const getPagamentoStatusService = async (
     })) as IPagamento | null;
   }
 
+  if (
+    pagamento &&
+    pagamento.status === "pago" &&
+    (pagamento.qrBase64 || pagamento.pixCopiaECola)
+  ) {
+    await PagamentoRepository.updateOne(
+      { _id: pagamento._id },
+      { $unset: { qrBase64: "", pixCopiaECola: "" } },
+    );
+    delete pagamento.qrBase64;
+    delete pagamento.pixCopiaECola;
+  }
+
   return pagamento as IPagamento;
 };

@@ -25,3 +25,26 @@ getPagamentoStatus:
         path: /v1/pagamentos/{txid}
         authorizer:
           name: cognitoAuthorizer
+
+removerPagamentosNaoPagos:
+  handler: src/handlers/pagamentos/removerPagamentosNaoPagos.execute
+  events:
+    - schedule:
+        rate: cron(0 4 * * ? *)
+
+reconciliarPagamentosPendentes:
+  handler: src/handlers/pagamentos/reconciliarPagamentosPendentes.execute
+  environment:
+    MERCADOPAGO_ACCESS_TOKEN: ${self:custom.environment.MERCADOPAGO_ACCESS_TOKEN}
+  iamRoleStatementsInherit: true
+  iamRoleStatementsName: aquarela-${self:provider.stage}-reconcPagPend
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - ssm:GetParameter
+      Resource:
+        - ${self:custom.ssmParameterArn}/mercadopago_access_token
+        - ${self:custom.ssmParameterArn}/*/mercadopago_access_token
+  events:
+    - schedule:
+        rate: rate(30 minutes)

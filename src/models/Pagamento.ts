@@ -6,7 +6,6 @@ export const PagamentoSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: "mensalidades",
       required: true,
-      index: true,
     },
     criancaId: { type: Schema.Types.ObjectId, ref: "criancas", required: true },
     metodo: { type: String, enum: ["pix"], required: true, default: "pix" },
@@ -29,13 +28,11 @@ export const PagamentoSchema = new Schema(
     qrBase64: { type: String },
     reciboUrl: { type: String },
     pagoEm: { type: Date },
+    tentativasReconciliacao: { type: Number, default: 0 },
   },
   { timestamps: true },
 );
 
-// Impede duas cobranças PIX pendentes simultâneas para a mesma mensalidade
-// (evita a corrida entre "verifica se já existe pendente" e "insere" em
-// src/services/pagamentos/createPagamento.ts).
 PagamentoSchema.index(
   { mensalidadeId: 1 },
   { unique: true, partialFilterExpression: { status: "pendente" } },

@@ -232,6 +232,7 @@ Validar todo payload de entrada antes do service. `ajv-formats` para data/hora/e
 2. Cliente exibe QR e faz polling em `GET /pagamentos/{txid}`.
 3. `POST /webhooks/mercadopago` recebe a confirmação → valida assinatura → marca a mensalidade como **paga** → gera recibo (PDF/HTML) e salva no **S3** → (fase 2) dispara push.
 4. Idempotência: usar `txid`/`payment_id` para evitar dupla baixa.
+5. **Estorno (`status: refunded`):** o mesmo webhook, ao rebuscar o pagamento na API do MercadoPago e encontrar `refunded`, **remove o `pagamento` do banco** e reverte a `mensalidade` vinculada para `aberto` (limpando `mensalidadeId.pagamentoId`) — a competência volta a ser cobrável, um novo PIX pode ser gerado. Ver `src/services/webhooks/processarWebhookMercadoPago.ts`.
 
 Credenciais do MercadoPago e strings de conexão do Mongo ficam em **SSM Parameter Store** por stage, referenciadas em `config/<stage>.json`.
 

@@ -14,6 +14,7 @@ export interface IPagamento {
   qrBase64?: string;
   reciboUrl?: string;
   pagoEm?: Date;
+  tentativasReconciliacao?: number;
   createdAt?: Date;
   updatedAt?: Date;
 }
