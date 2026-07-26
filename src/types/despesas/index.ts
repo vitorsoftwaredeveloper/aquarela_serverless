@@ -17,3 +17,11 @@ export interface ICreateDespesaPayload {
   data: string;
   anexoUrl?: string;
 }
+
+export interface IUpdateDespesaPayload {
+  descricao?: string;
+  categoria?: string;
+  valor?: number;
+  data?: string;
+  anexoUrl?: string;
+}

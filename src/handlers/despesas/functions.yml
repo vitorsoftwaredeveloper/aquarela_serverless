@@ -15,3 +15,21 @@ listDespesas:
         path: /v1/despesas
         authorizer:
           name: cognitoAuthorizer
+
+updateDespesa:
+  handler: src/handlers/despesas/updateDespesa.execute
+  events:
+    - httpApi:
+        method: PUT
+        path: /v1/despesas/{id}
+        authorizer:
+          name: cognitoAuthorizer
+
+removeDespesa:
+  handler: src/handlers/despesas/removeDespesa.execute
+  events:
+    - httpApi:
+        method: DELETE
+        path: /v1/despesas/{id}
+        authorizer:
+          name: cognitoAuthorizer

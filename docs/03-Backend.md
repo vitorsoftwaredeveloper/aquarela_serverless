@@ -181,6 +181,7 @@ No Mongo fica só a **key** do objeto (`criancas/{criancaId}/{uuid}.{ext}`), nun
 | POST | `/webhooks/mercadopago` | público (assinado) | Confirmação de pagamento |
 | GET | `/financeiro/balanco?periodo=` | admin | Balanço mensal/anual |
 | POST/GET | `/despesas` | admin | Lançar/listar despesas |
+| PUT/DELETE | `/despesas/{id}` | admin | Editar / remover despesa |
 | GET | `/financeiro/inadimplentes` | admin | Lista de inadimplentes |
 
 ### Simulador
