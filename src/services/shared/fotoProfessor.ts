@@ -1,8 +1,8 @@
-import { ICrianca } from "../../types/criancas";
+import { IProfessor } from "../../types/professores";
 import { IFotoUpload, TipoImagemFoto } from "../../types/shared/foto";
 import * as fotoUpload from "./fotoUpload";
 
-const PREFIXO = "criancas";
+const PREFIXO = "professores";
 
 export const TIPOS_IMAGEM_PERMITIDOS = fotoUpload.TIPOS_IMAGEM_PERMITIDOS;
 export const TAMANHO_MAXIMO_FOTO_BYTES = fotoUpload.TAMANHO_MAXIMO_FOTO_BYTES;
@@ -11,29 +11,30 @@ export const DOWNLOAD_URL_EXPIRA_EM_SEGUNDOS =
   fotoUpload.DOWNLOAD_URL_EXPIRA_EM_SEGUNDOS;
 
 export const buildFotoKey = (
-  criancaId: string,
+  professorId: string,
   contentType: TipoImagemFoto,
-): string => fotoUpload.buildFotoKey(PREFIXO, criancaId, contentType);
+): string => fotoUpload.buildFotoKey(PREFIXO, professorId, contentType);
 
 export const validarFotoBase64 = fotoUpload.validarFotoBase64;
 
 export const gravarFoto = (
-  criancaId: string,
+  professorId: string,
   bytes: Buffer,
   contentType: TipoImagemFoto,
-): Promise<string> => fotoUpload.gravarFoto(PREFIXO, criancaId, bytes, contentType);
+): Promise<string> =>
+  fotoUpload.gravarFoto(PREFIXO, professorId, bytes, contentType);
 
 export const salvarFotoBase64 = (
-  criancaId: string,
+  professorId: string,
   foto: IFotoUpload,
-): Promise<string> => fotoUpload.salvarFotoBase64(PREFIXO, criancaId, foto);
+): Promise<string> => fotoUpload.salvarFotoBase64(PREFIXO, professorId, foto);
 
-export const withFotoUrl = async <T extends Pick<ICrianca, "foto">>(
-  crianca: T,
-): Promise<T & { fotoUrl?: string }> => fotoUpload.withFotoUrl(crianca);
+export const withFotoUrl = async <T extends Pick<IProfessor, "foto">>(
+  professor: T,
+): Promise<T & { fotoUrl?: string }> => fotoUpload.withFotoUrl(professor);
 
-export const withFotoUrls = async <T extends Pick<ICrianca, "foto">>(
-  criancas: T[],
-): Promise<(T & { fotoUrl?: string })[]> => fotoUpload.withFotoUrls(criancas);
+export const withFotoUrls = async <T extends Pick<IProfessor, "foto">>(
+  professores: T[],
+): Promise<(T & { fotoUrl?: string })[]> => fotoUpload.withFotoUrls(professores);
 
 export const removerFotoDoBucket = fotoUpload.removerFotoDoBucket;

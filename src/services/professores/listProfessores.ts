@@ -1,5 +1,6 @@
 import { ProfessorRepository } from "../../repositories/professor.repository";
 import { IProfessor } from "../../types/professores";
+import { withFotoUrls } from "../shared/fotoProfessor";
 
 export interface IListProfessoresFilters {
   ativo?: boolean;
@@ -10,7 +11,9 @@ export const listProfessoresService = async (
 ): Promise<IProfessor[]> => {
   const query = { ativo: filters.ativo ?? true };
 
-  return (await ProfessorRepository.find(query, null, {
+  const professores = (await ProfessorRepository.find(query, null, {
     sort: { nome: 1 },
   })) as IProfessor[];
+
+  return withFotoUrls(professores);
 };

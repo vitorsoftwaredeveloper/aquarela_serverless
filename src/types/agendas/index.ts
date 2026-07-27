@@ -33,12 +33,18 @@ export interface IIntercorrencia {
   notificado?: boolean;
 }
 
+export interface IProfessorResumo {
+  _id: string;
+  nome: string;
+}
+
 export interface IAgendaDiaria {
   _id: string;
   criancaId: string;
   turmaId: string;
   data: Date;
   registradoPor: string;
+  professor?: IProfessorResumo;
   alimentacao: IAlimentacaoItem[];
   sono: ISonoItem[];
   atividades: string[];

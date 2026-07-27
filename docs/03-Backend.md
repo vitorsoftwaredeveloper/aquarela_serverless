@@ -106,13 +106,15 @@ Base: `/v1`. Todos exigem JWT, exceto os marcados como público.
 ### Professores (CRUD completo)
 | Método | Rota | Papel | Descrição |
 |---|---|---|---|
-| POST | `/professores` | admin | Cadastrar professor |
+| POST | `/professores` | admin | Cadastrar professor (+ **foto** opcional) |
 | GET | `/professores` | admin | Listar professores |
 | GET | `/professores/{id}` | admin/professor* | Detalhe (*só o próprio cadastro) |
-| PUT | `/professores/{id}` | admin/professor* | Atualizar dados (*só o próprio cadastro, e sem `email`) |
+| PUT | `/professores/{id}` | admin/professor* | Atualizar dados/**foto** (*só o próprio cadastro, e sem `email`) |
 | DELETE | `/professores/{id}` | admin | Remover (bloqueado/aviso se houver turma vinculada) |
 
 `email` fora do alcance do professor: é o username no Cognito e o vínculo com o `usuarios` criado pelo admin no cadastro — trocar exige atualizar Cognito + `usuarios` + `professores` juntos, então só admin. Ownership (GET e PUT) + bloqueio de campo (PUT) em `src/services/shared/professorAccess.ts` (`isDonoDoProfessor`, `CAMPOS_EXCLUSIVOS_ADMIN`), aplicada no service — o handler só filtra papel. `IUsuario.professorId` (`GET /me`) é como o front descobre o `_id` do próprio cadastro pra montar a URL do GET/PUT.
+
+**Foto do professor:** mesmo mecanismo da criança (base64 no corpo, teto de 2MB decodificados, checagem de magic bytes, key no bucket `FotosBucket` sob `professores/{professorId}/{uuid}.{ext}`, leitura por `fotoUrl` pré-assinada de 1h) — ver `src/services/shared/fotoUpload.ts` (núcleo genérico reusado por `fotoCrianca.ts` e `fotoProfessor.ts`) e a seção "Foto da criança" (mais abaixo) para o detalhe de validação. Como soft delete preserva o cadastro, `DELETE /professores/{id}` **não** apaga a foto do bucket — só `PUT` (troca) remove a anterior.
 
 ### Turmas (CRUD completo + vínculo de crianças)
 | Método | Rota | Papel | Descrição |
@@ -176,6 +178,8 @@ No Mongo fica só a **key** do objeto (`criancas/{criancaId}/{uuid}.{ext}`), nun
 | PUT | `/agenda/{id}` | professor | Editar registro do dia |
 | GET | `/agenda?criancaId=&data=` | professor/responsavel* | Registro por dia |
 | GET | `/agenda/historico?criancaId=&de=&ate=` | professor/responsavel* | Histórico |
+
+`GET /agenda` e `GET /agenda/historico` devolvem, além de `registradoPor` (ID), o campo `professor: { _id, nome }` com o nome de quem registrou (resolvido a partir de `registradoPor` no service — sem populate do Mongoose).
 
 ### Financeiro / Pagamentos
 | GET | `/mensalidades?criancaId=&ano=` | responsavel*/admin | Meses pagos/em aberto |

@@ -1,4 +1,5 @@
 import { AgendaRepository } from "../../repositories/agenda.repository";
+import { ProfessorRepository } from "../../repositories/professor.repository";
 import { IAgendaDiaria } from "../../types/agendas";
 import { IUsuario } from "../../types/usuarios";
 import { loadCriancaParaLeituraAgenda } from "../shared/agendaAccess";
@@ -22,6 +23,13 @@ export const getAgendaService = async (
       "NOT_FOUND",
       "Registro de agenda não encontrado para esta data.",
     );
+  }
+
+  const professor = await ProfessorRepository.findById(agenda.registradoPor, {
+    nome: 1,
+  });
+  if (professor) {
+    agenda.professor = { _id: String(professor._id), nome: professor.nome };
   }
 
   return agenda;

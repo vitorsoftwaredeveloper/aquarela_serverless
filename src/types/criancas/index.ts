@@ -1,3 +1,7 @@
+import { IFotoUpload, TipoImagemFoto } from "../shared/foto";
+
+export { IFotoUpload, TipoImagemFoto };
+
 export interface IResponsavel {
   usuarioId?: string;
   nome: string;
@@ -94,11 +98,4 @@ export interface IUpdateCriancaPayload {
   saude?: ISaude;
   financeiro?: IFinanceiroCrianca;
   ativo?: boolean;
-}
-
-export type TipoImagemFoto = "image/jpeg" | "image/png" | "image/webp";
-
-export interface IFotoUpload {
-  contentType: TipoImagemFoto;
-  base64: string;
 }

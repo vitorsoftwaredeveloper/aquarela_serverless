@@ -18,6 +18,7 @@ export const ProfessorSchema = new Schema(
       lowercase: true,
     },
     formacao: { type: String, trim: true },
+    foto: { type: String },
     ativo: { type: Boolean, default: true },
   },
   { timestamps: true },

@@ -14,6 +14,13 @@ createProfessor:
         - cognito-idp:AdminDeleteUser
       Resource:
         - ${self:custom.environment.COGNITO_USER_POOL_ARN}
+    - Effect: Allow
+      Action:
+        - s3:GetObject
+        - s3:PutObject
+        - s3:DeleteObject
+      Resource:
+        - ${self:custom.fotosObjectArn}
   events:
     - httpApi:
         method: POST
@@ -23,6 +30,8 @@ createProfessor:
 
 listProfessores:
   handler: src/handlers/professores/listProfessores.execute
+  iamRoleStatementsInherit: true
+  iamRoleStatements: ${self:custom.fotosLeituraIamStatements}
   events:
     - httpApi:
         method: GET
@@ -32,6 +41,8 @@ listProfessores:
 
 getProfessorById:
   handler: src/handlers/professores/getProfessorById.execute
+  iamRoleStatementsInherit: true
+  iamRoleStatements: ${self:custom.fotosLeituraIamStatements}
   events:
     - httpApi:
         method: GET
@@ -51,6 +62,13 @@ updateProfessor:
         - cognito-idp:AdminUpdateUserAttributes
       Resource:
         - ${self:custom.environment.COGNITO_USER_POOL_ARN}
+    - Effect: Allow
+      Action:
+        - s3:GetObject
+        - s3:PutObject
+        - s3:DeleteObject
+      Resource:
+        - ${self:custom.fotosObjectArn}
   events:
     - httpApi:
         method: PUT

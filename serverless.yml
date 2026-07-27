@@ -11,7 +11,7 @@ custom:
   ssmParameterArn: arn:aws:ssm:${aws:region}:${aws:accountId}:parameter/aquarela_serverless
 
   fotosBucket: ${self:service}-${self:provider.stage}-fotos-${aws:accountId}
-  fotosObjectArn: arn:aws:s3:::${self:custom.fotosBucket}/criancas/*
+  fotosObjectArn: arn:aws:s3:::${self:custom.fotosBucket}/*
   fotosLeituraIamStatements:
     - Effect: Allow
       Action:

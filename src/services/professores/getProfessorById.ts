@@ -3,6 +3,7 @@ import { IProfessor } from "../../types/professores";
 import { IUsuario } from "../../types/usuarios";
 import { httpError, STATUS_CODE } from "../../utils/errors";
 import { isDonoDoProfessor } from "../shared/professorAccess";
+import { withFotoUrl } from "../shared/fotoProfessor";
 
 export const getProfessorByIdService = async (
   requester: IUsuario,
@@ -30,5 +31,5 @@ export const getProfessorByIdService = async (
     );
   }
 
-  return professor;
+  return withFotoUrl(professor);
 };

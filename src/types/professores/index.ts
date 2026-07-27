@@ -1,3 +1,5 @@
+import { IFotoUpload } from "../shared/foto";
+
 export interface IProfessor {
   _id: string;
   usuarioId: string;
@@ -6,6 +8,8 @@ export interface IProfessor {
   telefone: string;
   email: string;
   formacao?: string;
+  foto?: string;
+  fotoUrl?: string;
   ativo: boolean;
   createdAt?: Date;
   updatedAt?: Date;
@@ -17,6 +21,7 @@ export interface ICreateProfessorPayload {
   telefone: string;
   email: string;
   formacao?: string;
+  foto?: IFotoUpload;
 }
 
 /** Retorno do create: professor + senha temporária entregue UMA vez ao admin. */
@@ -29,4 +34,5 @@ export interface IUpdateProfessorPayload {
   telefone?: string;
   email?: string;
   formacao?: string;
+  foto?: IFotoUpload;
 }

@@ -111,8 +111,11 @@ Perfil de app espelhando o Cognito.
 ### `professores`
 ```
 { _id, usuarioId: ObjectId, nome, cpf, telefone, email,
-  formacao?, ativo: boolean, createdAt, updatedAt }
+  formacao?, foto?: string, ativo: boolean, createdAt, updatedAt }
 ```
+> `foto`: mesma key-no-S3/`fotoUrl`-pré-assinada de `criancas.foto` — ver
+> `docs/03-Backend.md`. Soft delete (`ativo:false`) não apaga a foto do
+> bucket, ao contrário do hard delete de `criancas`.
 
 ### `turmas`
 ```

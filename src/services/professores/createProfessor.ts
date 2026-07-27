@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, { Types } from "mongoose";
 import { db } from "../../libs/mongo";
 import { ProfessorRepository } from "../../repositories/professor.repository";
 import { UsuarioRepository } from "../../repositories/usuario.repository";
@@ -13,6 +13,12 @@ import {
   STATUS_CODE,
   DUPLICATE_KEY_ERROR_CODE,
 } from "../../utils/errors";
+import {
+  gravarFoto,
+  removerFotoDoBucket,
+  validarFotoBase64,
+  withFotoUrl,
+} from "../shared/fotoProfessor";
 
 /**
  * Cria usuário (Cognito + `usuarios`) e professor juntos. Usuário e professor
@@ -38,10 +44,20 @@ export const createProfessorService = async (
     );
   }
 
+  // Valida a foto ANTES de criar o usuário no Cognito — evita provisionar uma
+  // conta que seria descartada em seguida por um upload inválido.
+  const fotoBytes = payload.foto ? validarFotoBase64(payload.foto) : undefined;
+
   const { sub: cognitoSub, temporaryPassword } = await createCognitoUser(
     email,
     "professor",
   );
+
+  const professorId = new Types.ObjectId();
+  const fotoKey =
+    fotoBytes && payload.foto
+      ? await gravarFoto(String(professorId), fotoBytes, payload.foto.contentType)
+      : undefined;
 
   try {
     await db();
@@ -64,12 +80,14 @@ export const createProfessorService = async (
 
         professor = await ProfessorRepository.insertOne(
           {
+            _id: professorId,
             usuarioId: usuario._id,
             nome: payload.nome,
             cpf: payload.cpf,
             telefone: payload.telefone,
             email,
             formacao: payload.formacao,
+            foto: fotoKey,
             ativo: true,
           },
           { session },
@@ -79,8 +97,12 @@ export const createProfessorService = async (
       await session.endSession();
     }
 
-    return { ...(professor as any).toObject(), senhaTemporaria: temporaryPassword };
+    return {
+      ...(await withFotoUrl((professor as any).toObject())),
+      senhaTemporaria: temporaryPassword,
+    };
   } catch (error: any) {
+    await removerFotoDoBucket(fotoKey);
     await removeCognitoUser(email).catch((rollbackError) => {
       console.error("Failed to rollback Cognito user:", rollbackError);
     });

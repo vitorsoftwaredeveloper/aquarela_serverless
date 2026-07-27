@@ -1,4 +1,5 @@
 import { AgendaRepository } from "../../repositories/agenda.repository";
+import { ProfessorRepository } from "../../repositories/professor.repository";
 import { IAgendaDiaria } from "../../types/agendas";
 import { IUsuario } from "../../types/usuarios";
 import { loadCriancaParaLeituraAgenda } from "../shared/agendaAccess";
@@ -23,7 +24,21 @@ export const getHistoricoAgendaService = async (
     };
   }
 
-  return (await AgendaRepository.find(query, null, {
+  const agendas = (await AgendaRepository.find(query, null, {
     sort: { data: -1 },
   })) as IAgendaDiaria[];
+
+  const professorIds = [...new Set(agendas.map((a) => String(a.registradoPor)))];
+  const professores = await ProfessorRepository.find(
+    { _id: { $in: professorIds } },
+    { nome: 1 },
+  );
+  const professorPorId = new Map(
+    professores.map((p) => [String(p._id), { _id: String(p._id), nome: p.nome }]),
+  );
+
+  return agendas.map((agenda) => ({
+    ...agenda,
+    professor: professorPorId.get(String(agenda.registradoPor)),
+  }));
 };

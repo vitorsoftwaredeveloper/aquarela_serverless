@@ -1,5 +1,6 @@
 import { JSONSchemaType } from "ajv";
 import { ICreateProfessorPayload } from "../../types/professores";
+import { fotoUploadSchema } from "./foto.schema";
 
 export const createProfessorSchema: JSONSchemaType<ICreateProfessorPayload> = {
   type: "object",
@@ -9,6 +10,7 @@ export const createProfessorSchema: JSONSchemaType<ICreateProfessorPayload> = {
     telefone: { type: "string", minLength: 8 },
     email: { type: "string", format: "email" },
     formacao: { type: "string", nullable: true },
+    foto: { ...fotoUploadSchema, nullable: true },
   },
   required: ["nome", "cpf", "telefone", "email"],
   additionalProperties: false,
