@@ -101,14 +101,18 @@ Base: `/v1`. Todos exigem JWT, exceto os marcados como público.
 | DELETE | `/usuarios/{id}` | admin | Remover usuário (hard delete: banco + Cognito; bloqueado `409` se houver criança/turma vinculada) |
 | GET | `/me` | todos | Dados do usuário logado + papel |
 
+> **`GET /me` (papel `professor`) inclui `professorId`.** `usuarios.professorId` do schema **nunca é gravado** (`createProfessor` não seta esse campo — o vínculo real é `professores.usuarioId`, resolvido nos outros services via `resolveProfessorId`). `getMeService` (`src/services/usuarios/getMe.ts`) resolve o `professores._id` correspondente sob demanda e injeta como `professorId` na resposta — é assim que o front descobre o `_id` do próprio cadastro pra chamar `GET`/`PUT /professores/{id}`. Sem essa resolução o campo vem sempre `undefined`.
+
 ### Professores (CRUD completo)
 | Método | Rota | Papel | Descrição |
 |---|---|---|---|
 | POST | `/professores` | admin | Cadastrar professor |
 | GET | `/professores` | admin | Listar professores |
-| GET | `/professores/{id}` | admin | Detalhe |
-| PUT | `/professores/{id}` | admin | Atualizar dados |
+| GET | `/professores/{id}` | admin/professor* | Detalhe (*só o próprio cadastro) |
+| PUT | `/professores/{id}` | admin/professor* | Atualizar dados (*só o próprio cadastro, e sem `email`) |
 | DELETE | `/professores/{id}` | admin | Remover (bloqueado/aviso se houver turma vinculada) |
+
+`email` fora do alcance do professor: é o username no Cognito e o vínculo com o `usuarios` criado pelo admin no cadastro — trocar exige atualizar Cognito + `usuarios` + `professores` juntos, então só admin. Ownership (GET e PUT) + bloqueio de campo (PUT) em `src/services/shared/professorAccess.ts` (`isDonoDoProfessor`, `CAMPOS_EXCLUSIVOS_ADMIN`), aplicada no service — o handler só filtra papel. `IUsuario.professorId` (`GET /me`) é como o front descobre o `_id` do próprio cadastro pra montar a URL do GET/PUT.
 
 ### Turmas (CRUD completo + vínculo de crianças)
 | Método | Rota | Papel | Descrição |

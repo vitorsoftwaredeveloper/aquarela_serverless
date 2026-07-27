@@ -2,9 +2,12 @@ import { ProfessorRepository } from "../../repositories/professor.repository";
 import { UsuarioRepository } from "../../repositories/usuario.repository";
 import { updateCognitoUserEmail } from "../../libs/cognito";
 import { IProfessor, IUpdateProfessorPayload } from "../../types/professores";
+import { IUsuario } from "../../types/usuarios";
 import { httpError, STATUS_CODE } from "../../utils/errors";
+import { assertPodeEditarProfessor } from "../shared/professorAccess";
 
 export const updateProfessorService = async (
+  requester: IUsuario,
   professorId: string,
   payload: IUpdateProfessorPayload,
 ): Promise<IProfessor> => {
@@ -18,6 +21,8 @@ export const updateProfessorService = async (
       "Professor não encontrado.",
     );
   }
+
+  assertPodeEditarProfessor(requester, professor, payload);
 
   const novoEmail = payload.email?.toLowerCase();
   const emailMudou = !!novoEmail && novoEmail !== professor.email;
