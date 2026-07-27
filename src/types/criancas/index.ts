@@ -36,6 +36,11 @@ export interface IAuditoriaEntry {
   campos: string[];
 }
 
+export interface IConsentimentoLgpd {
+  aceito: boolean;
+  aceitoEm: Date;
+}
+
 export interface ICrianca {
   _id: string;
   nome: string;
@@ -48,6 +53,7 @@ export interface ICrianca {
   responsaveis: IResponsavel[];
   saude: ISaude;
   financeiro: IFinanceiroCrianca;
+  consentimentoLgpd: IConsentimentoLgpd;
   auditoria?: IAuditoriaEntry[];
   ativo: boolean;
   createdAt?: Date;
@@ -64,6 +70,7 @@ export interface ICreateCriancaPayload {
   responsaveis: IResponsavel[];
   saude?: ISaude;
   financeiro: IFinanceiroCrianca;
+  consentimentoLgpd: boolean;
 }
 
 /** Acesso de responsável criado junto com a criança (senha entregue 1x ao admin). */

@@ -66,6 +66,14 @@ export const createCriancaService = async (
     );
   }
 
+  if (!payload.consentimentoLgpd) {
+    throw httpError(
+      STATUS_CODE.UNPROCESSABLE_ENTITY,
+      "CONSENTIMENTO_LGPD_OBRIGATORIO",
+      "É necessário confirmar o consentimento LGPD para cadastrar a criança.",
+    );
+  }
+
   for (const responsavel of payload.responsaveis) {
     if (!isValidCpf(responsavel.cpf)) {
       throw httpError(
@@ -134,6 +142,7 @@ export const createCriancaService = async (
       responsaveis: responsaveisComAcesso,
       saude: payload.saude ?? {},
       financeiro: payload.financeiro,
+      consentimentoLgpd: { aceito: true, aceitoEm: new Date() },
       auditoria: [],
       ativo: true,
     });

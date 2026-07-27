@@ -168,6 +168,12 @@ Base para todos os demais épicos. Não entrega valor ao usuário final, mas des
 | QA-07 | Hardening de segurança (IAM por Lambda, secrets, webhook assinado) | 🔴   | 5   | INFRA  | Épico D        | Menor privilégio; segredos em SSM; webhook verificado             |
 | QA-08 | Go-live: deploy prod, monitoramento, runbook                       | 🔴   | 3   | INFRA  | INF-11, INF-12 | Prod estável; alarmes; plano de rollback                          |
 
+> QA-03: consentimento no cadastro **implementado** — checkbox obrigatório
+> no último step do stepper (`aquarela_app`) + `criancas.consentimentoLgpd`
+> (`POST /criancas`, `422 CONSENTIMENTO_LGPD_OBRIGATORIO` se ausente,
+> imutável após criação) em `aquarela_serverless`. Restam de QA-03: revisão
+> de acesso por papel e política de retenção/expurgo.
+
 **Subtotal Épico G:** 29 pts (MVP: ~23 pts).
 
 ---

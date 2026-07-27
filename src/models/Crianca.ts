@@ -53,6 +53,14 @@ const AuditoriaEntrySchema = new Schema(
   { _id: false },
 );
 
+const ConsentimentoLgpdSchema = new Schema(
+  {
+    aceito: { type: Boolean, required: true },
+    aceitoEm: { type: Date, required: true },
+  },
+  { _id: false },
+);
+
 export const CriancaSchema = new Schema(
   {
     nome: { type: String, required: true, trim: true },
@@ -75,6 +83,7 @@ export const CriancaSchema = new Schema(
     responsaveis: { type: [ResponsavelSchema], required: true },
     saude: { type: SaudeSchema, default: () => ({}) },
     financeiro: { type: FinanceiroCriancaSchema, required: true },
+    consentimentoLgpd: { type: ConsentimentoLgpdSchema, required: true },
     // Divergência deliberada de docs/04: trilha mínima de auditoria
     // (CAD-09) embutida, capada às últimas 50 entradas.
     auditoria: { type: [AuditoriaEntrySchema], default: [] },

@@ -66,6 +66,7 @@ Perfil de app espelhando o Cognito.
     observacoes?: string
   },
   financeiro: { planoId?: ObjectId, valorMensalidade: number, diaVencimento: number },
+  consentimentoLgpd: { aceito: boolean, aceitoEm: Date },  // QA-03
   auditoria: [{ usuarioId: ObjectId, alteradoEm: Date, campos: [string] }],  // CAD-09
   ativo: boolean,
   createdAt, updatedAt
@@ -77,7 +78,7 @@ Perfil de app espelhando o Cognito.
 > turma a partir de `turmaId` (lookup em `turmas`) e devolve no payload de
 > resposta, sem gravar no documento.
 
-> **Implementado com 3 divergências deliberadas desta especificação** (ver
+> **Implementado com 4 divergências deliberadas desta especificação** (ver
 > `aquarela_serverless`):
 > - `turmaId` é **opcional/nullable**, não obrigatório — necessário para
 >   `DELETE /turmas/{id}/criancas/{criancaId}` (desvincular sem apagar a
@@ -100,6 +101,12 @@ Perfil de app espelhando o Cognito.
 >   A imagem sobe em base64 no corpo de `POST /criancas` / `PUT /criancas/{id}`
 >   (teto de 2MB decodificados) e a leitura sai por `fotoUrl` pré-assinada
 >   de 1h — ver `docs/03-Backend.md`.
+> - **`consentimentoLgpd`** (QA-03): `{ aceito: true, aceitoEm }` gravado
+>   pelo próprio backend no `POST /criancas` (nunca lido do payload — o
+>   client só manda `consentimentoLgpd: boolean`), rejeitando o cadastro com
+>   `422 CONSENTIMENTO_LGPD_OBRIGATORIO` se vier `false`/ausente. Campo
+>   **imutável**: não existe em `IUpdateCriancaPayload`, então `PUT
+>   /criancas/{id}` não altera o consentimento já registrado.
 
 ### `professores`
 ```
@@ -237,5 +244,5 @@ Soft delete (`ativo:false`). Leitura: admin vê tudo; professor/responsável só
 
 ## 7. Retenção & LGPD
 - Dados de saúde e documentos apenas enquanto a criança estiver ativa + período legal; anonimização/expurgo após o prazo.
-- Consentimento dos responsáveis registrado no cadastro.
+- Consentimento dos responsáveis registrado no cadastro (`criancas.consentimentoLgpd`), obrigatório em `POST /criancas`, imutável depois.
 - Backups criptografados; acesso segregado por papel na aplicação (o banco não expõe dados diretamente ao cliente).

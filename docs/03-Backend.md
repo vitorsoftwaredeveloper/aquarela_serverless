@@ -126,7 +126,7 @@ Base: `/v1`. Todos exigem JWT, exceto os marcados como público.
 ### Crianças (CRUD completo)
 | Método | Rota | Papel | Descrição |
 |---|---|---|---|
-| POST | `/criancas` | admin | Cadastrar criança (+ vínculo de turma, responsáveis e **foto**) |
+| POST | `/criancas` | admin | Cadastrar criança (+ vínculo de turma, responsáveis, **foto** e **consentimento LGPD**) |
 | GET | `/criancas` | admin/professor | Listar (filtro por turma, nome, ativo) — cada criança inclui `turmaNome` (nome da turma vinculada, resolvido a partir de `turmaId`; `null` se sem turma) |
 | GET | `/criancas/{id}` | admin/professor/responsavel* | Detalhe (*só o próprio filho) |
 | PUT | `/criancas/{id}` | admin/responsavel* | Editar dados/saúde/responsáveis/**foto** (*só o próprio filho, e sem `financeiro`/`ativo`) |
@@ -254,6 +254,7 @@ Credenciais do MercadoPago e strings de conexão do Mongo ficam em **SSM Paramet
 - Segredos apenas em SSM (nunca no código/repo).
 - Logs sem PII sensível; trilha de auditoria para edições de cadastro de criança e baixas financeiras.
 - Webhook com verificação de assinatura.
+- **Consentimento LGPD (QA-03):** `POST /criancas` exige `consentimentoLgpd: boolean` no corpo; `false`/ausente é `422 CONSENTIMENTO_LGPD_OBRIGATORIO`. O backend grava `{ aceito: true, aceitoEm: <timestamp do servidor> }` — o client nunca controla `aceitoEm`. Campo imutável após o cadastro (fora do payload de `PUT /criancas/{id}`).
 
 ---
 

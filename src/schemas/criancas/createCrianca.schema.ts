@@ -76,7 +76,15 @@ export const createCriancaSchema: JSONSchemaType<ICreateCriancaPayload> = {
       required: ["valorMensalidade", "diaVencimento"],
       additionalProperties: false,
     },
+    consentimentoLgpd: { type: "boolean" },
   },
-  required: ["nome", "dataNascimento", "cpf", "responsaveis", "financeiro"],
+  required: [
+    "nome",
+    "dataNascimento",
+    "cpf",
+    "responsaveis",
+    "financeiro",
+    "consentimentoLgpd",
+  ],
   additionalProperties: false,
 };
