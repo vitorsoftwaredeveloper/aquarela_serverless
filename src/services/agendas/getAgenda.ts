@@ -3,6 +3,7 @@ import { ProfessorRepository } from "../../repositories/professor.repository";
 import { IAgendaDiaria } from "../../types/agendas";
 import { IUsuario } from "../../types/usuarios";
 import { loadCriancaParaLeituraAgenda } from "../shared/agendaAccess";
+import { withFotoUrl } from "../shared/fotoProfessor";
 import { httpError, STATUS_CODE } from "../../utils/errors";
 
 export const getAgendaService = async (
@@ -27,9 +28,11 @@ export const getAgendaService = async (
 
   const professor = await ProfessorRepository.findById(agenda.registradoPor, {
     nome: 1,
+    foto: 1,
   });
   if (professor) {
-    agenda.professor = { _id: String(professor._id), nome: professor.nome };
+    const { fotoUrl } = await withFotoUrl(professor);
+    agenda.professor = { _id: String(professor._id), nome: professor.nome, fotoUrl };
   }
 
   return agenda;

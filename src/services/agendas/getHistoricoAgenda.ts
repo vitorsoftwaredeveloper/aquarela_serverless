@@ -3,6 +3,7 @@ import { ProfessorRepository } from "../../repositories/professor.repository";
 import { IAgendaDiaria } from "../../types/agendas";
 import { IUsuario } from "../../types/usuarios";
 import { loadCriancaParaLeituraAgenda } from "../shared/agendaAccess";
+import { withFotoUrls } from "../shared/fotoProfessor";
 
 export interface IHistoricoAgendaFilters {
   de?: string;
@@ -29,12 +30,14 @@ export const getHistoricoAgendaService = async (
   })) as IAgendaDiaria[];
 
   const professorIds = [...new Set(agendas.map((a) => String(a.registradoPor)))];
-  const professores = await ProfessorRepository.find(
-    { _id: { $in: professorIds } },
-    { nome: 1 },
+  const professores = await withFotoUrls(
+    await ProfessorRepository.find({ _id: { $in: professorIds } }, { nome: 1, foto: 1 }),
   );
   const professorPorId = new Map(
-    professores.map((p) => [String(p._id), { _id: String(p._id), nome: p.nome }]),
+    professores.map((p) => [
+      String(p._id),
+      { _id: String(p._id), nome: p.nome, fotoUrl: p.fotoUrl },
+    ]),
   );
 
   return agendas.map((agenda) => ({

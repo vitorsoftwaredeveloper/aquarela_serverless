@@ -4,6 +4,7 @@ import { UsuarioRepository } from "../../repositories/usuario.repository";
 import { removeCognitoUser } from "../../libs/cognito";
 import { IUsuario } from "../../types/usuarios";
 import { httpError, STATUS_CODE } from "../../utils/errors";
+import { removerFotoDoBucket } from "../shared/fotoProfessor";
 
 /**
  * Hard delete do professor e do usuário dedicado (Cognito + `usuarios`)
@@ -52,4 +53,6 @@ export const removeProfessorService = async (
   }
 
   await ProfessorRepository.deleteOne({ _id: professorId });
+
+  await removerFotoDoBucket((professor as any).foto);
 };

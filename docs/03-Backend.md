@@ -179,7 +179,7 @@ No Mongo fica só a **key** do objeto (`criancas/{criancaId}/{uuid}.{ext}`), nun
 | GET | `/agenda?criancaId=&data=` | professor/responsavel* | Registro por dia |
 | GET | `/agenda/historico?criancaId=&de=&ate=` | professor/responsavel* | Histórico |
 
-`GET /agenda` e `GET /agenda/historico` devolvem, além de `registradoPor` (ID), o campo `professor: { _id, nome }` com o nome de quem registrou (resolvido a partir de `registradoPor` no service — sem populate do Mongoose).
+`GET /agenda` e `GET /agenda/historico` devolvem, além de `registradoPor` (ID), o campo `professor: { _id, nome, fotoUrl? }` com o nome e a foto (URL pré-assinada de 1h, mesmo mecanismo de `src/services/shared/fotoProfessor.ts`) de quem registrou (resolvido a partir de `registradoPor` no service — sem populate do Mongoose).
 
 ### Financeiro / Pagamentos
 | GET | `/mensalidades?criancaId=&ano=` | responsavel*/admin | Meses pagos/em aberto |

@@ -36,6 +36,7 @@ export interface IIntercorrencia {
 export interface IProfessorResumo {
   _id: string;
   nome: string;
+  fotoUrl?: string;
 }
 
 export interface IAgendaDiaria {
