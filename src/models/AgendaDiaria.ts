@@ -83,6 +83,7 @@ export const AgendaDiariaSchema = new Schema(
     medicacoesAdministradas: { type: [MedicacaoAdministradaSchema], default: [] },
     intercorrencias: { type: [IntercorrenciaSchema], default: [] },
     observacoes: { type: String },
+    enviadaEm: { type: Date, default: null },
   },
   { timestamps: true },
 );

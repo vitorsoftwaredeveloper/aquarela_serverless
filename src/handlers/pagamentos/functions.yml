@@ -17,6 +17,15 @@ createPagamento:
         authorizer:
           name: cognitoAuthorizer
 
+createPagamentoManual:
+  handler: src/handlers/pagamentos/createPagamentoManual.execute
+  events:
+    - httpApi:
+        method: POST
+        path: /v1/pagamentos/manual
+        authorizer:
+          name: cognitoAuthorizer
+
 getPagamentoStatus:
   handler: src/handlers/pagamentos/getPagamentoStatus.execute
   events:

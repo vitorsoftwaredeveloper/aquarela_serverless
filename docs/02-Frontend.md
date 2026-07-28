@@ -112,6 +112,7 @@ Regra: Context para estado compartilhado entre telas; estado local (`useState`) 
 - `react-hook-form` para todos os formulários (cadastro de criança, turma, professor, usuário; registro de agenda).
 - `yup` + `@hookform/resolvers` para schemas — reaproveitar validações de CPF, e-mail, campos obrigatórios.
 - Formulários longos (cadastro de criança) em **stepper** (identificação → responsáveis → saúde/cuidados → financeiro).
+- **Etapa financeiro do cadastro de criança:** o passo precisa de um seletor de **plano fixo** (`GET /config/precos/planos`, preenche `valorMensalidade` a partir do plano escolhido e manda `planoId` junto) **e** uma opção de **valor personalizado** (acordo fechado com os responsáveis fora dos planos). Ao digitar no campo de valor livre, o front deve limpar/omitir `planoId` do payload — o backend nunca recalcula `valorMensalidade` a partir de plano (ver `docs/03-Backend.md`, seção Crianças), então o valor que for enviado é o que fica gravado; não enviar os dois como se fossem consistentes entre si (ex.: plano selecionado com valor divergente digitado por cima sem apagar o `planoId`).
 
 ```ts
 // schemas/crianca.ts
@@ -146,6 +147,18 @@ import { QRCodeSVG } from "qrcode.react";
 // 2) exibe <QRCodeSVG value={pixCopiaECola} /> + botão copiar
 // 3) polling GET /pagamentos/:txid até status === "pago" (ou push/webhook no futuro)
 ```
+
+---
+
+## 7.1 Pagamento manual em dinheiro (admin)
+
+Fluxo à parte do PIX: quando o responsável paga em espécie (ex.: na secretaria), é o **admin** — nunca o responsável — quem registra a baixa. Contrato de back em docs/03 §7.1 (`POST /pagamentos/manual`).
+
+- **Tela:** aba/seção "Financeiro" dentro do detalhe da criança em `(admin)/criancas/[id]`, reaproveitando a mesma grade de meses do `ChargeContext` usada em `(responsavel)/financeiro`, só que renderizada pro admin com a criança escolhida (endpoint por trás é o mesmo `GET /mensalidades?criancaId=&ano=`).
+- Mês com status `pago`/`cancelado`: célula só leitura, sem clique.
+- Mês `aberto`/`atrasado`: clicar abre um modal "Registrar pagamento em dinheiro" — campo de valor pré-preenchido com o valor cheio da mensalidade, **editável** (back aceita valor diferente do cheio, sem validar contra `mensalidade.valor` — ver docs/03 §7.1; qualquer valor `> 0` já baixa a mensalidade inteira, sem estado parcial).
+- Confirmar chama `POST /pagamentos/manual` com `{ mensalidadeId, valor }`; sucesso atualiza a célula pra "pago" sem reload de página (mesmo padrão otimista do restante do `ChargeContext`). Erro `409` (`MENSALIDADE_PAGA`/`MENSALIDADE_CANCELADA`) fecha o modal com toast — outra aba/admin já deu baixa nesse meio tempo.
+- Sem QR/copia-e-cola/polling nesse fluxo — a resposta do `POST` já vem com o pagamento `status:"pago"`.
 
 ---
 

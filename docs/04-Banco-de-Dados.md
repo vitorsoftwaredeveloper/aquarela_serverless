@@ -108,6 +108,17 @@ Perfil de app espelhando o Cognito.
 >   **imutável**: não existe em `IUpdateCriancaPayload`, então `PUT
 >   /criancas/{id}` não altera o consentimento já registrado.
 
+> **`financeiro.valorMensalidade` é sempre o valor livre, `planoId` é só
+> etiqueta.** O backend nunca deriva `valorMensalidade` de `planoId`/
+> `configPrecos` — o valor gravado é sempre o número que o client manda em
+> `POST`/`PUT`. `planoId` é opcional e serve só de referência (qual plano
+> fixo o admin usou de base, se usou algum); sumir com `planoId` (ou nunca
+> mandar) representa um **valor personalizado/acordo fechado com o
+> responsável**, sem vínculo com nenhum plano de `configPrecos`. Não existe
+> "sobrepor o plano" no backend — o valor digitado **é** o que vale, sempre;
+> quem decide se aquele número veio de um plano ou foi negociado é a UI
+> (mandar `planoId` junto ou deixar de fora).
+
 ### `professores`
 ```
 { _id, usuarioId: ObjectId, nome, cpf, telefone, email,
@@ -145,6 +156,7 @@ Um documento por **criança + dia**.
                       descricao, hora, notificado: boolean }],
   observacoes?: string,
   fotos?: [string],                 // S3 — fase 2
+  enviadaEm: Date | null,           // marcado só após POST /agenda/{id}/enviar resolver sem erro
   createdAt, updatedAt
 }
 ```
@@ -174,16 +186,18 @@ Uma por criança + competência (mês/ano).
 ```
 {
   _id, mensalidadeId: ObjectId, criancaId: ObjectId,
-  metodo: "pix",
-  provedor: "mercadopago",
+  metodo: "pix" | "dinheiro",
+  provedor: "mercadopago" | "manual",
   txid: string (idx, unique), providerPaymentId?: string,
   valor: number,
   status: "pendente" | "pago" | "expirado" | "falhou",
   pixCopiaECola?: string, qrBase64?: string,
   reciboUrl?: string,               // S3
+  recebidoPor?: ObjectId,           // usuarios (admin) — só quando provedor="manual"
   pagoEm?: Date, createdAt, updatedAt
 }
 ```
+`provedor:"manual"` = pagamento em dinheiro físico registrado por um admin (`POST /pagamentos/manual`, ver docs/03 §7.1): `status:"pago"` já na criação (nunca passa por `pendente`), `txid` gerado internamente (não é PIX real), `recebidoPor` obrigatório — trilha de auditoria de quem deu a baixa.
 
 ### `despesas`
 ```
@@ -210,6 +224,15 @@ Usado pelo simulador e pela geração de mensalidades.
 ```
 Soft delete (`ativo:false`). Leitura: admin vê tudo; professor/responsável só `ativo:true` sem `turmaId` ou com `turmaId` de turma que lecionam/filho está matriculado.
 
+### `dispositivos`
+```
+{ _id, usuarioId: ObjectId (usuarios),
+  token: string,          // token FCM do navegador/PWA — identifica o dispositivo, não a pessoa
+  plataforma: "android"|"ios"|"web"|"desktop",
+  ultimoUsoEm, createdAt, updatedAt }
+```
+Um usuário pode ter N dispositivos (celular + notebook). `token` é upsert idempotente — se reaparecer vinculado a outro `usuarioId`, o registro mais recente vence (dispositivo compartilhado por outro login). Hard delete real (não soft): token invalidado pelo FCM (`registration-token-not-registered`) ou removido pelo próprio usuário (logout) não tem valor de auditoria.
+
 ---
 
 ## 4. Índices (resumo)
@@ -223,6 +246,7 @@ Soft delete (`ativo:false`). Leitura: admin vê tudo; professor/responsável só
 | pagamentos | `txid` unique | conciliação/idempotência |
 | despesas | `data` | balanço por período |
 | avisos | `{ativo, createdAt:-1}` | listagem por mais recente |
+| dispositivos | `token` unique; `usuarioId` | resolver tokens do usuário no envio; upsert por token |
 
 ---
 

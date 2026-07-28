@@ -16,6 +16,15 @@ updateAgenda:
         authorizer:
           name: cognitoAuthorizer
 
+removeAgenda:
+  handler: src/handlers/agendas/removeAgenda.execute
+  events:
+    - httpApi:
+        method: DELETE
+        path: /v1/agenda/{id}
+        authorizer:
+          name: cognitoAuthorizer
+
 getAgenda:
   handler: src/handlers/agendas/getAgenda.execute
   iamRoleStatementsInherit: true
@@ -35,5 +44,24 @@ getHistoricoAgenda:
     - httpApi:
         method: GET
         path: /v1/agenda/historico
+        authorizer:
+          name: cognitoAuthorizer
+
+enviarAgenda:
+  handler: src/handlers/agendas/enviarAgenda.execute
+  environment:
+    FIREBASE_SERVICE_ACCOUNT: ${self:custom.environment.FIREBASE_SERVICE_ACCOUNT}
+  iamRoleStatementsInherit: true
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - ssm:GetParameter
+      Resource:
+        - ${self:custom.ssmParameterArn}/firebase_service_account
+        - ${self:custom.ssmParameterArn}/*/firebase_service_account
+  events:
+    - httpApi:
+        method: POST
+        path: /v1/agenda/{id}/enviar
         authorizer:
           name: cognitoAuthorizer

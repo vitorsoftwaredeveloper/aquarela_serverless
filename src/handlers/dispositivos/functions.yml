@@ -1,0 +1,17 @@
+registrarDispositivo:
+  handler: src/handlers/dispositivos/registrarDispositivo.execute
+  events:
+    - httpApi:
+        method: POST
+        path: /v1/dispositivos
+        authorizer:
+          name: cognitoAuthorizer
+
+removerDispositivo:
+  handler: src/handlers/dispositivos/removerDispositivo.execute
+  events:
+    - httpApi:
+        method: DELETE
+        path: /v1/dispositivos/{token}
+        authorizer:
+          name: cognitoAuthorizer

@@ -14,7 +14,7 @@
 - **Dep.:** tarefas que precisam estar prontas antes.
 - **AC:** critérios de aceite resumidos.
 
-Épicos: **0** Fundação · **A** Cadastros · **B** Agenda diária · **C** Portal dos pais · **D** Financeiro/PIX · **E** Simulador · **F** Pedagógico · **G** Qualidade/Go-live · **H** Mural de avisos.
+Épicos: **0** Fundação · **A** Cadastros · **B** Agenda diária · **C** Portal dos pais · **D** Financeiro/PIX · **E** Simulador · **F** Pedagógico · **G** Qualidade/Go-live · **H** Mural de avisos · **I** Notificações push.
 
 Resumo de esforço do MVP no fim do documento.
 
@@ -58,7 +58,7 @@ Base para todos os demais épicos. Não entrega valor ao usuário final, mas des
 | CAD-07 | Tela admin **cadastro de turmas** (FE)                                                             | 🔴   | 3   | FE     | CAD-06, INF-10 | Criar/editar turma; selecionar professora                                                 |
 | CAD-08 | Modelo **criança** completo (BE): identificação, responsáveis, saúde, financeiro                   | 🔴   | 8   | BE     | INF-06         | Todos os campos da seção 6 do PRD; validação de CPF                                       |
 | CAD-09 | Endpoint editar/atualizar criança + auditoria de alterações                                        | 🔴   | 5   | BE     | CAD-08         | Edição registra quem/quando; histórico de mudanças em saúde                               |
-| CAD-10 | Tela **cadastro/edição de criança** em stepper (identificação → responsáveis → saúde → financeiro) | 🔴   | 8   | FE     | CAD-08, INF-10 | Stepper com validação por etapa; salva parcial; edição                                    |
+| CAD-10 | Tela **cadastro/edição de criança** em stepper (identificação → responsáveis → saúde → financeiro) | 🔴   | 8   | FE     | CAD-08, INF-10 | Stepper com validação por etapa; salva parcial; edição; etapa financeiro tem seletor de plano fixo **e** campo de valor personalizado (acordo fechado), este último sobrepõe o plano e omite `planoId` no payload |
 | CAD-11 | Vínculo criança ↔ turma e criança ↔ responsável(is)                                                | 🔴   | 3   | FS     | CAD-06, CAD-08 | Criança aparece na turma; responsável enxerga o filho                                     |
 | CAD-12 | Upload de foto da criança (S3)                                                                     | 🟡   | 3   | FS     | CAD-08         | Foto salva em S3; exibida no cadastro/agenda                                              |
 | CAD-13 | Busca/filtro de crianças (por nome, turma, status)                                                 | 🟡   | 3   | FS     | CAD-08         | Lista filtrável e paginada                                                                |
@@ -123,8 +123,10 @@ Base para todos os demais épicos. Não entrega valor ao usuário final, mas des
 | FIN-12 | Endpoint **inadimplentes**                                                    | 🔴   | 3   | BE     | FIN-03                 | Lista mensalidades atrasadas + criança/responsável             |
 | FIN-13 | Tela **dashboard financeiro** admin (KPIs + gráfico 12 meses)                 | 🔴   | 8   | FE     | FIN-11, FIN-12, INF-10 | Entradas, despesas, inadimplentes, crianças ativas             |
 | FIN-14 | **Exportação de relatórios** em Excel (SheetJS)                               | 🟡   | 3   | FE     | FIN-11                 | Exporta balanço/inadimplentes em `.xlsx`                       |
+| FIN-15 | Endpoint **pagamento manual** (admin, dinheiro físico)                        | 🔴   | 3   | BE     | FIN-01, FIN-04         | `POST /pagamentos/manual` baixa mensalidade; audita admin (`recebidoPor`) |
+| FIN-16 | Tela admin: registrar pagamento em dinheiro no mês em aberto                  | 🔴   | 3   | FE     | FIN-15, FIN-07         | Clique no mês aberto/atrasado abre modal de valor recebido     |
 
-**Subtotal Épico D:** 62 pts (MVP: ~56 pts).
+**Subtotal Épico D:** 68 pts (MVP: ~62 pts).
 
 ---
 
@@ -194,6 +196,95 @@ Front (`aquarela_app`) já tem tela de criação (admin) e leitura (responsável
 
 ---
 
+## Épico I — Notificações push (NOT)
+
+> Substitui o "Push via Firebase — fase 2" genérico por um escopo fechado: **Web Push (FCM)** entregue no celular do responsável quando o professor conclui a agenda do dia. A aplicação é web (Next.js), então o canal é o **padrão Web Push do browser**, não app nativo.
+>
+> **Alcance esperado:** Android/Chrome e desktop funcionam em aba comum. **iPhone só recebe se o responsável instalar o PWA na tela inicial** (iOS 16.4+) — daí o peso do onboarding (NOT-11) e do diagnóstico (NOT-16/NOT-19). Cobertura realista ≈ 75–85% dos responsáveis; o restante fica coberto quando o canal WhatsApp entrar (fora deste épico, ver NOT-05: o motor já nasce com canal plugável).
+>
+> **Gatilho adotado:** ação explícita do professor (**"Enviar para os pais"**), não `save`. A agenda é preenchida ao longo do dia — disparar a cada gravação geraria ~8 notificações/dia/filho e mataria o canal. Exceção: intercorrência dispara na hora (NOT-09).
+>
+> **LGPD:** o corpo da notificação aparece na tela de bloqueio. Nunca leva dado de saúde, alimentação ou nome de medicação — só "agenda disponível" + link. Detalhe só dentro do app autenticado (NOT-17).
+
+| ID     | Tarefa                                                                                      | Prio | Pts | Camada | Dep.                   | AC                                                                                              |
+| ------ | ------------------------------------------------------------------------------------------- | ---- | --- | ------ | ---------------------- | ----------------------------------------------------------------------------------------------- |
+| NOT-00 | ✅ **Spike:** validar entrega em dispositivo real (Android, iPhone c/ PWA, desktop)          | 🔴   | 1   | INFRA  | —                      | **Concluído em 28/07/2026** — ver veredito abaixo                                                |
+| NOT-01 | ✅ Provisionar projeto Firebase (Cloud Messaging) + par VAPID + service account no SSM         | 🔴   | 2   | INFRA  | INF-05                 | Projeto `aquarela-kids-60bec` criado, VAPID gerada (usadas no spike NOT-00). Service account em `/aquarela_serverless/staging/firebase_service_account` (`SecureString`, validado em 28/07/2026 — JSON íntegro, `private_key` em formato PEM). Falta replicar em `/aquarela_serverless/firebase_service_account` (dev) e `/prod/` quando esses ambientes forem provisionados |
+| NOT-02 | ✅ `src/libs/firebase.ts` — Admin SDK com init **global** reutilizado entre invocações         | 🔴   | 3   | BE     | NOT-01                 | Credencial lida em runtime (nunca `${ssm:}`); sem re-init a cada request                         |
+| NOT-03 | ✅ Modelo `dispositivos` + índice único em `token`                                             | 🔴   | 3   | BE     | INF-04                 | `{usuarioId, token, plataforma, ultimoUsoEm}`; mesmo usuário com N dispositivos                  |
+| NOT-04 | ✅ Endpoints `POST /dispositivos` e `DELETE /dispositivos/{token}`                             | 🔴   | 3   | BE     | NOT-03, INF-06         | Upsert idempotente por token; usuário só mexe nos próprios dispositivos                          |
+| NOT-05 | ✅ Motor `services/notificacoes/enviarNotificacao.ts` com **canal plugável**                   | 🔴   | 5   | BE     | NOT-02, NOT-04         | Recebe `usuarioIds` + payload, resolve tokens, envia via FCM; adapter permite plugar WhatsApp    |
+| NOT-06 | ✅ Poda de token morto (`messaging/registration-token-not-registered`)                         | 🔴   | 2   | BE     | NOT-05                 | Resposta por token; token inválido é removido, não retentado                                     |
+| NOT-07 | Coleção `notificacoes` — log de envio/erro para auditoria                                    | 🟡   | 2   | BE     | NOT-05                 | Registro por envio com status e motivo da falha; sem PII no log                                  |
+| NOT-08 | ✅ `agendasDiarias.enviadaEm` + `POST /agenda/{id}/enviar` (idempotente)                       | 🔴   | 5   | BE     | AGD-02, AGD-04, NOT-05 | Só professor da turma (mesma regra de escrita de `createAgenda`/`updateAgenda` — sem admin); 2º disparo → 409; notifica todos os responsáveis da criança |
+| NOT-09 | Disparo imediato em **intercorrência** (ignora o botão de envio)                             | 🟡   | 3   | BE     | AGD-08, NOT-05         | Febre/queda notifica na hora; corpo genérico ("a professora registrou um aviso")                 |
+| NOT-10 | PWA no front: `manifest.json` (`display: standalone`) + ícones + `firebase-messaging-sw.js`  | 🔴   | 3   | FE     | INF-07                 | Service worker servido na **raiz** do domínio; app instalável; HTTPS                             |
+| NOT-11 | Onboarding de instalação (detecta iOS não-instalado e **webview de app** → sai para o browser) | 🔴   | 5   | UX/FE  | NOT-10                 | Guia passo a passo no iPhone; detecta webview (WhatsApp/Instagram) e instrui "Abrir no Safari/Chrome"; estado "instalado" detectado |
+| NOT-12 | Fluxo de permissão contextualizado + `getToken` + registro no back                           | 🔴   | 5   | FE     | NOT-10, NOT-04         | Explica o benefício **antes** de `requestPermission()`; token enviado ao back                    |
+| NOT-13 | Ciclo de vida do token: reenvio no login, `onTokenRefresh`, `DELETE` no logout               | 🔴   | 2   | FE     | NOT-12                 | Token nunca fica órfão nem obsoleto; logout limpa o dispositivo                                  |
+| NOT-14 | `onMessage` em primeiro plano → toast in-app                                                 | 🟡   | 2   | FE     | NOT-12, INF-10         | App aberto não perde o aviso (SO não exibe notificação nesse caso)                               |
+| NOT-15 | Botão **"Enviar para os pais"** na tela de agenda do professor + estado "enviada"            | 🔴   | 3   | FE     | NOT-08, AGD-05         | Professor vê se já enviou; botão bloqueia reenvio acidental                                      |
+| NOT-16 | Tela de preferências: status da notificação, reativar, diagnosticar permissão bloqueada      | 🟡   | 3   | FE     | NOT-12                 | Responsável que negou a permissão recebe instrução de como reverter no browser                   |
+| NOT-17 | Opt-in registrado + payload **sem PII/saúde** (LGPD)                                         | 🔴   | 3   | FS     | NOT-05, NOT-12         | Consentimento com timestamp do servidor; corpo genérico auditado; detalhe só no app autenticado  |
+| NOT-18 | Teste em dispositivos reais (Android, iPhone c/ PWA, desktop) antes do go-live               | 🔴   | 3   | QA     | NOT-15                 | Matriz de plataformas validada com app fechado; casos de falha documentados                      |
+| NOT-19 | Observabilidade: taxa de entrega + **% de responsáveis sem token válido**                    | 🟡   | 3   | INFRA  | NOT-07                 | Admin enxerga quem está no escuro; alarme quando a cobertura cai                                 |
+| NOT-20 | Atualizar `docs/03-Backend.md` e `docs/04-Banco-de-Dados.md` com o contrato                  | 🔴   | 1   | BE     | NOT-01…NOT-09          | `/dispositivos`, `/agenda/{id}/enviar`, `dispositivos`, `notificacoes` documentados              |
+
+**Subtotal Épico I:** 62 pts (MVP: ~49 pts sem os Should).
+
+### Veredito do NOT-00 (28/07/2026) — ✅ **aprovado, seguir com o épico**
+
+Spike executado com página estática (`public/spike-push.html` + `public/firebase-messaging-sw.js` no `aquarela_app`, branch `feat/notify`), projeto Firebase `aquarela-kids-60bec` e disparo manual por `scripts/spike-push.mjs` (`firebase-admin`).
+
+| Plataforma                     | Chegou? | App fechado / tela travada | Observação                                                             |
+| ------------------------------ | ------- | -------------------------- | ---------------------------------------------------------------------- |
+| **Android / Chrome**           | ✅      | ✅ tela de bloqueio         | Funciona em aba comum, sem instalar PWA                                 |
+| **iPhone / PWA na tela inicial** | ✅      | ✅ bloqueio + Central       | Só após "Adicionar à Tela de Início" e abrir pelo ícone                 |
+| **iPhone / Safari em aba**     | ❌      | —                          | Esperado: `PushManager` indisponível fora do modo instalado             |
+| **macOS / Safari**             | ✅      | —                          | Exibição confirmada                                                    |
+| **macOS / Chrome**             | ❌      | —                          | Config local da máquina de teste (macOS não exibia); não é risco de produto |
+
+**Conclusões que viram requisito:**
+
+1. O caminho técnico está provado ponta a ponta — FCM → Push Service → service worker → tela de bloqueio. Nenhum bloqueio para a fase I.1.
+2. O passo a passo de instalação no iOS é **condição de existência** do canal, não polimento. Confirma o peso de `NOT-11`.
+3. 🔴 **Achado novo — webview de app não suporta push.** O link aberto dentro do WhatsApp (ou Instagram/Facebook) roda em webview sem `PushManager`: o diagnóstico acusou `Suporte a push: não` mesmo em iPhone. Como a escola tende a divulgar o link **por WhatsApp**, esse é o caminho mais provável do responsável — e o que mais silenciosamente falha. Requisito absorvido por `NOT-11`.
+
+### Estado da fase I.1 e I.2 — back-end (28/07/2026)
+
+`NOT-02`…`NOT-06` e `NOT-08` implementados e testados de ponta a ponta contra `serverless-offline` + Mongo local (seed próprio via repositórios da aplicação, não escrita direta no Mongo — evita o desvio de nome de coleção que o Mongoose faz por baixo):
+
+- `POST/DELETE /dispositivos` — upsert idempotente, ownership por `usuarioId`, validação ajv, isolamento comprovado entre dois usuários reais (admin não remove dispositivo do professor).
+- Motor `enviarNotificacao` com canal FCM isolado em `services/notificacoes/canais/canalFcm.ts` (trocar/adicionar canal não muda quem chama o motor) e poda automática de token morto.
+- `POST /agenda/{id}/enviar` — 404 pra agenda inexistente, 200 marcando `enviadaEm` no caminho feliz, 409 no reenvio, e **500 sem marcar `enviadaEm`** quando o envio de fato falha (testado forçando um dispositivo real sem credencial do Firebase local) — garante que o professor pode tentar de novo em vez de ficar com um envio "fantasma".
+
+`docs/03-Backend.md` e `docs/04-Banco-de-Dados.md` atualizados com os dois contratos. Testes existentes (40) e `typecheck` seguem verdes. Mocks do spike `NOT-00` removidos (`aquarela_app/public/spike-*`, `scripts/spike-push.mjs`) — não fazem parte do produto, e o `NOT-10` vai recriar o `firebase-messaging-sw.js`/manifest de verdade integrado ao app.
+
+`NOT-01` também fechado — service account validado no SSM de staging em 28/07/2026. **Toda a fase I.1 e o back-end da I.2 (NOT-08) estão prontos.** Resto da I.2 (`NOT-10`, `NOT-12`, `NOT-13`, `NOT-15`) é front, no `aquarela_app`.
+
+### Ordem de execução sugerida
+
+| Fase | Tarefas                     | Entrega                                                        |
+| ---- | --------------------------- | -------------------------------------------------------------- |
+| I.0  | NOT-00                      | Prova em aparelho real antes de investir os outros 61 pts       |
+| I.1  | NOT-01…NOT-06               | Back consegue notificar um `usuarioId` qualquer                 |
+| I.2  | NOT-08, NOT-10, NOT-12, NOT-13, NOT-15 | Fluxo ponta a ponta: professor envia → pai recebe    |
+| I.3  | NOT-11, NOT-17, NOT-18, NOT-20 | Alcance no iOS, LGPD e validação para go-live                |
+| I.4  | NOT-07, NOT-09, NOT-14, NOT-16, NOT-19 | Robustez, auditoria e diagnóstico                    |
+
+### Riscos
+
+| Risco                                                        | Impacto                                       | Mitigação                                            |
+| ------------------------------------------------------------ | --------------------------------------------- | ---------------------------------------------------- |
+| Responsável em iPhone não instala o PWA                       | Não recebe nada e **não sabe disso**          | NOT-11 (onboarding) + NOT-19 (admin enxerga a lacuna) |
+| Link aberto no **webview do WhatsApp** — sem `PushManager`     | Caminho mais provável do responsável, falha em silêncio | NOT-11 detecta webview e manda abrir no browser (confirmado no NOT-00) |
+| Permissão negada — o browser só pergunta **uma vez**          | Canal morto para aquele usuário               | NOT-12 (pedir em contexto) + NOT-16 (como reverter)   |
+| Gerenciamento agressivo de bateria (Xiaomi, Realme, Motorola) | Push atrasa 10–30 min                         | Documentar em NOT-18; não é bloqueante                |
+| Disparo por `save` em vez do botão                            | Spam → responsável desliga tudo               | Decisão travada em NOT-08/NOT-15                      |
+| Detalhe de saúde no corpo da notificação                      | Vazamento de dado sensível na tela de bloqueio | NOT-17 como critério de DoD do épico                  |
+
+---
+
 ## Resumo de esforço
 
 | Épico                 | Total (pts) | MVP (pts) |
@@ -207,7 +298,8 @@ Front (`aquarela_app`) já tem tela de criação (admin) e leitura (responsável
 | F — Pedagógico        | 16          | 3         |
 | G — Qualidade/Go-live | 29          | 23        |
 | H — Mural de avisos   | 12          | 12        |
-| **Total**             | **322**     | **266**   |
+| I — Notificações push | 62          | 49        |
+| **Total**             | **384**     | **315**   |
 
 > Ordem de grandeza (não compromisso). Com um time de 2–3 devs a ~20–25 pts/sprint de 2 semanas, o MVP (~254 pts) fica em torno de **5 a 6 sprints (10–12 semanas)**. Refine as estimativas em planning com o time.
 

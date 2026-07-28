@@ -6,3 +6,7 @@ coverage/
 .env
 .env.*
 *.log
+
+aquarela-kids-notification.json
+.vercel
+.env*

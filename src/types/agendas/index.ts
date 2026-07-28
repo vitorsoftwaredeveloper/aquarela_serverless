@@ -54,6 +54,7 @@ export interface IAgendaDiaria {
   medicacoesAdministradas: IMedicacaoAdministrada[];
   intercorrencias: IIntercorrencia[];
   observacoes?: string;
+  enviadaEm?: Date | null;
   createdAt?: Date;
   updatedAt?: Date;
 }
