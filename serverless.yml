@@ -105,6 +105,7 @@ functions:
   - ${file(src/handlers/simulador/functions.yml)}
   - ${file(src/handlers/avisos/functions.yml)}
   - ${file(src/handlers/planosAula/functions.yml)}
+  - ${file(src/handlers/dispositivos/functions.yml)}
 
 resources:
   Resources:

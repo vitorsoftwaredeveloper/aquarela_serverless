@@ -150,6 +150,8 @@ Base: `/v1`. Todos exigem JWT, exceto os marcados como público.
 
 `financeiro` fora do alcance do responsável é o ponto crítico: sem isso ele baixaria a própria `valorMensalidade`. Regra em `src/services/shared/criancaAccess.ts` (`CAMPOS_EXCLUSIVOS_ADMIN`), aplicada no service — o handler só filtra papel.
 
+**Valor personalizado (acordo fechado) vs. plano fixo:** `financeiro.valorMensalidade` é sempre obrigatório e é sempre o valor que o admin digitou — o backend não recalcula a partir de `planoId`/`configPrecos` em nenhum momento (`createCriancaService`/`updateCriancaService` gravam `payload.financeiro` como veio). `planoId` é **opcional** e só guarda a referência de qual plano fixo (`GET /config/precos/planos`) foi usado de base, quando foi usado. Para uma criança com valor negociado direto com os responsáveis (sem plano fixo), basta o admin mandar `financeiro.valorMensalidade` com o valor combinado e **omitir `planoId`**. Não há endpoint/regra de "sobrepor" — o campo livre já é a fonte da verdade; o front decide se popula `valorMensalidade` a partir de um plano selecionado (e manda `planoId` junto) ou deixa o admin digitar o valor livre (e omite `planoId`).
+
 **Foto da criança (base64 no corpo, guardada no S3):**
 
 `POST /criancas` e `PUT /criancas/{id}` aceitam o campo opcional:
@@ -176,6 +178,7 @@ No Mongo fica só a **key** do objeto (`criancas/{criancaId}/{uuid}.{ext}`), nun
 ### Agenda diária
 | POST | `/agenda` | professor | Criar registro (criança+data) |
 | PUT | `/agenda/{id}` | professor | Editar registro do dia |
+| DELETE | `/agenda/{id}` | professor | Remover registro do dia — hard delete, só o professor da turma da criança |
 | GET | `/agenda?criancaId=&data=` | professor/responsavel* | Registro por dia |
 | GET | `/agenda/historico?criancaId=&de=&ate=` | professor/responsavel* | Histórico |
 
@@ -186,6 +189,7 @@ No Mongo fica só a **key** do objeto (`criancas/{criancaId}/{uuid}.{ext}`), nun
 > Geração de mensalidade: `POST /criancas` já cria, na hora do cadastro, a mensalidade de cada mês do mês corrente até dezembro do ano corrente (`gerarMensalidadesIniciaisService`) — sem isso a criança ficaria sem cobrança até o cron mensal (`gerarMensalidadesDoMes`, dia 1 de cada mês) gerar a competência seguinte. Ambos idempotentes via índice único `{criancaId, ano, mes}`. Mensalidade não é proporcional a cadastro no meio do mês — sempre o valor cheio de `crianca.financeiro.valorMensalidade`.
 | POST | `/pagamentos` | responsavel | Gerar cobrança PIX (retorna copia-e-cola + txid) |
 | GET | `/pagamentos/{txid}` | responsavel | Status do pagamento |
+| POST | `/pagamentos/manual` | admin | Registrar pagamento recebido em dinheiro físico (baixa manual da mensalidade) — ver seção 7.1 |
 | POST | `/webhooks/mercadopago` | público (assinado) | Confirmação de pagamento |
 | GET | `/financeiro/balanco?periodo=` | admin | Balanço mensal/anual |
 | POST/GET | `/despesas` | admin | Lançar/listar despesas |
@@ -208,6 +212,14 @@ No Mongo fica só a **key** do objeto (`criancas/{criancaId}/{uuid}.{ext}`), nun
 | GET | `/planosAula?turmaId=` | admin/professor | Listar planos — admin vê todos; professor só das turmas que leciona (com `turmaId`, valida ownership; sem `turmaId`, filtra por suas turmas) |
 | PUT | `/planosAula/{id}` | admin/professor | Editar plano — professor só nas turmas que leciona (ownership validada na turma atual e, se `turmaId` mudar, na nova também) |
 | DELETE | `/planosAula/{id}` | admin/professor | Remover plano (hard delete — sem soft delete, coleção não é registro de auditoria) |
+
+### Notificações push (Web Push / FCM)
+| POST | `/dispositivos` | admin/professor/responsavel | Upsert do token FCM do dispositivo do usuário logado (`token`, `plataforma: android\|ios\|web\|desktop`). Idempotente por `token` — reenviar o mesmo token não duplica; um token que reaparecer vinculado a outro usuário passa a pertencer a ele (dispositivo compartilhado) |
+| DELETE | `/dispositivos/{token}` | admin/professor/responsavel | Remove um dispositivo próprio (logout/desativar). Só afeta token que pertença ao usuário autenticado — token de terceiro ou inexistente é no-op silencioso (204) |
+
+Motor de envio (`services/notificacoes/enviarNotificacao.ts`) resolve os dispositivos do(s) `usuarioId` alvo e envia via Firebase Cloud Messaging (`libs/firebase.ts`, credencial do service account em SSM `SecureString`, lida em runtime). Canal pensado para ser plugável — um canal WhatsApp para quem não tem token válido pode ser adicionado sem mudar quem chama o motor. Token que o FCM reporta como `registration-token-not-registered` é removido automaticamente (`dispositivos`). Corpo da notificação é sempre genérico ("agenda disponível", nunca detalhe de saúde/alimentação/medicação) — aparece na tela de bloqueio do responsável.
+
+| POST | `/agenda/{id}/enviar` | professor | Gatilho explícito ("Enviar para os pais") — não dispara em `save`. Só a professora da turma; `agenda.enviadaEm` já preenchido → `409 AGENDA_JA_ENVIADA`. Notifica todos os `responsaveis[].usuarioId` da criança. `enviadaEm` só é gravado **depois** que o envio resolve sem lançar — falha no FCM devolve 500 e deixa `enviadaEm` nulo, professor pode tentar de novo |
 
 **Erros:** padrão `{ error: { code, message, details? } }` com HTTP status adequado (400 validação, 401/403 auth, 404, 409 conflito, 422 regra de negócio, 500).
 
@@ -244,6 +256,16 @@ Validar todo payload de entrada antes do service. `ajv-formats` para data/hora/e
 5. **Estorno (`status: refunded`):** o mesmo webhook, ao rebuscar o pagamento na API do MercadoPago e encontrar `refunded`, **remove o `pagamento` do banco** e reverte a `mensalidade` vinculada para `aberto` (limpando `mensalidadeId.pagamentoId`) — a competência volta a ser cobrável, um novo PIX pode ser gerado. Ver `src/services/webhooks/processarWebhookMercadoPago.ts`.
 
 Credenciais do MercadoPago e strings de conexão do Mongo ficam em **SSM Parameter Store** por stage, referenciadas em `config/<stage>.json`.
+
+### 7.1 Pagamento manual (dinheiro físico, só admin)
+
+Fluxo separado do PIX: usado quando o responsável paga em espécie (ex.: na secretaria) e o **admin** registra a baixa manualmente — nunca o próprio responsável.
+
+1. `POST /pagamentos/manual` (papel `admin`) — body `{ mensalidadeId, valor }`. `valor` é o que foi efetivamente recebido em mãos e **não precisa bater com `mensalidade.valor`** (desconto, acerto, etc.) — qualquer `valor > 0` baixa a mensalidade inteira pra `pago`. Não existe baixa parcial (a mensalidade não fica "parcialmente paga"), mesma simplificação do fluxo PIX.
+2. Bloqueado (`409`) se a mensalidade já está `pago` (`MENSALIDADE_PAGA`) ou `cancelado` (`MENSALIDADE_CANCELADA`) — mesmos códigos de erro do fluxo PIX (`createPagamentoService`).
+3. Grava um `pagamentos` com `metodo:"dinheiro"`, `provedor:"manual"`, `status:"pago"` já direto (nunca passa por `pendente`), `pagoEm` = timestamp do servidor (nunca do payload — mesmo padrão do `consentimentoLgpd.aceitoEm`), e `recebidoPor` = `_id` do admin autenticado — trilha de auditoria da baixa financeira exigida na seção 9. `txid` continua existindo no schema (gerado via `randomUUID()`, mesmo mecanismo do PIX) mas não representa uma transação PIX real — é só o identificador interno único do pagamento.
+4. Em transação (replicaSet): atualiza a `mensalidade` pra `pago` + `pagamentoId`, e expira (`status:"expirado"`) qualquer `pagamento` PIX `pendente` da mesma mensalidade — mesma limpeza que o webhook do MercadoPago já faz ao confirmar (`processarWebhookMercadoPago.ts`), evitando um QR PIX pendente "vivo" pra uma mensalidade já paga em dinheiro.
+5. Sem webhook, sem reconciliação — a baixa é síncrona no próprio `POST`. `GET /pagamentos/{txid}` e a listagem de mensalidades continuam funcionando sem mudança: pro responsável, uma mensalidade paga em dinheiro aparece igual a uma paga por PIX (`status:"pago"`), só sem `pixCopiaECola`/`qrBase64`.
 
 ---
 

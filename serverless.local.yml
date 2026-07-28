@@ -251,6 +251,13 @@ functions:
           method: GET
           path: /v1/agenda/historico
 
+  enviarAgenda:
+    handler: src/handlers/agendas/enviarAgenda.execute
+    events:
+      - httpApi:
+          method: POST
+          path: /v1/agenda/{id}/enviar
+
   listMensalidades:
     handler: src/handlers/mensalidades/listMensalidades.execute
     events:
@@ -264,6 +271,13 @@ functions:
       - httpApi:
           method: POST
           path: /v1/pagamentos
+
+  createPagamentoManual:
+    handler: src/handlers/pagamentos/createPagamentoManual.execute
+    events:
+      - httpApi:
+          method: POST
+          path: /v1/pagamentos/manual
 
   getPagamentoStatus:
     handler: src/handlers/pagamentos/getPagamentoStatus.execute
@@ -390,3 +404,17 @@ functions:
       - httpApi:
           method: DELETE
           path: /v1/planosAula/{id}
+
+  registrarDispositivo:
+    handler: src/handlers/dispositivos/registrarDispositivo.execute
+    events:
+      - httpApi:
+          method: POST
+          path: /v1/dispositivos
+
+  removerDispositivo:
+    handler: src/handlers/dispositivos/removerDispositivo.execute
+    events:
+      - httpApi:
+          method: DELETE
+          path: /v1/dispositivos/{token}

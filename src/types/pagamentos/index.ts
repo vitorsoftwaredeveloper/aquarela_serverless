@@ -1,11 +1,13 @@
 export type StatusPagamento = "pendente" | "pago" | "expirado" | "falhou";
+export type MetodoPagamento = "pix" | "dinheiro";
+export type ProvedorPagamento = "mercadopago" | "manual";
 
 export interface IPagamento {
   _id: string;
   mensalidadeId: string;
   criancaId: string;
-  metodo: "pix";
-  provedor: "mercadopago";
+  metodo: MetodoPagamento;
+  provedor: ProvedorPagamento;
   txid: string;
   providerPaymentId?: string;
   valor: number;
@@ -13,6 +15,7 @@ export interface IPagamento {
   pixCopiaECola?: string;
   qrBase64?: string;
   reciboUrl?: string;
+  recebidoPor?: string;
   pagoEm?: Date;
   tentativasReconciliacao?: number;
   createdAt?: Date;
@@ -21,4 +24,9 @@ export interface IPagamento {
 
 export interface ICreatePagamentoPayload {
   mensalidadeId: string;
+}
+
+export interface ICreatePagamentoManualPayload {
+  mensalidadeId: string;
+  valor: number;
 }

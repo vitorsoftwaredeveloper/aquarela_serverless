@@ -10,6 +10,7 @@
     "FRONTEND_URL": "${ssm:/aquarela_serverless/staging/frontend_url}",
     "MERCADOPAGO_ACCESS_TOKEN": "/aquarela_serverless/staging/mercadopago_access_token",
     "MERCADOPAGO_WEBHOOK_SECRET": "/aquarela_serverless/staging/mercadopago_webhook_secret",
-    "ENCRYPTION_KEY": "/aquarela_serverless/staging/encryption_key"
+    "ENCRYPTION_KEY": "/aquarela_serverless/staging/encryption_key",
+    "FIREBASE_SERVICE_ACCOUNT": "/aquarela_serverless/staging/firebase_service_account"
   }
 }
