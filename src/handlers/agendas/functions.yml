@@ -18,6 +18,8 @@ updateAgenda:
 
 getAgenda:
   handler: src/handlers/agendas/getAgenda.execute
+  iamRoleStatementsInherit: true
+  iamRoleStatements: ${self:custom.fotosLeituraIamStatements}
   events:
     - httpApi:
         method: GET
@@ -27,6 +29,8 @@ getAgenda:
 
 getHistoricoAgenda:
   handler: src/handlers/agendas/getHistoricoAgenda.execute
+  iamRoleStatementsInherit: true
+  iamRoleStatements: ${self:custom.fotosLeituraIamStatements}
   events:
     - httpApi:
         method: GET
