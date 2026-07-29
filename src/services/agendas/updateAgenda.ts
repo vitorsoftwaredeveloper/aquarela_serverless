@@ -31,13 +31,19 @@ export const updateAgendaService = async (
     agenda.criancaId,
   );
 
-  const update: Record<string, unknown> = { ...payload };
-  if (payload.intercorrencias) {
-    update.intercorrencias = payload.intercorrencias.map((item) => ({
+  const update: Record<string, unknown> = {
+    alimentacao: payload.alimentacao ?? [],
+    sono: payload.sono ?? [],
+    atividades: payload.atividades ?? [],
+    humor: payload.humor ?? null,
+    higiene: payload.higiene ?? null,
+    medicacoesAdministradas: payload.medicacoesAdministradas ?? [],
+    intercorrencias: (payload.intercorrencias ?? []).map((item) => ({
       ...item,
       notificado: item.notificado ?? false,
-    }));
-  }
+    })),
+    observacoes: payload.observacoes ?? null,
+  };
 
   const jaFoiEnviada = Boolean(agenda.enviadaEm);
   if (jaFoiEnviada) {

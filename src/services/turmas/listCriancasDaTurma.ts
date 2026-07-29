@@ -4,12 +4,7 @@ import { ICrianca } from "../../types/criancas";
 import { IUsuario } from "../../types/usuarios";
 import { getTurmaByIdService } from "./getTurmaById";
 import { withFotoUrls } from "../shared/fotoCrianca";
-
-const hojeMeiaNoite = (): Date => {
-  const d = new Date();
-  d.setUTCHours(0, 0, 0, 0);
-  return d;
-};
+import { hojeMeiaNoiteBrasil } from "../../utils/date";
 
 export const listCriancasDaTurmaService = async (
   requester: IUsuario,
@@ -27,18 +22,24 @@ export const listCriancasDaTurmaService = async (
   if (criancas.length === 0) return criancas;
 
   const agendasHoje = (await AgendaRepository.find(
-    { turmaId, data: hojeMeiaNoite() },
-    { criancaId: 1 },
-  )) as { criancaId: unknown }[];
+    { turmaId, data: hojeMeiaNoiteBrasil() },
+    { criancaId: 1, enviadaEm: 1 },
+  )) as { criancaId: unknown; enviadaEm?: Date | null }[];
 
   const registradasHoje = new Set(
     agendasHoje.map((agenda) => String(agenda.criancaId)),
+  );
+  const enviadasHoje = new Set(
+    agendasHoje
+      .filter((agenda) => Boolean(agenda.enviadaEm))
+      .map((agenda) => String(agenda.criancaId)),
   );
 
   return withFotoUrls(
     criancas.map((crianca) => ({
       ...crianca,
       agendaRegistradaHoje: registradasHoje.has(String(crianca._id)),
+      agendaEnviadaHoje: enviadasHoje.has(String(crianca._id)),
     })),
   );
 };
