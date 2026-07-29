@@ -45,13 +45,30 @@ export const listTurmasService = async (
     professor: professorPorId.get(String(t.professorId)) ?? null,
   }));
 
-  // Estatísticas do dia (total de crianças + agendas pendentes) só para a
-  // tela "Minhas turmas" do professor — evita o custo extra na listagem do admin.
-  if (requester.papel !== "professor") {
-    return turmasComProfessor;
-  }
-
   const turmaIds = turmas.map((t) => t._id);
+
+  const contarPorTurma = (docs: { turmaId: unknown }[]): Map<string, number> => {
+    const mapa = new Map<string, number>();
+    for (const doc of docs) {
+      const key = String(doc.turmaId);
+      mapa.set(key, (mapa.get(key) ?? 0) + 1);
+    }
+    return mapa;
+  };
+
+  if (requester.papel !== "professor") {
+    const criancasDasTurmas = await CriancaRepository.find(
+      { turmaId: { $in: turmaIds }, ativo: true },
+      { turmaId: 1 },
+    );
+    const totalPorTurma = contarPorTurma(
+      criancasDasTurmas as { turmaId: unknown }[],
+    );
+    return turmasComProfessor.map((t) => ({
+      ...t,
+      totalCriancas: totalPorTurma.get(String(t._id)) ?? 0,
+    }));
+  }
 
   // find() (não aggregate): poucos registros por professor nesta escala, e o
   // Mongoose casta `turmaId` (ObjectId) automaticamente no filtro — aggregate()
@@ -67,15 +84,6 @@ export const listTurmasService = async (
       { turmaId: 1 },
     ),
   ]);
-
-  const contarPorTurma = (docs: { turmaId: unknown }[]): Map<string, number> => {
-    const mapa = new Map<string, number>();
-    for (const doc of docs) {
-      const key = String(doc.turmaId);
-      mapa.set(key, (mapa.get(key) ?? 0) + 1);
-    }
-    return mapa;
-  };
 
   const totalPorTurma = contarPorTurma(
     criancasDasTurmas as { turmaId: unknown }[],
