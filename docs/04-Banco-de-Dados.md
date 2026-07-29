@@ -222,7 +222,7 @@ Usado pelo simulador e pela geração de mensalidades.
   turmaId?: ObjectId (turmas),   // ausente = visível a todos; presente = só à turma
   ativo: boolean, createdAt, updatedAt }
 ```
-Soft delete (`ativo:false`). Leitura: admin vê tudo; professor/responsável só `ativo:true` sem `turmaId` ou com `turmaId` de turma que lecionam/filho está matriculado.
+Hard delete — `DELETE /avisos/{id}` apaga o documento (`ativo` fica no schema, default `true`, mas nenhum fluxo grava `false`). Leitura: admin vê `ativo:true` por padrão (`?ativo=false` pra recuperar inativos, hoje sempre vazio); professor/responsável só os avisos globais ou da(s) turma(s) que lecionam/filho está matriculado.
 
 ### `dispositivos`
 ```

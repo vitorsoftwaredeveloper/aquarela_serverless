@@ -123,8 +123,8 @@ Base para todos os demais épicos. Não entrega valor ao usuário final, mas des
 | FIN-12 | Endpoint **inadimplentes**                                                    | 🔴   | 3   | BE     | FIN-03                 | Lista mensalidades atrasadas + criança/responsável             |
 | FIN-13 | Tela **dashboard financeiro** admin (KPIs + gráfico 12 meses)                 | 🔴   | 8   | FE     | FIN-11, FIN-12, INF-10 | Entradas, despesas, inadimplentes, crianças ativas             |
 | FIN-14 | **Exportação de relatórios** em Excel (SheetJS)                               | 🟡   | 3   | FE     | FIN-11                 | Exporta balanço/inadimplentes em `.xlsx`                       |
-| FIN-15 | Endpoint **pagamento manual** (admin, dinheiro físico)                        | 🔴   | 3   | BE     | FIN-01, FIN-04         | `POST /pagamentos/manual` baixa mensalidade; audita admin (`recebidoPor`) |
-| FIN-16 | Tela admin: registrar pagamento em dinheiro no mês em aberto                  | 🔴   | 3   | FE     | FIN-15, FIN-07         | Clique no mês aberto/atrasado abre modal de valor recebido     |
+| FIN-15 | ✅ Endpoint **pagamento manual** (admin, dinheiro físico)                     | 🔴   | 3   | BE     | FIN-01, FIN-04         | `POST /pagamentos/manual` baixa mensalidade; audita admin (`recebidoPor`) |
+| FIN-16 | ✅ Tela admin: registrar pagamento em dinheiro no mês em aberto               | 🔴   | 3   | FE     | FIN-15, FIN-07         | Clique no mês aberto/atrasado abre modal de valor recebido     |
 
 **Subtotal Épico D:** 68 pts (MVP: ~62 pts).
 
@@ -148,8 +148,8 @@ Base para todos os demais épicos. Não entrega valor ao usuário final, mas des
 
 | ID     | Tarefa                                          | Prio | Pts | Camada | Dep.           | AC                                  |
 | ------ | ----------------------------------------------- | ---- | --- | ------ | -------------- | ----------------------------------- |
-| PED-01 | Modelo + CRUD **planos de aula** por turma (BE) | 🟡   | 3   | BE     | CAD-06         | CRUD vinculado a turma/professor    |
-| PED-02 | Tela **planos de aula** (professor)             | 🟡   | 5   | FE     | PED-01, INF-10 | Criar/editar/listar planos da turma |
+| PED-01 | ✅ Modelo + CRUD **planos de aula** por turma (BE) | 🟡   | 3   | BE     | CAD-06         | CRUD vinculado a turma/professor    |
+| PED-02 | ✅ Tela **planos de aula** (professor)             | 🟡   | 5   | FE     | PED-01, INF-10 | Criar/editar/listar planos da turma (`PlanosAulaScreen`/`PlanoAulaFormScreen`); `NEXT_PUBLIC_USE_MOCKS=true` segue disponível pra preview |
 | PED-03 | Visão do professor: **minhas turmas → alunos**  | 🔴   | 3   | FE     | CAD-06, CAD-11 | Professor vê suas turmas e alunos   |
 | PED-04 | Calendário pedagógico de atividades             | 🟢   | 5   | FS     | PED-01         | Atividades por data — _Fase 3_      |
 
@@ -163,7 +163,7 @@ Base para todos os demais épicos. Não entrega valor ao usuário final, mas des
 | ----- | ------------------------------------------------------------------ | ---- | --- | ------ | -------------- | ----------------------------------------------------------------- |
 | QA-01 | Testes unitários de services/validações (Jest) — cobertura crítica | 🔴   | 5   | BE     | Épicos A–D     | Cobertura em agenda, financeiro, auth                             |
 | QA-02 | Testes de componentes críticos (agenda, pagamento)                 | 🟡   | 3   | FE     | AGD-05, FIN-08 | RTL nos fluxos-chave                                              |
-| QA-03 | Revisão **LGPD**: consentimento, acesso, criptografia, retenção    | 🔴   | 5   | FS     | CAD-08         | Consentimento no cadastro; acesso por papel; política de retenção |
+| QA-03 | ✅ Revisão **LGPD**: consentimento, acesso, criptografia, retenção | 🔴   | 5   | FS     | CAD-08         | Consentimento no cadastro; acesso por papel; política de retenção |
 | QA-04 | Trilha de auditoria (cadastro de criança + baixas financeiras)     | 🟡   | 3   | BE     | CAD-09, FIN-05 | Log de quem alterou o quê e quando                                |
 | QA-05 | Seeds e dados de demonstração                                      | 🟡   | 2   | BE     | Épicos A–B     | Turmas/crianças fictícias para demo                               |
 | QA-06 | Teste de usabilidade com 1 professor + 2 pais                      | 🟡   | 3   | UX     | Épicos B–C     | Ajustes de UX priorizados a partir do teste                       |
@@ -180,19 +180,21 @@ Base para todos os demais épicos. Não entrega valor ao usuário final, mas des
 
 ---
 
-## Épico H — Mural de avisos (AVI)
+## Épico H — Mural de avisos (AVI) — ✅ concluído
 
-Front (`aquarela_app`) já tem tela de criação (admin) e leitura (responsável). Falta o back: modelo, validação, RBAC e endpoints.
+Front (`aquarela_app`) tem tela de criação (`AvisosScreen.tsx`, admin) e leitura (responsável, via `AgendaService.getAvisos()`). Back (`aquarela_serverless`) tem modelo, validação, RBAC e endpoints. Contrato em `docs/03-Backend.md` §5 (Avisos) e `docs/04-Banco-de-Dados.md`.
 
 | ID     | Tarefa                                                    | Prio | Pts | Camada | Dep.    | AC                                                                              |
 | ------ | ---------------------------------------------------------- | ---- | --- | ------ | ------- | -------------------------------------------------------------------------------- |
-| AVI-01 | Modelo `avisos` (BE) + índice `{ativo, createdAt}`        | 🔴   | 2   | BE     | INF-06  | Campos: título, corpo, autorId, publicoAlvo, ativo, timestamps                   |
-| AVI-02 | Schema ajv + endpoint `POST /avisos` (criar)               | 🔴   | 3   | BE     | AVI-01  | Só `admin`; validação de payload; 201 + id gerado                                |
-| AVI-03 | Endpoint `GET /avisos` (listar)                             | 🔴   | 3   | BE     | AVI-01  | `admin` vê todos; `professor`/`responsavel` só `ativo:true`, ordenado por data   |
-| AVI-04 | Endpoint `PUT`/`DELETE /avisos/{id}` (editar/soft delete)  | 🟡   | 3   | BE     | AVI-01  | Só `admin`; `DELETE` marca `ativo:false`, não remove documento                   |
-| AVI-05 | Atualizar `docs/03-Backend.md` e `docs/04-Banco-de-Dados.md` com contrato | 🔴 | 1 | BE | AVI-01…04 | Contrato de `/avisos` documentado p/ o front não sair do combinado |
+| AVI-01 | ✅ Modelo `avisos` (BE) + índice `{ativo, createdAt}`      | 🔴   | 2   | BE     | INF-06  | Campos: título, corpo, autorId, turmaId?, ativo, timestamps                      |
+| AVI-02 | ✅ Schema ajv + endpoint `POST /avisos` (criar)             | 🔴   | 3   | BE     | AVI-01  | Só `admin`; validação de payload; 201 + id gerado                                |
+| AVI-03 | ✅ Endpoint `GET /avisos` (listar)                          | 🔴   | 3   | BE     | AVI-01  | `admin` vê `ativo:true` por padrão; `professor`/`responsavel` só os globais/das próprias turmas, ordenado por data |
+| AVI-04 | ✅ Endpoint `PUT`/`DELETE /avisos/{id}` (editar/remover)    | 🟡   | 3   | BE     | AVI-01  | Só `admin`; `DELETE` é **hard delete** (apaga o documento — ver correção abaixo) |
+| AVI-05 | ✅ Atualizar `docs/03-Backend.md` e `docs/04-Banco-de-Dados.md` com contrato | 🔴 | 1 | BE | AVI-01…04 | Contrato de `/avisos` documentado p/ o front não sair do combinado |
 
-**Subtotal Épico H:** 12 pts (MVP: 12 pts).
+**Subtotal Épico H:** 12 pts (MVP: 12 pts) — 12/12 concluídos.
+
+> **Correção pós-implementação (29/07/2026):** `DELETE /avisos/{id}` nasceu como soft delete (`ativo:false`), mas a listagem do admin (`GET /avisos`) não filtrava `ativo` por padrão — um aviso "removido" continuava aparecendo pro admin, e a 2ª tentativa de remover virava no-op silencioso (já estava `ativo:false`). Criar um novo aviso com o mesmo título então parecia "duplicar" o antigo na tela. Corrigido trocando `DELETE` pra hard delete de verdade (`removeAviso.ts`) e o default da listagem do admin pra `ativo:true` (`listAvisos.ts`) — ver `docs/03-Backend.md` §5.
 
 ---
 
@@ -218,19 +220,34 @@ Front (`aquarela_app`) já tem tela de criação (admin) e leitura (responsável
 | NOT-07 | Coleção `notificacoes` — log de envio/erro para auditoria                                    | 🟡   | 2   | BE     | NOT-05                 | Registro por envio com status e motivo da falha; sem PII no log                                  |
 | NOT-08 | ✅ `agendasDiarias.enviadaEm` + `POST /agenda/{id}/enviar` (idempotente)                       | 🔴   | 5   | BE     | AGD-02, AGD-04, NOT-05 | Só professor da turma (mesma regra de escrita de `createAgenda`/`updateAgenda` — sem admin); 2º disparo → 409; notifica todos os responsáveis da criança |
 | NOT-09 | Disparo imediato em **intercorrência** (ignora o botão de envio)                             | 🟡   | 3   | BE     | AGD-08, NOT-05         | Febre/queda notifica na hora; corpo genérico ("a professora registrou um aviso")                 |
-| NOT-10 | PWA no front: `manifest.json` (`display: standalone`) + ícones + `firebase-messaging-sw.js`  | 🔴   | 3   | FE     | INF-07                 | Service worker servido na **raiz** do domínio; app instalável; HTTPS                             |
-| NOT-11 | Onboarding de instalação (detecta iOS não-instalado e **webview de app** → sai para o browser) | 🔴   | 5   | UX/FE  | NOT-10                 | Guia passo a passo no iPhone; detecta webview (WhatsApp/Instagram) e instrui "Abrir no Safari/Chrome"; estado "instalado" detectado |
-| NOT-12 | Fluxo de permissão contextualizado + `getToken` + registro no back                           | 🔴   | 5   | FE     | NOT-10, NOT-04         | Explica o benefício **antes** de `requestPermission()`; token enviado ao back                    |
-| NOT-13 | Ciclo de vida do token: reenvio no login, `onTokenRefresh`, `DELETE` no logout               | 🔴   | 2   | FE     | NOT-12                 | Token nunca fica órfão nem obsoleto; logout limpa o dispositivo                                  |
-| NOT-14 | `onMessage` em primeiro plano → toast in-app                                                 | 🟡   | 2   | FE     | NOT-12, INF-10         | App aberto não perde o aviso (SO não exibe notificação nesse caso)                               |
-| NOT-15 | Botão **"Enviar para os pais"** na tela de agenda do professor + estado "enviada"            | 🔴   | 3   | FE     | NOT-08, AGD-05         | Professor vê se já enviou; botão bloqueia reenvio acidental                                      |
-| NOT-16 | Tela de preferências: status da notificação, reativar, diagnosticar permissão bloqueada      | 🟡   | 3   | FE     | NOT-12                 | Responsável que negou a permissão recebe instrução de como reverter no browser                   |
+| NOT-10 | ✅ PWA no front: `manifest.json` (`display: standalone`) + ícones + `firebase-messaging-sw.js` | 🔴 | 3 | FE | INF-07 | Service worker servido na **raiz** do domínio; app instalável; HTTPS |
+| NOT-11 | ✅ Onboarding de instalação (detecta iOS não-instalado e **webview de app** → sai para o browser) | 🔴 | 5 | UX/FE | NOT-10 | Guia passo a passo no iPhone; detecta webview (WhatsApp/Instagram, confirmado no spike que não suporta push) e instrui "Abrir no Safari/Chrome"; estado "instalado" detectado |
+| NOT-12 | ✅ Fluxo de permissão contextualizado + `getToken` + registro no back (`POST /dispositivos`) | 🔴 | 5 | FE | NOT-10, NOT-04 | Explica o benefício **antes** de `requestPermission()` — o browser só pergunta uma vez; token enviado ao back |
+| NOT-13 | ✅ Ciclo de vida do token: reenvio no login, `onTokenRefresh`, `DELETE /dispositivos/{token}` no logout | 🔴 | 2 | FE | NOT-12 | Token nunca fica órfão nem obsoleto; logout limpa o dispositivo |
+| NOT-14 | ✅ `onMessage` em primeiro plano → toast in-app | 🟡 | 2 | FE | NOT-12, INF-10 | App aberto não perde o aviso (SO não exibe notificação nesse caso) |
+| NOT-15 | ✅ Botão **"Enviar para os pais"** na tela de agenda do professor (`POST /agenda/{id}/enviar`) + estado "enviada" | 🔴 | 3 | FE | NOT-08, AGD-05 | Professor vê se já enviou (`enviadaEm`); botão bloqueia reenvio acidental; back responde 409 se já enviado |
+| NOT-16 | ✅ Tela de preferências: status da notificação, reativar, diagnosticar permissão bloqueada | 🟡 | 3 | FE | NOT-12 | Responsável que negou a permissão recebe instrução de como reverter no browser |
 | NOT-17 | Opt-in registrado + payload **sem PII/saúde** (LGPD)                                         | 🔴   | 3   | FS     | NOT-05, NOT-12         | Consentimento com timestamp do servidor; corpo genérico auditado; detalhe só no app autenticado  |
 | NOT-18 | Teste em dispositivos reais (Android, iPhone c/ PWA, desktop) antes do go-live               | 🔴   | 3   | QA     | NOT-15                 | Matriz de plataformas validada com app fechado; casos de falha documentados                      |
 | NOT-19 | Observabilidade: taxa de entrega + **% de responsáveis sem token válido**                    | 🟡   | 3   | INFRA  | NOT-07                 | Admin enxerga quem está no escuro; alarme quando a cobertura cai                                 |
-| NOT-20 | Atualizar `docs/03-Backend.md` e `docs/04-Banco-de-Dados.md` com o contrato                  | 🔴   | 1   | BE     | NOT-01…NOT-09          | `/dispositivos`, `/agenda/{id}/enviar`, `dispositivos`, `notificacoes` documentados              |
+| NOT-20 | ✅ Atualizar `docs/03-Backend.md` e `docs/04-Banco-de-Dados.md` com o contrato                | 🔴   | 1   | BE     | NOT-01…NOT-09          | `/dispositivos`, `/agenda/{id}/enviar`, `dispositivos` documentados                               |
 
-**Subtotal Épico I:** 62 pts (MVP: ~49 pts sem os Should).
+**Subtotal Épico I:** 62 pts (MVP: ~49 pts sem os Should) — restam NOT-07, NOT-09, NOT-17, NOT-18, NOT-19.
+
+> **NOT-10…NOT-16 implementados no front.** `src/contexts/NotificationsContext.tsx`
+> concentra permissão/token/toast (SDK modular do `firebase/messaging` não tem
+> mais `onTokenRefresh` — o substituto é chamar `getToken()` de novo no login,
+> idempotente no back). `src/utils/device.ts` isola a detecção de
+> plataforma/iOS/webview/PWA-instalado (testado em `device.test.ts`, sem DOM).
+> Onboarding (`src/features/notificacoes/NotificationOnboarding.tsx`) só
+> aparece pro responsável, na `InicioScreen`; a tela de preferências
+> (`NotificacoesScreen.tsx`) é reusada nas duas rotas
+> (`/perfil/notificacoes` e `/professor/perfil/notificacoes`). Botão "Enviar
+> para os pais" ficou em `RegistrarAgendaScreen.tsx` (não na lista de alunos)
+> — só aparece depois que a agenda do dia já foi salva. Ícones do manifest
+> foram gerados (gota em gradiente, mesma identidade do `Logo.tsx`) já que não
+> havia asset PNG da marca no repo. **NOT-18 (teste em dispositivo real) segue
+> em aberto** — QA manual, fora do que dá pra automatizar.
 
 ### Veredito do NOT-00 (28/07/2026) — ✅ **aprovado, seguir com o épico**
 

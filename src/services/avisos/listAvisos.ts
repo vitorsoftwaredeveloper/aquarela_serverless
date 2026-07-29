@@ -33,8 +33,9 @@ export const listAvisosService = async (
   filters: IListAvisosFilters,
 ): Promise<IAviso[]> => {
   if (requester.papel === "admin") {
-    const query: Record<string, unknown> = {};
-    if (filters.ativo !== undefined) query.ativo = filters.ativo;
+    const query: Record<string, unknown> = {
+      ativo: filters.ativo !== undefined ? filters.ativo : true,
+    };
 
     return (await AvisoRepository.find(query, null, {
       sort: { createdAt: -1 },

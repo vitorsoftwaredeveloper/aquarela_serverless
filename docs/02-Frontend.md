@@ -112,7 +112,6 @@ Regra: Context para estado compartilhado entre telas; estado local (`useState`) 
 - `react-hook-form` para todos os formulários (cadastro de criança, turma, professor, usuário; registro de agenda).
 - `yup` + `@hookform/resolvers` para schemas — reaproveitar validações de CPF, e-mail, campos obrigatórios.
 - Formulários longos (cadastro de criança) em **stepper** (identificação → responsáveis → saúde/cuidados → financeiro).
-- **Etapa financeiro do cadastro de criança:** o passo precisa de um seletor de **plano fixo** (`GET /config/precos/planos`, preenche `valorMensalidade` a partir do plano escolhido e manda `planoId` junto) **e** uma opção de **valor personalizado** (acordo fechado com os responsáveis fora dos planos). Ao digitar no campo de valor livre, o front deve limpar/omitir `planoId` do payload — o backend nunca recalcula `valorMensalidade` a partir de plano (ver `docs/03-Backend.md`, seção Crianças), então o valor que for enviado é o que fica gravado; não enviar os dois como se fossem consistentes entre si (ex.: plano selecionado com valor divergente digitado por cima sem apagar o `planoId`).
 
 ```ts
 // schemas/crianca.ts
@@ -132,8 +131,11 @@ export const criancaSchema = yup.object({
 ## 6. Telas técnicas por domínio
 
 - **Agenda diária (professor):** formulário otimista — salva rápido, chips para valores comuns, faixa fixa de alergias/medicações vinda do cadastro da criança.
-- **Portal do pai:** somente leitura da agenda + histórico paginado por data.
+- **Portal do pai:** somente leitura da agenda + histórico paginado por data. **Exceção:** o responsável edita o cadastro do próprio filho em `/crianca/{id}/editar` (`EditarCriancaScreen`) — nome, nascimento, responsáveis, saúde e foto. Sem `financeiro`, `turma` e `cpf`: o backend responde `403`/rejeita o `PUT`, e a tela nem oferece os campos (faixa explicativa apontando a secretaria). **E-mail de responsável com `usuarioId` é `readOnly`** — o `PUT` não propaga para o Cognito nem para `usuarios`, então editar ali só criaria divergência entre o e-mail exibido e o de login (ver aviso em docs/03-Backend §5).
+- **Foto da criança:** `components/FotoField` (admin no passo "Identificação" do stepper, responsável na tela de edição). O upload vai em **base64 no corpo** do `POST`/`PUT /criancas` e o front **sempre** redimensiona antes (`utils/imagem.ts` — 800px de lado maior, JPEG 0.8, teto de 2MB decodificados; a API corta em `422` acima disso). O preview é **controlado pelo pai** (`previewUrl`), para que um salvamento bem-sucedido volte a exibir a imagem gravada em vez do rascunho local. Exibição via `components/Avatar` (foto com fallback de iniciais + cor).
 - **Financeiro (pai):** grade de meses (`ChargeContext`); botão "Pagar via PIX" abre modal com `qrcode.react` (QR) e copia-e-cola; faz polling do status até "pago".
+- **Etapa financeiro do cadastro de criança (`CriancaStepper.tsx`):** toggle **Plano fixo** × **Valor personalizado**. "Plano fixo" mantém o seletor de `GET /config/precos/planos` (preenche `valorMensalidade` a partir do plano e manda `financeiro.planoId` junto). "Valor personalizado" troca o seletor por um campo numérico livre (acordo fechado com os responsáveis, fora dos planos) e **omite `planoId`** do payload — o backend nunca recalcula `valorMensalidade` a partir de plano (`docs/03-Backend.md` §5), então o valor enviado é o que fica gravado, e os dois nunca são mandados como se fossem consistentes entre si.
+- **Financeiro (admin) — pagamento manual em dinheiro:** ícone de carteira na lista de crianças (`CriancasScreen.tsx`) abre `FinanceiroCriancaModal.tsx` com a grade de meses da criança (mesma rota `GET /mensalidades?criancaId=&ano=` do portal do pai). Clicar num mês `aberto`/`atrasado` troca o modal para um formulário de valor recebido; confirmar chama `POST /pagamentos/manual` (`docs/03-Backend.md` §7.1) e a mensalidade passa a aparecer `pago`, igual a uma paga por PIX.
 - **Simulador:** cálculo no cliente a partir dos valores configurados; gráfico de barras comparando períodos.
 - **Relatórios (admin):** exportação `.xlsx` com `xlsx` (SheetJS) a partir dos dados do `DashboardContext`.
 
@@ -147,18 +149,6 @@ import { QRCodeSVG } from "qrcode.react";
 // 2) exibe <QRCodeSVG value={pixCopiaECola} /> + botão copiar
 // 3) polling GET /pagamentos/:txid até status === "pago" (ou push/webhook no futuro)
 ```
-
----
-
-## 7.1 Pagamento manual em dinheiro (admin)
-
-Fluxo à parte do PIX: quando o responsável paga em espécie (ex.: na secretaria), é o **admin** — nunca o responsável — quem registra a baixa. Contrato de back em docs/03 §7.1 (`POST /pagamentos/manual`).
-
-- **Tela:** aba/seção "Financeiro" dentro do detalhe da criança em `(admin)/criancas/[id]`, reaproveitando a mesma grade de meses do `ChargeContext` usada em `(responsavel)/financeiro`, só que renderizada pro admin com a criança escolhida (endpoint por trás é o mesmo `GET /mensalidades?criancaId=&ano=`).
-- Mês com status `pago`/`cancelado`: célula só leitura, sem clique.
-- Mês `aberto`/`atrasado`: clicar abre um modal "Registrar pagamento em dinheiro" — campo de valor pré-preenchido com o valor cheio da mensalidade, **editável** (back aceita valor diferente do cheio, sem validar contra `mensalidade.valor` — ver docs/03 §7.1; qualquer valor `> 0` já baixa a mensalidade inteira, sem estado parcial).
-- Confirmar chama `POST /pagamentos/manual` com `{ mensalidadeId, valor }`; sucesso atualiza a célula pra "pago" sem reload de página (mesmo padrão otimista do restante do `ChargeContext`). Erro `409` (`MENSALIDADE_PAGA`/`MENSALIDADE_CANCELADA`) fecha o modal com toast — outra aba/admin já deu baixa nesse meio tempo.
-- Sem QR/copia-e-cola/polling nesse fluxo — a resposta do `POST` já vem com o pagamento `status:"pago"`.
 
 ---
 
