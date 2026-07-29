@@ -6,6 +6,7 @@ export const registrarDispositivoSchema: JSONSchemaType<IRegistrarDispositivoPay
   properties: {
     token: { type: "string", minLength: 10 },
     plataforma: { type: "string", enum: ["android", "ios", "web", "desktop"] },
+    instalado: { type: "boolean", nullable: true },
   },
   required: ["token", "plataforma"],
   additionalProperties: false,

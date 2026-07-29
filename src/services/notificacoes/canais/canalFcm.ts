@@ -15,12 +15,15 @@ export const enviarPorFcm = async (
   const messaging = await getMessagingClient();
   const resposta = await messaging.sendEachForMulticast({
     tokens,
-    notification: { title: payload.titulo, body: payload.corpo },
     webpush: {
       headers: { Urgency: "high" },
       ...(payload.link ? { fcmOptions: { link: payload.link } } : {}),
     },
-    ...(payload.dados ? { data: payload.dados } : {}),
+    data: {
+      ...(payload.dados ?? {}),
+      title: payload.titulo,
+      body: payload.corpo,
+    },
   });
 
   return resposta.responses.map((resultado, indice) => ({

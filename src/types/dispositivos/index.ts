@@ -5,6 +5,7 @@ export interface IDispositivo {
   usuarioId: string;
   token: string;
   plataforma: PlataformaDispositivo;
+  instalado: boolean;
   ultimoUsoEm: Date;
   createdAt?: Date;
   updatedAt?: Date;
@@ -13,4 +14,5 @@ export interface IDispositivo {
 export interface IRegistrarDispositivoPayload {
   token: string;
   plataforma: PlataformaDispositivo;
+  instalado?: boolean;
 }

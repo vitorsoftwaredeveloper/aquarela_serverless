@@ -14,6 +14,17 @@ export const registrarDispositivoService = async (
   requester: IUsuario,
   payload: IRegistrarDispositivoPayload,
 ): Promise<void> => {
+  const instalado = payload.instalado ?? false;
+
+  if (!instalado) {
+    const dispositivoInstalado = await DispositivoRepository.findOne({
+      usuarioId: requester._id,
+      instalado: true,
+      token: { $ne: payload.token },
+    });
+    if (dispositivoInstalado) return;
+  }
+
   await DispositivoRepository.model.deleteMany({
     usuarioId: requester._id,
     token: { $ne: payload.token },
@@ -25,6 +36,7 @@ export const registrarDispositivoService = async (
       usuarioId: requester._id,
       token: payload.token,
       plataforma: payload.plataforma,
+      instalado,
       ultimoUsoEm: new Date(),
     },
     { upsert: true },
