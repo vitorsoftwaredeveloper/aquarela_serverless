@@ -202,7 +202,7 @@ No Mongo fica só a **key** do objeto (`criancas/{criancaId}/{uuid}.{ext}`), nun
 | GET/PUT | `/config/precos` | admin | Valores base da mensalidade (fonte de verdade; edição) |
 
 ### Mural de avisos
-| POST | `/avisos` | admin | Criar aviso (título, corpo, `turmaId` opcional) |
+| POST | `/avisos` | admin | Criar aviso (título, corpo, `turmaId` opcional) — dispara push: sem `turmaId` vai pra todos os usuários ativos, com `turmaId` só pros responsáveis das crianças ativas da turma |
 | GET | `/avisos?ativo=` | admin/professor/responsavel | Listar avisos — admin vê todos (filtro `ativo` opcional); professor/responsável só `ativo:true` e visível pra eles (sem `turmaId` = todos, ou `turmaId` de turma que lecionam/filho está matriculado) |
 | PUT | `/avisos/{id}` | admin | Editar título/corpo/`turmaId` |
 | DELETE | `/avisos/{id}` | admin | Soft delete (`ativo:false`) |
