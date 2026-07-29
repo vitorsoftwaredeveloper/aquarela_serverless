@@ -20,33 +20,37 @@ export const sincronizarMensalidadesNaoPagas = async (
 
   const agora = new Date();
 
-  await MensalidadeRepository.model.updateMany(filtroNaoPagas, [
-    {
-      $set: {
-        valor: financeiro.valorMensalidade,
-        vencimento: {
-          $dateFromParts: {
-            year: "$ano",
-            month: "$mes",
-            day: financeiro.diaVencimento,
+  await MensalidadeRepository.model.updateMany(
+    filtroNaoPagas,
+    [
+      {
+        $set: {
+          valor: financeiro.valorMensalidade,
+          vencimento: {
+            $dateFromParts: {
+              year: "$ano",
+              month: "$mes",
+              day: financeiro.diaVencimento,
+            },
           },
         },
       },
-    },
-    {
-      $set: {
-        status: {
-          $cond: [
-            { $in: ["$status", ["aberto", "atrasado"]] },
-            {
-              $cond: [{ $lt: ["$vencimento", agora] }, "atrasado", "aberto"],
-            },
-            "$status",
-          ],
+      {
+        $set: {
+          status: {
+            $cond: [
+              { $in: ["$status", ["aberto", "atrasado"]] },
+              {
+                $cond: [{ $lt: ["$vencimento", agora] }, "atrasado", "aberto"],
+              },
+              "$status",
+            ],
+          },
         },
       },
-    },
-  ]);
+    ],
+    { updatePipeline: true },
+  );
 
   await PagamentoRepository.model.deleteMany({
     mensalidadeId: { $in: naoPagas.map((mensalidade) => mensalidade._id) },

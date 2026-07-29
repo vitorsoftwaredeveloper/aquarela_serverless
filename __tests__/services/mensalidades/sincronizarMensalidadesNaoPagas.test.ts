@@ -28,11 +28,13 @@ describe("sincronizarMensalidadesNaoPagas", () => {
 
     expect(total).toBe(2);
 
-    const [filtro, pipeline] = (MensalidadeRepository.model.updateMany as jest.Mock)
-      .mock.calls[0];
+    const [filtro, pipeline, options] = (
+      MensalidadeRepository.model.updateMany as jest.Mock
+    ).mock.calls[0];
     expect(filtro).toEqual({ criancaId: "crianca-1", status: { $ne: "pago" } });
     expect(pipeline[0].$set.valor).toBe(1);
     expect(pipeline[0].$set.vencimento.$dateFromParts.day).toBe(5);
+    expect(options).toEqual({ updatePipeline: true });
   });
 
   it("remove pagamentos pendentes com valor antigo, preservando os do valor novo", async () => {
