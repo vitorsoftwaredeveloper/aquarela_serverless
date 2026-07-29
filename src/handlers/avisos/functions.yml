@@ -1,5 +1,15 @@
 createAviso:
   handler: src/handlers/avisos/createAviso.execute
+  environment:
+    FIREBASE_SERVICE_ACCOUNT: ${self:custom.environment.FIREBASE_SERVICE_ACCOUNT}
+  iamRoleStatementsInherit: true
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - ssm:GetParameter
+      Resource:
+        - ${self:custom.ssmParameterArn}/firebase_service_account
+        - ${self:custom.ssmParameterArn}/*/firebase_service_account
   events:
     - httpApi:
         method: POST
