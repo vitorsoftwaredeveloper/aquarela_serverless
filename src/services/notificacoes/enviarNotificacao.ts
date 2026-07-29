@@ -45,4 +45,12 @@ export const enviarNotificacao = async (
     sucesso: resultados.length - falhas.length,
     falhas: falhas.length,
   });
+
+  falhas.forEach((falha) => {
+    console.log("notificacao falha", {
+      token: falha.token,
+      tokenInvalido: falha.tokenInvalido,
+      erro: falha.erro,
+    });
+  });
 };

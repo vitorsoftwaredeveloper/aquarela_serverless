@@ -214,12 +214,13 @@ No Mongo fica só a **key** do objeto (`criancas/{criancaId}/{uuid}.{ext}`), nun
 | DELETE | `/planosAula/{id}` | admin/professor | Remover plano (hard delete — sem soft delete, coleção não é registro de auditoria) |
 
 ### Notificações push (Web Push / FCM)
-| POST | `/dispositivos` | admin/professor/responsavel | Upsert do token FCM do dispositivo do usuário logado (`token`, `plataforma: android\|ios\|web\|desktop`). Idempotente por `token` — reenviar o mesmo token não duplica; um token que reaparecer vinculado a outro usuário passa a pertencer a ele (dispositivo compartilhado) |
+| POST | `/dispositivos` | admin/professor/responsavel | Upsert do token FCM do dispositivo do usuário logado (`token`, `plataforma: android\|ios\|web\|desktop`). Idempotente por `token` — reenviar o mesmo token não duplica; um token que reaparecer vinculado a outro usuário passa a pertencer a ele (dispositivo compartilhado). **1 notificação por usuário:** registrar um token novo remove os demais tokens desse usuário — só o dispositivo mais recente recebe push (evita duplicata entre app nativo e PWA no mesmo aparelho) |
 | DELETE | `/dispositivos/{token}` | admin/professor/responsavel | Remove um dispositivo próprio (logout/desativar). Só afeta token que pertença ao usuário autenticado — token de terceiro ou inexistente é no-op silencioso (204) |
 
 Motor de envio (`services/notificacoes/enviarNotificacao.ts`) resolve os dispositivos do(s) `usuarioId` alvo e envia via Firebase Cloud Messaging (`libs/firebase.ts`, credencial do service account em SSM `SecureString`, lida em runtime). Canal pensado para ser plugável — um canal WhatsApp para quem não tem token válido pode ser adicionado sem mudar quem chama o motor. Token que o FCM reporta como `registration-token-not-registered` é removido automaticamente (`dispositivos`). Corpo da notificação é sempre genérico ("agenda disponível", nunca detalhe de saúde/alimentação/medicação) — aparece na tela de bloqueio do responsável.
 
 | POST | `/agenda/{id}/enviar` | professor | Gatilho explícito ("Enviar para os pais") — não dispara em `save`. Só a professora da turma; `agenda.enviadaEm` já preenchido → `409 AGENDA_JA_ENVIADA`. Notifica todos os `responsaveis[].usuarioId` da criança. `enviadaEm` só é gravado **depois** que o envio resolve sem lançar — falha no FCM devolve 500 e deixa `enviadaEm` nulo, professor pode tentar de novo |
+| PUT | `/agenda/{id}` | professor | Edita registro do dia. Se `agenda.enviadaEm` já estava preenchido (agenda já publicada), reenvia notificação aos `responsaveis[].usuarioId` e atualiza `enviadaEm` para agora; edição em rascunho ainda não publicado não notifica. Falha no reenvio é best-effort (só loga, não derruba o PUT) |
 
 **Erros:** padrão `{ error: { code, message, details? } }` com HTTP status adequado (400 validação, 401/403 auth, 404, 409 conflito, 422 regra de negócio, 500).
 

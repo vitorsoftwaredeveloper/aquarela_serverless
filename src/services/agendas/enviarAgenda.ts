@@ -49,7 +49,10 @@ export const enviarAgendaService = async (
   await enviarNotificacao(usuarioIds, {
     titulo: "Aquarela Kids",
     corpo: `A agenda de hoje da ${crianca.nome} já está disponível`,
-    dados: { criancaId: agenda.criancaId, agendaId: String(agenda._id) },
+    dados: {
+      criancaId: String(agenda.criancaId),
+      agendaId: String(agenda._id),
+    },
   });
 
   await AgendaRepository.updateOne(

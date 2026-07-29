@@ -4,17 +4,11 @@ import { AgendaRepository } from "../../repositories/agenda.repository";
 import { ITurma } from "../../types/turmas";
 import { IUsuario } from "../../types/usuarios";
 import { resolveProfessorId } from "../../utils/requester";
+import { hojeMeiaNoiteBrasil } from "../../utils/date";
 
 export interface IListTurmasFilters {
   ativo?: boolean;
 }
-
-/** Meia-noite UTC do dia corrente — mesma convenção de `data` usada em createAgenda/getAgenda. */
-const hojeMeiaNoite = (): Date => {
-  const d = new Date();
-  d.setUTCHours(0, 0, 0, 0);
-  return d;
-};
 
 export const listTurmasService = async (
   requester: IUsuario,
@@ -48,7 +42,7 @@ export const listTurmasService = async (
       { turmaId: 1 },
     ),
     AgendaRepository.find(
-      { turmaId: { $in: turmaIds }, data: hojeMeiaNoite() },
+      { turmaId: { $in: turmaIds }, data: hojeMeiaNoiteBrasil() },
       { turmaId: 1 },
     ),
   ]);

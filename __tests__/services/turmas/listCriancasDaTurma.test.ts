@@ -21,14 +21,52 @@ describe("listCriancasDaTurmaService", () => {
       { _id: "crianca-2", nome: "Lorena" },
     ]);
     (AgendaRepository.find as jest.Mock).mockResolvedValue([
-      { criancaId: "crianca-2" },
+      { criancaId: "crianca-2", enviadaEm: null },
     ]);
 
     const result = await listCriancasDaTurmaService(requester, "turma-1");
 
     expect(result).toEqual([
-      { _id: "crianca-1", nome: "Diego", agendaRegistradaHoje: false },
-      { _id: "crianca-2", nome: "Lorena", agendaRegistradaHoje: true },
+      {
+        _id: "crianca-1",
+        nome: "Diego",
+        agendaRegistradaHoje: false,
+        agendaEnviadaHoje: false,
+      },
+      {
+        _id: "crianca-2",
+        nome: "Lorena",
+        agendaRegistradaHoje: true,
+        agendaEnviadaHoje: false,
+      },
+    ]);
+  });
+
+  it("marca agendaEnviadaHoje=true só para crianças com agenda já enviada aos pais", async () => {
+    (CriancaRepository.find as jest.Mock).mockResolvedValue([
+      { _id: "crianca-1", nome: "Diego" },
+      { _id: "crianca-2", nome: "Lorena" },
+    ]);
+    (AgendaRepository.find as jest.Mock).mockResolvedValue([
+      { criancaId: "crianca-1", enviadaEm: null },
+      { criancaId: "crianca-2", enviadaEm: new Date("2026-07-28T12:00:00Z") },
+    ]);
+
+    const result = await listCriancasDaTurmaService(requester, "turma-1");
+
+    expect(result).toEqual([
+      {
+        _id: "crianca-1",
+        nome: "Diego",
+        agendaRegistradaHoje: true,
+        agendaEnviadaHoje: false,
+      },
+      {
+        _id: "crianca-2",
+        nome: "Lorena",
+        agendaRegistradaHoje: true,
+        agendaEnviadaHoje: true,
+      },
     ]);
   });
 
