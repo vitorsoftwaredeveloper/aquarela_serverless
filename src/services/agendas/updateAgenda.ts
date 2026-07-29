@@ -60,7 +60,7 @@ export const updateAgendaService = async (
     try {
       await enviarNotificacao(usuarioIds, {
         titulo: "Aquarela Kids",
-        corpo: `A agenda de hoje da ${crianca.nome} foi atualizada`,
+        corpo: `A agenda de hoje de ${crianca.nome} foi atualizada`,
         dados: {
           criancaId: String(agenda.criancaId),
           agendaId: String(agenda._id),

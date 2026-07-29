@@ -48,7 +48,7 @@ export const enviarAgendaService = async (
   // — a notificação aparece na tela de bloqueio do responsável.
   await enviarNotificacao(usuarioIds, {
     titulo: "Aquarela Kids",
-    corpo: `A agenda de hoje da ${crianca.nome} já está disponível`,
+    corpo: `A agenda de hoje de ${crianca.nome} já está disponível`,
     dados: {
       criancaId: String(agenda.criancaId),
       agendaId: String(agenda._id),
