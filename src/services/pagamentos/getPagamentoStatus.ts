@@ -5,14 +5,22 @@ import { loadCriancaParaFinanceiro } from "../shared/financeiroAccess";
 import { httpError, STATUS_CODE } from "../../utils/errors";
 import { processarWebhookMercadoPago } from "../webhooks/processarWebhookMercadoPago";
 
-// Em dev/local o MercadoPago não consegue entregar o webhook em `localhost`,
-// então esse é o único stage onde vale consultar o provedor diretamente a
-// partir do polling do front. Nunca ativa em staging/prod — lá a baixa é
-// sempre via webhook assinado (mesmo gate de `isDevFallbackAllowed` em
-// src/middlewares/auth.ts).
-const isDevFallbackAllowed = (): boolean => {
-  const stage = (process.env.STAGE || "").toLowerCase();
-  return stage === "dev" || stage === "local" || stage === "";
+const INTERVALO_MINIMO_CONSULTA_PROVEDOR_MS = 10_000;
+
+const deveConsultarProvedor = (pagamento: IPagamento): boolean => {
+  if (pagamento.status !== "pendente" || !pagamento.providerPaymentId) {
+    return false;
+  }
+
+  const ultimaConsulta = pagamento.ultimaConsultaProvedorEm;
+  if (!ultimaConsulta) {
+    return true;
+  }
+
+  return (
+    Date.now() - new Date(ultimaConsulta).getTime() >=
+    INTERVALO_MINIMO_CONSULTA_PROVEDOR_MS
+  );
 };
 
 export const getPagamentoStatusService = async (
@@ -32,15 +40,25 @@ export const getPagamentoStatusService = async (
 
   await loadCriancaParaFinanceiro(requester, pagamento.criancaId);
 
-  if (
-    pagamento.status === "pendente" &&
-    pagamento.providerPaymentId &&
-    isDevFallbackAllowed()
-  ) {
-    await processarWebhookMercadoPago(pagamento.providerPaymentId);
-    pagamento = (await PagamentoRepository.findOne({
-      txid,
-    })) as IPagamento | null;
+  if (deveConsultarProvedor(pagamento)) {
+    try {
+      await PagamentoRepository.updateOne(
+        { _id: pagamento._id },
+        { $set: { ultimaConsultaProvedorEm: new Date() } },
+      );
+
+      await processarWebhookMercadoPago(pagamento.providerPaymentId as string);
+
+      pagamento = (await PagamentoRepository.findOne({
+        txid,
+      })) as IPagamento | null;
+    } catch (error) {
+      console.error("consulta ao MercadoPago no polling de status falhou", {
+        txid,
+        providerPaymentId: pagamento?.providerPaymentId,
+        message: (error as Error)?.message,
+      });
+    }
   }
 
   if (

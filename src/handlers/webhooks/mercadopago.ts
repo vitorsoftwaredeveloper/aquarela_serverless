@@ -13,7 +13,10 @@ export const execute = withErrorHandling(
   async (event): Promise<APIGatewayProxyResult> => {
     const query = event.queryStringParameters ?? {};
     const body = event.body ? JSON.parse(event.body) : {};
-    const dataId = query["data.id"] ?? body?.data?.id;
+    const dataId = query["data.id"] ?? query["id"] ?? body?.data?.id;
+    const tipo = String(
+      body?.type ?? query["type"] ?? query["topic"] ?? "payment",
+    );
     const xSignature = readHeader(event.headers, "x-signature");
     const xRequestId = readHeader(event.headers, "x-request-id");
 
@@ -33,10 +36,12 @@ export const execute = withErrorHandling(
       secret,
     });
 
-    console.log("mercadopago webhook signature check", {
+    console.log("mercadopago webhook recebido", {
       dataId: String(dataId),
+      tipo,
+      acao: body?.action,
       xRequestId,
-      valid: assinaturaValida,
+      assinaturaValida,
     });
 
     if (!assinaturaValida) {
@@ -45,6 +50,14 @@ export const execute = withErrorHandling(
         "UNAUTHORIZED",
         "Assinatura inválida.",
       );
+    }
+
+    if (tipo !== "payment") {
+      console.log("mercadopago webhook ignorado: tipo não é payment", {
+        dataId: String(dataId),
+        tipo,
+      });
+      return sendSuccessResponse(undefined);
     }
 
     await processarWebhookMercadoPago(String(dataId));

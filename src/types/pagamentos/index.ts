@@ -18,6 +18,7 @@ export interface IPagamento {
   recebidoPor?: string;
   pagoEm?: Date;
   tentativasReconciliacao?: number;
+  ultimaConsultaProvedorEm?: Date;
   createdAt?: Date;
   updatedAt?: Date;
 }

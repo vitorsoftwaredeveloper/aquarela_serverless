@@ -81,6 +81,9 @@ export const processarWebhookMercadoPago = async (
   })) as IPagamento | null;
 
   if (!pagamento) {
+    console.warn("webhook MercadoPago sem pagamento correspondente", {
+      providerPaymentId,
+    });
     return;
   }
 

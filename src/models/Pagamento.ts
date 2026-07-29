@@ -35,6 +35,7 @@ export const PagamentoSchema = new Schema(
     recebidoPor: { type: Schema.Types.ObjectId, ref: "usuarios" },
     pagoEm: { type: Date },
     tentativasReconciliacao: { type: Number, default: 0 },
+    ultimaConsultaProvedorEm: { type: Date },
   },
   { timestamps: true },
 );

@@ -3,6 +3,7 @@ import { ICrianca, IUpdateCriancaPayload } from "../../types/criancas";
 import { IUsuario } from "../../types/usuarios";
 import { isValidCpf } from "../../utils/cpf";
 import { httpError, STATUS_CODE } from "../../utils/errors";
+import { sincronizarMensalidadesNaoPagas } from "../mensalidades/sincronizarMensalidadesNaoPagas";
 import { appendAuditoria } from "../shared/auditoriaCrianca";
 import { assertPodeEditarCrianca } from "../shared/criancaAccess";
 import {
@@ -61,6 +62,10 @@ export const updateCriancaService = async (
   }
 
   await CriancaRepository.updateOne({ _id: criancaId }, { $set: update });
+
+  if (payload.financeiro) {
+    await sincronizarMensalidadesNaoPagas(criancaId, payload.financeiro);
+  }
 
   // Só depois da troca gravada, para não perder a foto antiga se o update falhar.
   if (foto && fotoAnterior && fotoAnterior !== update.foto) {

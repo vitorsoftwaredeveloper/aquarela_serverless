@@ -4,8 +4,13 @@ import {
   removerFotoDoBucket,
   salvarFotoBase64,
 } from "../../../src/services/shared/fotoCrianca";
+import { sincronizarMensalidadesNaoPagas } from "../../../src/services/mensalidades/sincronizarMensalidadesNaoPagas";
 
 jest.mock("../../../src/repositories/crianca.repository");
+jest.mock(
+  "../../../src/services/mensalidades/sincronizarMensalidadesNaoPagas",
+  () => ({ sincronizarMensalidadesNaoPagas: jest.fn() }),
+);
 jest.mock("../../../src/services/shared/fotoCrianca", () => ({
   salvarFotoBase64: jest.fn(),
   removerFotoDoBucket: jest.fn(),
@@ -77,6 +82,25 @@ describe("updateCriancaService", () => {
 
     expect(CriancaRepository.updateOne).not.toHaveBeenCalled();
     expect(removerFotoDoBucket).not.toHaveBeenCalled();
+  });
+
+  it("propaga o novo financeiro para as mensalidades não pagas", async () => {
+    mockCrianca({ financeiro: { valorMensalidade: 750, diaVencimento: 5 } });
+
+    await updateCriancaService(admin, "crianca-1", {
+      financeiro: { valorMensalidade: 1, diaVencimento: 5 },
+    });
+
+    expect(sincronizarMensalidadesNaoPagas).toHaveBeenCalledWith("crianca-1", {
+      valorMensalidade: 1,
+      diaVencimento: 5,
+    });
+  });
+
+  it("não mexe em mensalidade quando o payload não traz financeiro", async () => {
+    await updateCriancaService(admin, "crianca-1", { nome: "Diego Souza" });
+
+    expect(sincronizarMensalidadesNaoPagas).not.toHaveBeenCalled();
   });
 
   describe("responsável", () => {
