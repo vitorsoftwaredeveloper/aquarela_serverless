@@ -132,7 +132,7 @@ Base: `/v1`. Todos exigem JWT, exceto os marcados como público.
 | Método | Rota | Papel | Descrição |
 |---|---|---|---|
 | POST | `/turmas` | admin | Criar turma (nome, descrição, faixa etária, professora) |
-| GET | `/turmas` | admin/professor | Listar turmas |
+| GET | `/turmas` | admin/professor | Listar turmas (com `professor: { _id, nome, email }`) |
 | GET | `/turmas/{id}` | admin/professor | Detalhe da turma |
 | PUT | `/turmas/{id}` | admin | Atualizar dados / trocar professora |
 | DELETE | `/turmas/{id}` | admin | Remover turma (só se vazia, ou realocando as crianças — ver regra) |

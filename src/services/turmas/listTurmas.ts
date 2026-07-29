@@ -1,7 +1,9 @@
 import { TurmaRepository } from "../../repositories/turma.repository";
 import { CriancaRepository } from "../../repositories/crianca.repository";
 import { AgendaRepository } from "../../repositories/agenda.repository";
+import { ProfessorRepository } from "../../repositories/professor.repository";
 import { ITurma } from "../../types/turmas";
+import { IProfessor } from "../../types/professores";
 import { IUsuario } from "../../types/usuarios";
 import { resolveProfessorId } from "../../utils/requester";
 import { hojeMeiaNoiteBrasil } from "../../utils/date";
@@ -24,10 +26,29 @@ export const listTurmasService = async (
     sort: { nome: 1 },
   })) as ITurma[];
 
+  if (turmas.length === 0) {
+    return turmas;
+  }
+
+  const professorIds = [...new Set(turmas.map((t) => t.professorId))];
+  const professores = (await ProfessorRepository.find(
+    { _id: { $in: professorIds } },
+    { nome: 1, email: 1 },
+  )) as IProfessor[];
+
+  const professorPorId = new Map(
+    professores.map((p) => [String(p._id), { _id: String(p._id), nome: p.nome, email: p.email }]),
+  );
+
+  const turmasComProfessor = turmas.map((t) => ({
+    ...t,
+    professor: professorPorId.get(String(t.professorId)) ?? null,
+  }));
+
   // Estatísticas do dia (total de crianças + agendas pendentes) só para a
   // tela "Minhas turmas" do professor — evita o custo extra na listagem do admin.
-  if (requester.papel !== "professor" || turmas.length === 0) {
-    return turmas;
+  if (requester.papel !== "professor") {
+    return turmasComProfessor;
   }
 
   const turmaIds = turmas.map((t) => t._id);
@@ -63,7 +84,7 @@ export const listTurmasService = async (
     agendasHoje as { turmaId: unknown }[],
   );
 
-  return turmas.map((t) => {
+  return turmasComProfessor.map((t) => {
     const total = totalPorTurma.get(String(t._id)) ?? 0;
     const registradas = registradasPorTurma.get(String(t._id)) ?? 0;
     return {
