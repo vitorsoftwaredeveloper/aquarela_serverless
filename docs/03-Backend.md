@@ -115,7 +115,7 @@ Base: `/v1`. Todos exigem JWT, exceto os marcados como público.
 | Método | Rota | Papel | Descrição |
 |---|---|---|---|
 | POST | `/professores` | admin | Cadastrar professor (+ **foto** opcional) |
-| GET | `/professores` | admin | Listar professores |
+| GET | `/professores` | admin | Listar professores (com `turmas: [{ _id, nome }]` vinculadas) |
 | GET | `/professores/{id}` | admin/professor* | Detalhe (*só o próprio cadastro) |
 | PUT | `/professores/{id}` | admin/professor* | Atualizar dados/**foto** (*só o próprio cadastro, e sem `email`) |
 | DELETE | `/professores/{id}` | admin | Remover (bloqueado/aviso se houver turma vinculada) |

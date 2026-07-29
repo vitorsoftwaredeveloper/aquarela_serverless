@@ -13,6 +13,7 @@ export interface IProfessor {
   ativo: boolean;
   createdAt?: Date;
   updatedAt?: Date;
+  turmas?: { _id: string; nome: string }[];
 }
 
 export interface ICreateProfessorPayload {
