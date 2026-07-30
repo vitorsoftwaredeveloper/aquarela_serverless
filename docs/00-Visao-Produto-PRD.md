@@ -78,8 +78,8 @@ Ainda não é cliente. Está pesquisando berçários e quer simular quanto pagar
 ## 5. Épicos e funcionalidades
 
 ### Épico A — Cadastros base
-**CRUD completo** (criar, listar, editar e **remover**) de crianças, turmas, professores e usuários. Remoção é sempre **soft delete** (inativa, preserva histórico).
-- **Crianças:** cadastro/edição com dados completos (ver seção 6), remoção (soft delete).
+**CRUD completo** (criar, listar, editar e **remover**) de crianças, turmas, professores e usuários. Remoção é sempre **hard delete** (definitiva).
+- **Crianças:** cadastro/edição com dados completos (ver seção 6), remoção definitiva (em cadeia: apaga agenda, mensalidades e pagamentos vinculados).
 - **Turmas:** cadastro/edição (nome, descrição, faixa etária, professora vinculada) e remoção (bloqueada se a turma tiver crianças ativas — realocar antes).
 - **Professores:** cadastro/edição/remoção (remoção bloqueada se houver turma vinculada).
 - **Usuários** (admin, professor, responsável): cadastro/edição/remoção e definição de papel.

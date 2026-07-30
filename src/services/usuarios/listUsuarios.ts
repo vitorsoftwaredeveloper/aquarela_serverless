@@ -4,15 +4,12 @@ import { Role } from "../../types/auth";
 
 export interface IListUsuariosFilters {
   papel?: Role;
-  ativo?: boolean;
 }
 
 export const listUsuariosService = async (
   filters: IListUsuariosFilters,
 ): Promise<IUsuario[]> => {
-  const query: Record<string, unknown> = {
-    ativo: filters.ativo ?? true,
-  };
+  const query: Record<string, unknown> = {};
   if (filters.papel) query.papel = filters.papel;
 
   return (await UsuarioRepository.find(query, null, {

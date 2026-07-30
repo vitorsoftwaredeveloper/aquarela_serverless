@@ -4,16 +4,8 @@ import { IProfessor } from "../../types/professores";
 import { ITurma } from "../../types/turmas";
 import { withFotoUrls } from "../shared/fotoProfessor";
 
-export interface IListProfessoresFilters {
-  ativo?: boolean;
-}
-
-export const listProfessoresService = async (
-  filters: IListProfessoresFilters,
-): Promise<IProfessor[]> => {
-  const query = { ativo: filters.ativo ?? true };
-
-  const professores = (await ProfessorRepository.find(query, null, {
+export const listProfessoresService = async (): Promise<IProfessor[]> => {
+  const professores = (await ProfessorRepository.find({}, null, {
     sort: { nome: 1 },
   })) as IProfessor[];
 
@@ -23,7 +15,7 @@ export const listProfessoresService = async (
 
   const professorIds = professores.map((p) => p._id);
   const turmas = (await TurmaRepository.find(
-    { professorId: { $in: professorIds }, ativo: true },
+    { professorId: { $in: professorIds } },
     { nome: 1, professorId: 1 },
     { sort: { nome: 1 } },
   )) as ITurma[];

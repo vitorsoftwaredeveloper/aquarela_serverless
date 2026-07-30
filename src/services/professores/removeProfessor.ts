@@ -6,11 +6,6 @@ import { IUsuario } from "../../types/usuarios";
 import { httpError, STATUS_CODE } from "../../utils/errors";
 import { removerFotoDoBucket } from "../shared/fotoProfessor";
 
-/**
- * Hard delete do professor e do usuário dedicado (Cognito + `usuarios`)
- * juntos: manter o professor soft-deleted após apagar o usuário deixaria
- * `Professor.usuarioId` (required, ref "usuarios") órfão.
- */
 export const removeProfessorService = async (
   professorId: string,
 ): Promise<void> => {
@@ -23,15 +18,12 @@ export const removeProfessorService = async (
     );
   }
 
-  const turmaVinculada = await TurmaRepository.findOne({
-    professorId,
-    ativo: true,
-  });
+  const turmaVinculada = await TurmaRepository.findOne({ professorId });
   if (turmaVinculada) {
     throw httpError(
       STATUS_CODE.CONFLICT,
       "PROFESSOR_COM_TURMA_VINCULADA",
-      "Não é possível remover: professor possui turma(s) ativa(s) vinculada(s). Troque a professora da turma antes.",
+      "Não é possível remover: professor possui turma(s) vinculada(s). Troque a professora da turma antes.",
     );
   }
 

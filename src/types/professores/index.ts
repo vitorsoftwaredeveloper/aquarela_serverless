@@ -10,7 +10,6 @@ export interface IProfessor {
   formacao?: string;
   foto?: string;
   fotoUrl?: string;
-  ativo: boolean;
   createdAt?: Date;
   updatedAt?: Date;
   turmas?: { _id: string; nome: string }[];

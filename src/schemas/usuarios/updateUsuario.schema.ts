@@ -11,7 +11,6 @@ export const updateUsuarioSchema: JSONSchemaType<IUpdateUsuarioPayload> = {
       enum: ["admin", "professor", "responsavel"],
       nullable: true,
     },
-    ativo: { type: "boolean", nullable: true },
   },
   required: [],
   additionalProperties: false,

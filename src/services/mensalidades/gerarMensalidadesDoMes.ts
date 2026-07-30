@@ -8,7 +8,7 @@ export interface IGerarMensalidadesResult {
 }
 
 /**
- * Gera a mensalidade do mês para cada criança ativa a partir de
+ * Gera a mensalidade do mês para cada criança cadastrada a partir de
  * `crianca.financeiro`. Idempotente: mensalidades já existentes (índice
  * único {criancaId, ano, mes}) são silenciosamente ignoradas — seguro
  * reexecutar (reprocessamento manual, retry do job).
@@ -17,9 +17,7 @@ export const gerarMensalidadesDoMesService = async (
   ano: number,
   mes: number,
 ): Promise<IGerarMensalidadesResult> => {
-  const criancas = (await CriancaRepository.find({
-    ativo: true,
-  })) as ICrianca[];
+  const criancas = (await CriancaRepository.find({})) as ICrianca[];
 
   let geradas = 0;
   let ignoradas = 0;

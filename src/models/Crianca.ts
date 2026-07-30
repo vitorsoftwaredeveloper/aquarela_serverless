@@ -87,7 +87,6 @@ export const CriancaSchema = new Schema(
     // Divergência deliberada de docs/04: trilha mínima de auditoria
     // (CAD-09) embutida, capada às últimas 50 entradas.
     auditoria: { type: [AuditoriaEntrySchema], default: [] },
-    ativo: { type: Boolean, default: true },
   },
   { timestamps: true },
 );

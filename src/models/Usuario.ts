@@ -20,7 +20,6 @@ export const UsuarioSchema = new Schema(
       required: true,
     },
     telefone: { type: String, trim: true },
-    ativo: { type: Boolean, default: true },
     professorId: { type: Schema.Types.ObjectId, ref: "professores" },
     criancasVinculadas: [{ type: Schema.Types.ObjectId, ref: "criancas" }],
   },

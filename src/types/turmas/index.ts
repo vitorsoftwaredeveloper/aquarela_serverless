@@ -5,7 +5,6 @@ export interface ITurma {
   faixaEtaria: { min: number; max: number };
   professorId: string;
   capacidade?: number;
-  ativo: boolean;
   createdAt?: Date;
   updatedAt?: Date;
   /** Só populado em `GET /turmas` (ver listTurmas service). */

@@ -9,19 +9,18 @@ import { withFotoUrls } from "../shared/fotoCrianca";
 export interface IListCriancasFilters {
   turmaId?: string;
   nome?: string;
-  ativo?: boolean;
 }
 
 export const listCriancasService = async (
   requester: IUsuario,
   filters: IListCriancasFilters,
 ): Promise<ICrianca[]> => {
-  const query: Record<string, unknown> = { ativo: filters.ativo ?? true };
+  const query: Record<string, unknown> = {};
 
   if (requester.papel === "professor") {
     const professorId = await resolveProfessorId(requester);
     const turmasDoProfessor = await TurmaRepository.find(
-      { professorId, ativo: true },
+      { professorId },
       { _id: 1 },
     );
     const turmaIds = turmasDoProfessor.map((turma: any) => String(turma._id));

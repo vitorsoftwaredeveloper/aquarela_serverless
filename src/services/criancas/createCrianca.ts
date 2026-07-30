@@ -86,7 +86,7 @@ export const createCriancaService = async (
 
   if (payload.turmaId) {
     const turma = await TurmaRepository.findById(payload.turmaId);
-    if (!turma || !(turma as any).ativo) {
+    if (!turma) {
       throw httpError(
         STATUS_CODE.NOT_FOUND,
         "NOT_FOUND",
@@ -144,7 +144,6 @@ export const createCriancaService = async (
       financeiro: payload.financeiro,
       consentimentoLgpd: { aceito: true, aceitoEm: new Date() },
       auditoria: [],
-      ativo: true,
     });
 
     crianca = (await CriancaRepository.findById(created._id))!;

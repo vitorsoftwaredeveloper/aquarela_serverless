@@ -5,10 +5,6 @@ import { IAviso } from "../../types/avisos";
 import { IUsuario } from "../../types/usuarios";
 import { resolveProfessorId } from "../../utils/requester";
 
-export interface IListAvisosFilters {
-  ativo?: boolean;
-}
-
 const resolveTurmaIdsVisiveis = async (
   requester: IUsuario,
 ): Promise<string[]> => {
@@ -30,14 +26,9 @@ const resolveTurmaIdsVisiveis = async (
 
 export const listAvisosService = async (
   requester: IUsuario,
-  filters: IListAvisosFilters,
 ): Promise<IAviso[]> => {
   if (requester.papel === "admin") {
-    const query: Record<string, unknown> = {
-      ativo: filters.ativo !== undefined ? filters.ativo : true,
-    };
-
-    return (await AvisoRepository.find(query, null, {
+    return (await AvisoRepository.find({}, null, {
       sort: { createdAt: -1 },
     })) as IAviso[];
   }
@@ -46,7 +37,6 @@ export const listAvisosService = async (
 
   return (await AvisoRepository.find(
     {
-      ativo: true,
       $or: [{ turmaId: { $exists: false } }, { turmaId: { $in: turmaIds } }],
     },
     null,

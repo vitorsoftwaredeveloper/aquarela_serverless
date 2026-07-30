@@ -15,7 +15,6 @@ export const TurmaSchema = new Schema(
       index: true,
     },
     capacidade: { type: Number },
-    ativo: { type: Boolean, default: true },
   },
   { timestamps: true },
 );

@@ -23,7 +23,7 @@ export const updateTurmaService = async (
 
   if (payload.professorId) {
     const professor = await ProfessorRepository.findById(payload.professorId);
-    if (!professor || !(professor as any).ativo) {
+    if (!professor) {
       throw httpError(
         STATUS_CODE.NOT_FOUND,
         "PROFESSOR_NOT_FOUND",

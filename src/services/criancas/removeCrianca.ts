@@ -8,10 +8,6 @@ import { httpError, STATUS_CODE } from "../../utils/errors";
 import { removerFotoDoBucket } from "../shared/fotoCrianca";
 
 /**
- * Remoção DEFINITIVA (hard delete), diferente das demais entidades de
- * cadastro (que usam soft delete). Exceção deliberada: para só bloquear o
- * acesso preservando o histórico, use `PUT /criancas/{id}` com `ativo:false`.
- *
  * Como a criança tem histórico próprio em outras coleções (agenda diária,
  * mensalidades, pagamentos), a remoção é em CADEIA: apaga também tudo que
  * pertence só a ela, e desvincula (sem apagar) os usuários responsáveis.

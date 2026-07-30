@@ -4,7 +4,6 @@ export interface IAviso {
   corpo: string;
   autorId: string;
   turmaId?: string;
-  ativo: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }

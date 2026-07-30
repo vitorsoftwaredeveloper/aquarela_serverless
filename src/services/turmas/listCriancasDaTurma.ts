@@ -14,7 +14,7 @@ export const listCriancasDaTurmaService = async (
   await getTurmaByIdService(requester, turmaId);
 
   const criancas = (await CriancaRepository.find(
-    { turmaId, ativo: true },
+    { turmaId },
     null,
     { sort: { nome: 1 } },
   )) as ICrianca[];

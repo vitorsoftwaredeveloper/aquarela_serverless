@@ -14,7 +14,7 @@ export const updateAvisoService = async (
 
   if (payload.turmaId) {
     const turma = await TurmaRepository.findById(payload.turmaId);
-    if (!turma || !(turma as any).ativo) {
+    if (!turma) {
       throw httpError(
         STATUS_CODE.NOT_FOUND,
         "TURMA_NOT_FOUND",

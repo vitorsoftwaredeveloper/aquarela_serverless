@@ -22,16 +22,14 @@ export const removeUsuarioService = async (
     );
   }
 
-  // Bloqueia hard delete se ainda há vínculos ativos que ficariam órfãos.
   const criancasVinculadas = await CriancaRepository.count({
     "responsaveis.usuarioId": usuarioId,
-    ativo: true,
   });
   if (criancasVinculadas > 0) {
     throw httpError(
       STATUS_CODE.CONFLICT,
       "USUARIO_COM_VINCULOS",
-      "Usuário é responsável por crianças ativas. Desvincule antes de excluir.",
+      "Usuário é responsável por crianças. Desvincule antes de excluir.",
     );
   }
 
@@ -41,13 +39,12 @@ export const removeUsuarioService = async (
   if (professor) {
     const turmasVinculadas = await TurmaRepository.count({
       professorId: professor._id,
-      ativo: true,
     });
     if (turmasVinculadas > 0) {
       throw httpError(
         STATUS_CODE.CONFLICT,
         "USUARIO_COM_VINCULOS",
-        "Professor possui turmas ativas. Reatribua as turmas antes de excluir.",
+        "Professor possui turmas vinculadas. Reatribua as turmas antes de excluir.",
       );
     }
   }

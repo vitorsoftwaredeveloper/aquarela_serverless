@@ -73,7 +73,6 @@ export const createProfessorService = async (
             email,
             papel: "professor",
             telefone: payload.telefone,
-            ativo: true,
           },
           { session },
         );
@@ -88,7 +87,6 @@ export const createProfessorService = async (
             email,
             formacao: payload.formacao,
             foto: fotoKey,
-            ativo: true,
           },
           { session },
         );

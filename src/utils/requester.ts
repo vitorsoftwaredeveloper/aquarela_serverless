@@ -17,7 +17,7 @@ export const resolveRequester = async (
     cognitoSub: auth.sub,
   })) as IUsuario | null;
 
-  if (!usuario || !usuario.ativo) {
+  if (!usuario) {
     throw httpError(STATUS_CODE.FORBIDDEN, "FORBIDDEN", "Usuário sem acesso.");
   }
 
@@ -33,14 +33,13 @@ export const resolveProfessorId = async (
 ): Promise<string> => {
   const professor = await ProfessorRepository.findOne({
     usuarioId: usuario._id,
-    ativo: true,
   });
 
   if (!professor) {
     throw httpError(
       STATUS_CODE.FORBIDDEN,
       "FORBIDDEN",
-      "Professor sem cadastro ativo vinculado.",
+      "Professor sem cadastro vinculado.",
     );
   }
 

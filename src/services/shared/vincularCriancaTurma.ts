@@ -16,7 +16,7 @@ export const vincularCriancaTurma = async (
   const crianca = (await CriancaRepository.findById(
     criancaId,
   )) as ICrianca | null;
-  if (!crianca || !crianca.ativo) {
+  if (!crianca) {
     throw httpError(
       STATUS_CODE.NOT_FOUND,
       "NOT_FOUND",
@@ -25,7 +25,7 @@ export const vincularCriancaTurma = async (
   }
 
   const turma = await TurmaRepository.findById(turmaId);
-  if (!turma || !(turma as any).ativo) {
+  if (!turma) {
     throw httpError(STATUS_CODE.NOT_FOUND, "NOT_FOUND", "Turma não encontrada.");
   }
 
@@ -48,7 +48,7 @@ export const desvincularCriancaTurma = async (
   const crianca = (await CriancaRepository.findById(
     criancaId,
   )) as ICrianca | null;
-  if (!crianca || !crianca.ativo) {
+  if (!crianca) {
     throw httpError(
       STATUS_CODE.NOT_FOUND,
       "NOT_FOUND",

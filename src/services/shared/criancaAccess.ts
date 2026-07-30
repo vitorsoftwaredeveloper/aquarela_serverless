@@ -20,10 +20,9 @@ export const isResponsavelDaCrianca = (
 
 /**
  * Campos que só o admin altera. `financeiro` fora daqui deixaria o
- * responsável baixar a própria mensalidade; `ativo` deixaria reativar um
- * cadastro que a escola desligou.
+ * responsável baixar a própria mensalidade.
  */
-export const CAMPOS_EXCLUSIVOS_ADMIN = ["financeiro", "ativo"] as const;
+export const CAMPOS_EXCLUSIVOS_ADMIN = ["financeiro"] as const;
 
 /**
  * Autoriza a edição do cadastro: admin edita qualquer criança e qualquer

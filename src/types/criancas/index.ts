@@ -59,7 +59,6 @@ export interface ICrianca {
   financeiro: IFinanceiroCrianca;
   consentimentoLgpd: IConsentimentoLgpd;
   auditoria?: IAuditoriaEntry[];
-  ativo: boolean;
   createdAt?: Date;
   updatedAt?: Date;
   agendaRegistradaHoje?: boolean;
@@ -98,5 +97,4 @@ export interface IUpdateCriancaPayload {
   responsaveis?: IResponsavel[];
   saude?: ISaude;
   financeiro?: IFinanceiroCrianca;
-  ativo?: boolean;
 }

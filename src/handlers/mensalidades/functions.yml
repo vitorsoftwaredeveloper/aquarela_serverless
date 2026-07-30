@@ -3,6 +3,12 @@ gerarMensalidades:
   events:
     - schedule: cron(0 6 1 * ? *)
 
+gerarMensalidadesAno:
+  handler: src/handlers/mensalidades/gerarMensalidadesAno.execute
+  timeout: 120
+  events:
+    - schedule: cron(0 3 1 1 ? *)
+
 listMensalidades:
   handler: src/handlers/mensalidades/listMensalidades.execute
   events:

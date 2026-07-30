@@ -9,12 +9,12 @@ import { enviarNotificacao } from "../notificacoes/enviarNotificacao";
 
 const resolveDestinatarios = async (turmaId?: string): Promise<string[]> => {
   if (!turmaId) {
-    const usuarios = await UsuarioRepository.find({ ativo: true }, { _id: 1 });
+    const usuarios = await UsuarioRepository.find({}, { _id: 1 });
     return usuarios.map((usuario: any) => String(usuario._id));
   }
 
   const criancas = await CriancaRepository.find(
-    { turmaId, ativo: true },
+    { turmaId },
     { responsaveis: 1 },
   );
   const usuarioIds = criancas
@@ -32,7 +32,7 @@ export const createAvisoService = async (
 ): Promise<IAviso> => {
   if (payload.turmaId) {
     const turma = await TurmaRepository.findById(payload.turmaId);
-    if (!turma || !(turma as any).ativo) {
+    if (!turma) {
       throw httpError(
         STATUS_CODE.NOT_FOUND,
         "TURMA_NOT_FOUND",

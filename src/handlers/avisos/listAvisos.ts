@@ -12,11 +12,8 @@ export const execute = withErrorHandling(
     "responsavel",
   )(async (event, auth): Promise<APIGatewayProxyResult> => {
     const requester = await resolveRequester(auth);
-    const query = event.queryStringParameters ?? {};
 
-    const avisos = await listAvisosService(requester, {
-      ativo: query.ativo !== undefined ? query.ativo === "true" : undefined,
-    });
+    const avisos = await listAvisosService(requester);
 
     return sendSuccessResponse(avisos);
   }),

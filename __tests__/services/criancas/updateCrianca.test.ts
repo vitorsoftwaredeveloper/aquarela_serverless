@@ -123,12 +123,6 @@ describe("updateCriancaService", () => {
       expect(CriancaRepository.updateOne).not.toHaveBeenCalled();
     });
 
-    it("é barrado em ativo", async () => {
-      await expect(
-        updateCriancaService(responsavel, "crianca-1", { ativo: true }),
-      ).rejects.toMatchObject({ statusCode: 403 });
-    });
-
     it("é barrado em criança de terceiro", async () => {
       mockCrianca({ _id: "crianca-2", responsaveis: [] });
 

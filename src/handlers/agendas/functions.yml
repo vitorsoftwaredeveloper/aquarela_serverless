@@ -47,6 +47,12 @@ getHistoricoAgenda:
         authorizer:
           name: cognitoAuthorizer
 
+removerAgendasAnoAnterior:
+  handler: src/handlers/agendas/removerAgendasAnoAnterior.execute
+  events:
+    - schedule:
+        rate: cron(0 3 1 1 ? *)
+
 enviarAgenda:
   handler: src/handlers/agendas/enviarAgenda.execute
   environment:

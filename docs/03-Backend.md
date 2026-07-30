@@ -89,13 +89,13 @@ config/<stage>.json          # referências a SSM
 
 Base: `/v1`. Todos exigem JWT, exceto os marcados como público.
 
-> **Convenção de CRUD.** Todas as entidades de cadastro (`usuarios`, `professores`, `turmas`, `criancas`) expõem o ciclo completo **create / read / update / delete**. `DELETE` é **soft delete** (`ativo: false`) por padrão (`professores`, `turmas`). **Exceções deliberadas:** `usuarios` e `criancas` — nesses dois, `DELETE` é **hard delete definitivo**; usar `PUT .../{id}` com `ativo:false` para só bloquear o acesso preservando o cadastro/histórico. `avisos` também é hard delete (mural não guarda histórico). Ver seção 9 (LGPD) e a doc de banco.
+> **Convenção de CRUD.** Todas as entidades de cadastro (`usuarios`, `professores`, `turmas`, `criancas`, `avisos`) expõem o ciclo completo **create / read / update / delete**. `DELETE` é sempre **hard delete definitivo** — não existe soft delete/`ativo` no sistema. `usuarios`/`criancas`/`professores`/`avisos` apagam o registro de vez (crianças e usuários removem em cadeia o que só pertence a eles — ver seções abaixo); `turmas` bloqueia a remoção se ainda houver crianças vinculadas. Ver seção 9 (LGPD) e a doc de banco.
 
 ### Auth/usuários (CRUD completo)
 | Método | Rota | Papel | Descrição |
 |---|---|---|---|
 | POST | `/usuarios` | admin | Criar usuário (admin/professor/responsavel) |
-| GET | `/usuarios` | admin | Listar usuários (filtros: papel, ativo) |
+| GET | `/usuarios` | admin | Listar usuários (filtro: papel) |
 | GET | `/usuarios/{id}` | admin | Detalhe do usuário |
 | PUT | `/usuarios/{id}` | admin | Atualizar dados/papel |
 | DELETE | `/usuarios/{id}` | admin | Remover usuário **em definitivo** (hard delete: apaga do banco + `AdminDeleteUser` no Cognito) |
@@ -109,7 +109,7 @@ Base: `/v1`. Todos exigem JWT, exceto os marcados como público.
 >
 > Usuário preso em `FORCE_CHANGE_PASSWORD` sem a temp: `aws cognito-idp admin-set-user-password --user-pool-id <id> --username <email> --password '<Temp>' --no-permanent`. **`ForgotPassword` não funciona nesse estado** (Cognito bloqueia até haver senha própria).
 >
-> **Ativar/desativar × remover.** `PUT /usuarios/{id}` aceita `ativo: boolean` — desativar (`ativo:false`) bloqueia o acesso mantendo o cadastro (feito pela **edição** no front). `DELETE /usuarios/{id}` é **hard delete** (apaga banco + Cognito, irreversível) — **exceção** à convenção de soft delete das demais entidades.
+> `DELETE /usuarios/{id}` é **hard delete** (apaga banco + Cognito, irreversível). Bloqueado com `409 USUARIO_COM_VINCULOS` se o usuário for responsável por alguma criança, ou professor com turma vinculada.
 
 ### Professores (CRUD completo)
 | Método | Rota | Papel | Descrição |
@@ -118,7 +118,7 @@ Base: `/v1`. Todos exigem JWT, exceto os marcados como público.
 | GET | `/professores` | admin | Listar professores (com `turmas: [{ _id, nome }]` vinculadas) |
 | GET | `/professores/{id}` | admin/professor* | Detalhe (*só o próprio cadastro) |
 | PUT | `/professores/{id}` | admin/professor* | Atualizar dados/**foto** (*só o próprio cadastro, e sem `email`) |
-| DELETE | `/professores/{id}` | admin | Remover (bloqueado/aviso se houver turma vinculada) |
+| DELETE | `/professores/{id}` | admin | Remover em definitivo (professor + usuário/Cognito vinculado); bloqueado se houver turma vinculada |
 
 > **`POST /professores` — cria o usuário (papel=professor) junto, sem `usuarioId`.** Body: `{ nome, cpf, telefone, email, formacao?, foto? }` — todos obrigatórios exceto `formacao` e `foto`. Mesmo padrão de `POST /usuarios`: o backend cria o usuário no Cognito com senha temporária gerada (`AdminCreateUser`, `MessageAction: "SUPPRESS"`), grupo `professor`, guarda `cognitoSub`, cria o registro em `professores` vinculado (`usuarioId` interno) e retorna **`senhaTemporaria`** no payload (uma única vez, não persistida) — o front mostra num modal para o admin copiar e repassar. Valida CPF por dígitos verificadores (`400`) e e-mail único (`409`). Falha em qualquer etapa faz rollback (usuário no Cognito + registro).
 >
@@ -126,7 +126,7 @@ Base: `/v1`. Todos exigem JWT, exceto os marcados como público.
 >
 > **Professor edita o próprio cadastro (tela Perfil), nunca `email`.** `GET`/`PUT /professores/{id}` aceitam papel `professor` além de `admin` — ownership checado no backend (`professor.usuarioId === requester._id`); pedir o cadastro de outro professor, ou mandar o campo `email` (mesmo com o valor igual ao atual), responde **`403 FORBIDDEN`**. O front (`ProfessorService.getMeuCadastro`/`atualizarMeuCadastro` em `services/professorService.ts`) por isso **nunca inclui `email`** no payload do PUT — o formulário mostra o campo só como leitura. O `_id` do próprio cadastro vem de `GET /me` → `IUsuario.professorId` (`AppUser.professorId` em `types/user.ts`, populado no `AuthContext`).
 >
-> **Foto do professor — mesmo mecanismo da foto de criança**, implementado (base64 no corpo, teto de 2MB decodificados, checagem de magic bytes contra o `contentType`, key no bucket `FotosBucket` sob `professores/{professorId}/{uuid}.{ext}`, leitura por `fotoUrl` pré-assinada de 1h) — ver `src/services/shared/fotoUpload.ts` (núcleo genérico reusado por `fotoCrianca.ts` e `fotoProfessor.ts`) e a seção "Crianças" abaixo pro detalhe de validação. `POST` e `PUT /professores/{id}` aceitam o campo opcional `foto: { contentType, base64 }`; toda resposta traz `fotoUrl`. **Tanto admin quanto o próprio professor podem mandar `foto` no `PUT`** — é o mesmo payload que já aceita `nome`/`telefone`/`formacao`. **Não existe endpoint dedicado pra apagar só a foto** (ao contrário de `DELETE /criancas/{id}/foto`) — pra trocar, manda outra `foto` no `PUT`; pra remover sem substituir, hoje não há rota. Como soft delete preserva o cadastro, `DELETE /professores/{id}` **não** apaga a foto do bucket.
+> **Foto do professor — mesmo mecanismo da foto de criança**, implementado (base64 no corpo, teto de 2MB decodificados, checagem de magic bytes contra o `contentType`, key no bucket `FotosBucket` sob `professores/{professorId}/{uuid}.{ext}`, leitura por `fotoUrl` pré-assinada de 1h) — ver `src/services/shared/fotoUpload.ts` (núcleo genérico reusado por `fotoCrianca.ts` e `fotoProfessor.ts`) e a seção "Crianças" abaixo pro detalhe de validação. `POST` e `PUT /professores/{id}` aceitam o campo opcional `foto: { contentType, base64 }`; toda resposta traz `fotoUrl`. **Tanto admin quanto o próprio professor podem mandar `foto` no `PUT`** — é o mesmo payload que já aceita `nome`/`telefone`/`formacao`. **Não existe endpoint dedicado pra apagar só a foto** (ao contrário de `DELETE /criancas/{id}/foto`) — pra trocar, manda outra `foto` no `PUT`; pra remover sem substituir, hoje não há rota. `DELETE /professores/{id}` apaga a foto do bucket junto com o cadastro (hard delete).
 
 ### Turmas (CRUD completo + vínculo de crianças)
 | Método | Rota | Papel | Descrição |
@@ -135,7 +135,7 @@ Base: `/v1`. Todos exigem JWT, exceto os marcados como público.
 | GET | `/turmas` | admin/professor | Listar turmas (com `professor: { _id, nome, email }`) |
 | GET | `/turmas/{id}` | admin/professor | Detalhe da turma |
 | PUT | `/turmas/{id}` | admin | Atualizar dados / trocar professora |
-| DELETE | `/turmas/{id}` | admin | Remover turma (só se vazia, ou realocando as crianças — ver regra) |
+| DELETE | `/turmas/{id}` | admin | Remover turma em definitivo (só se vazia, ou realocando as crianças antes — ver regra) |
 | GET | `/turmas/{id}/criancas` | admin/professor | Listar alunos da turma |
 | POST | `/turmas/{id}/criancas` | admin | **Vincular** criança à turma (body: `criancaId`) |
 | DELETE | `/turmas/{id}/criancas/{criancaId}` | admin | **Desvincular** criança da turma |
@@ -161,9 +161,9 @@ Base: `/v1`. Todos exigem JWT, exceto os marcados como público.
 | Método | Rota | Papel | Descrição |
 |---|---|---|---|
 | POST | `/criancas` | admin | Cadastrar criança (+ vínculo de turma, responsáveis e **consentimento LGPD**) |
-| GET | `/criancas` | admin/professor/responsavel* | Listar (filtro por turma, nome, ativo). Cada criança inclui `turmaNome` (resolvido a partir de `turmaId`; `null` se sem turma). *`responsavel` só recebe os próprios filhos (via `usuarios.criancasVinculadas` ou `responsaveis[].usuarioId`) — usado pela tela "Início" do responsável |
+| GET | `/criancas` | admin/professor/responsavel* | Listar (filtro por turma, nome). Cada criança inclui `turmaNome` (resolvido a partir de `turmaId`; `null` se sem turma). *`responsavel` só recebe os próprios filhos (via `usuarios.criancasVinculadas` ou `responsaveis[].usuarioId`) — usado pela tela "Início" do responsável |
 | GET | `/criancas/{id}` | admin/professor/responsavel* | Detalhe (*só o próprio filho) |
-| PUT | `/criancas/{id}` | admin/responsavel* | Editar dados/saúde/responsáveis/foto (*só o próprio filho e sem `financeiro`/`ativo`) |
+| PUT | `/criancas/{id}` | admin/responsavel* | Editar dados/saúde/responsáveis/foto (*só o próprio filho e sem `financeiro`) |
 | DELETE | `/criancas/{id}/foto` | admin | Apagar só a foto (o cadastro permanece) |
 | DELETE | `/criancas/{id}` | admin | Remover **em definitivo, em cadeia** (apaga agenda diária, mensalidades e pagamentos da criança; desvincula — sem apagar — os usuários responsáveis) |
 
@@ -187,7 +187,7 @@ Base: `/v1`. Todos exigem JWT, exceto os marcados como público.
 > **Responsável editando o próprio filho.** `PUT /criancas/{id}` aceita
 > `admin` e `responsavel`; como o payload é todo opcional, mandar só `{ foto }`
 > cobre o caso "só trocar a foto". O backend devolve `403` se o responsável
-> tocar em `financeiro` ou `ativo` (senão ele editaria a própria mensalidade).
+> tocar em `financeiro` (senão ele editaria a própria mensalidade).
 > `PATCH /criancas/{id}/turma`, `DELETE /criancas/{id}` e
 > `DELETE /criancas/{id}/foto` seguem **admin-only**.
 >
@@ -208,7 +208,7 @@ Base: `/v1`. Todos exigem JWT, exceto os marcados como público.
 >
 > **Valor personalizado (acordo fechado) vs. plano fixo:** `financeiro.valorMensalidade` é sempre obrigatório e é sempre o valor que o admin digitou — o backend não recalcula a partir de `planoId`/`configPrecos` em nenhum momento (`createCriancaService`/`updateCriancaService` gravam `payload.financeiro` como veio). `planoId` é **opcional** e só guarda a referência de qual plano fixo (`GET /config/precos/planos`) foi usado de base, quando foi usado. Omitir `planoId` representa um valor negociado direto com os responsáveis, sem vínculo com nenhum plano — os dois nunca são mandados como se fossem consistentes entre si.
 >
-> **Ativar/desativar × remover.** `PUT /criancas/{id}` aceita `ativo:boolean` — desativar bloqueia o acesso mantendo o cadastro e o histórico. `DELETE /criancas/{id}` é **hard delete em cadeia** (irreversível): apaga a criança + toda `AgendaDiaria`/`Mensalidade`/`Pagamento` vinculados; usuários responsáveis são só desvinculados (`$pull` em `criancasVinculadas`), suas contas não são apagadas.
+> `DELETE /criancas/{id}` é **hard delete em cadeia** (irreversível): apaga a criança + toda `AgendaDiaria`/`Mensalidade`/`Pagamento` vinculados; usuários responsáveis são só desvinculados (`$pull` em `criancasVinculadas`), suas contas não são apagadas.
 >
 > **Consentimento LGPD (QA-03).** `POST /criancas` exige `consentimentoLgpd:
 > boolean` no corpo (`additionalProperties:false` + `required` — sem o campo,
@@ -255,6 +255,14 @@ Base: `/v1`. Todos exigem JWT, exceto os marcados como público.
 > `fotoUrl` opcional (`AgendaProfessor` em `src/types/agenda.ts`) para quando o
 > backend passar a projetar a foto do professor nessa rota; até lá o avatar cai
 > no fallback de iniciais (`components/Avatar`).
+>
+> **Cron `removerAgendasAnoAnterior`** (1º de janeiro, 00:00 GMT-3 —
+> `cron(0 3 1 1 ? *)` UTC): apaga de `agendasDiarias` todo registro com
+> `data` anterior ao dia 1º de janeiro do ano corrente (UTC), de todas as
+> crianças. Não é só o ano que passou — qualquer resíduo de anos ainda mais
+> antigos (ex.: cron que falhou) também é limpo, já que agenda diária velha
+> não tem valor depois da virada do ano. Hard delete, sem soft delete, sem
+> volta.
 
 ### Notificações push (Web Push / FCM)
 | Método | Rota | Papel | Descrição |
@@ -284,40 +292,40 @@ Base: `/v1`. Todos exigem JWT, exceto os marcados como público.
 ### Avisos (mural)
 | Método | Rota | Papel | Descrição |
 |---|---|---|---|
-| GET | `/avisos?ativo=` | admin/professor/responsavel | Listar avisos (escopo por papel, ver abaixo) |
+| GET | `/avisos` | admin/professor/responsavel | Listar avisos (escopo por papel, ver abaixo) |
 | POST | `/avisos` | admin | Publicar aviso (`titulo`, `corpo`, `turmaId?`) |
 | PUT | `/avisos/{id}` | admin | Editar |
-| DELETE | `/avisos/{id}` | admin | Remover **em definitivo** (hard delete — apaga o documento, não é `ativo:false`) |
+| DELETE | `/avisos/{id}` | admin | Remover **em definitivo** (hard delete — apaga o documento) |
 
-> Documento: `{ _id, titulo, corpo, autorId, turmaId?, ativo, createdAt,
+> Documento: `{ _id, titulo, corpo, autorId, turmaId?, createdAt,
 > updatedAt }`. **Sem campo `tipo`** (recado/cuidado/evento) — não existe no
-> modelo. `turmaId` é opcional: **ausente = visível para todos os
-> responsáveis**; presente = só para quem tem filho na turma (mural geral +
-> por turma, ver docs/05-Sugestoes-Produto.md).
+> modelo. **Sem campo `ativo`** — o sistema não tem soft delete; `turmaId` é
+> opcional: **ausente = visível para todos os responsáveis**; presente = só
+> para quem tem filho na turma (mural geral + por turma, ver
+> docs/05-Sugestoes-Produto.md).
 >
 > **Escopo do `GET /avisos` varia por papel** (não é um filtro de query):
-> `admin` vê só `ativo:true` por padrão (mesmo default das outras listagens);
-> `?ativo=false` explícito devolve os inativos, se algum sobrar (na prática
-> nenhum, já que `DELETE` apaga o documento em vez de desativar). `professor`
-> vê os avisos globais + das turmas que leciona; `responsavel` vê os globais +
-> das turmas das crianças vinculadas a ele. O front não filtra nada — consome
-> a resposta como vier.
+> `admin` vê todos; `professor` vê os avisos globais + das turmas que leciona;
+> `responsavel` vê os globais + das turmas das crianças vinculadas a ele. O
+> front não filtra nada — consome a resposta como vier.
 >
-> `ativo` continua no schema (default `true`) mas hoje nenhum fluxo do backend
-> o seta como `false` — `DELETE /avisos/{id}` remove o documento de verdade.
-> Antes o `DELETE` era soft delete e a listagem do admin não filtrava por
-> `ativo` por padrão: um aviso "removido" continuava aparecendo pro admin (a
-> 2ª tentativa de remover virava no-op silencioso, porque já estava
-> `ativo:false`), e criar um novo aviso com o mesmo título parecia duplicar o
-> antigo na tela. Corrigido em `src/services/avisos/removeAviso.ts` (hard
-> delete) e `src/services/avisos/listAvisos.ts` (default `ativo:true` pro
-> admin).
+> Remover uma turma (`DELETE /turmas/{id}`) apaga junto os avisos vinculados a
+> ela (`turmaId`) — mural não tem valor de histórico independente da turma.
 
 ### Financeiro / Pagamentos
 | GET | `/mensalidades?criancaId=&ano=` | responsavel*/admin | Meses pagos/em aberto |
 > Geração de mensalidade: `POST /criancas` já cria, na hora do cadastro, a mensalidade de cada mês do mês corrente até dezembro do ano corrente (`gerarMensalidadesIniciaisService`) — sem isso a criança ficaria sem cobrança até o cron mensal (`gerarMensalidadesDoMes`, dia 1 de cada mês) gerar a competência seguinte. Ambos idempotentes via índice único `{criancaId, ano, mes}`. Mensalidade não é proporcional a cadastro no meio do mês — sempre o valor cheio de `crianca.financeiro.valorMensalidade`.
 
 > **Mudança de valor/vencimento propaga (`sincronizarMensalidadesNaoPagas`):** todo `PUT /criancas/{id}` que traz `financeiro` reaplica `valorMensalidade` e `diaVencimento` em **todas as mensalidades da criança que não estão `pago`** (`aberto`, `atrasado`, `cancelado`). Mensalidade `pago` nunca é tocada — é histórico financeiro. Sem isso o cadastro mostrava o valor novo e a tela do responsável continuava cobrando o antigo, porque as competências já existiam com o valor da geração. O `vencimento` é recalculado por competência (`$dateFromParts` com `{ano, mes, diaVencimento}`) e o par `aberto`/`atrasado` é reavaliado contra a nova data (vencimento empurrado para o futuro volta a `aberto`). Pagamentos PIX pendentes dessas mensalidades **com o valor antigo** são apagados — o QR já emitido cobraria o valor errado; pendentes que já batem com o novo valor sobrevivem.
+
+> **Cron `gerarMensalidadesAno`** (1º de janeiro, 00:00 GMT-3 —
+> `cron(0 3 1 1 ? *)` UTC, `timeout: 120`): pré-gera de uma vez as 12
+> competências (janeiro a dezembro) do ano novo para toda criança ativa,
+> reusando `criarMensalidadeSeNaoExiste` — idempotente via índice único
+> `{criancaId, ano, mes}`, seguro reexecutar. Coexiste com o cron mensal
+> `gerarMensalidadesDoMes` (dia 1 de cada mês, 06:00 UTC / 03:00 GMT-3):
+> em janeiro os dois rodam sobre a mesma competência, mas o segundo vira
+> no-op porque a mensalidade já foi criada pelo cron anual horas antes.
 | POST | `/pagamentos` | responsavel | Gerar cobrança PIX (retorna copia-e-cola + txid) |
 | GET | `/pagamentos/{txid}` | responsavel | Status do pagamento |
 | POST | `/pagamentos/manual` | admin | Registrar pagamento recebido em dinheiro físico (baixa manual da mensalidade) — ver seção 7.1 |

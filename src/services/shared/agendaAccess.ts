@@ -48,7 +48,7 @@ export const loadCriancaDaTurmaDoProfessor = async (
   const crianca = (await CriancaRepository.findById(
     criancaId,
   )) as ICrianca | null;
-  if (!crianca || !crianca.ativo) {
+  if (!crianca) {
     throw httpError(
       STATUS_CODE.NOT_FOUND,
       "NOT_FOUND",
@@ -72,7 +72,7 @@ export const loadCriancaParaLeituraAgenda = async (
   const crianca = (await CriancaRepository.findById(
     criancaId,
   )) as ICrianca | null;
-  if (!crianca || !crianca.ativo) {
+  if (!crianca) {
     throw httpError(
       STATUS_CODE.NOT_FOUND,
       "NOT_FOUND",

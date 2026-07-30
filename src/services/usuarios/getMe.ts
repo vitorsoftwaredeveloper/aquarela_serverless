@@ -14,7 +14,6 @@ export const getMeService = async (auth: AuthClaims): Promise<IUsuario> => {
 
   const professor = await ProfessorRepository.findOne({
     usuarioId: usuario._id,
-    ativo: true,
   });
 
   return professor

@@ -7,7 +7,6 @@ export interface IUsuario {
   email: string;
   papel: Role;
   telefone?: string;
-  ativo: boolean;
   professorId?: string;
   criancasVinculadas?: string[];
   createdAt?: Date;
@@ -30,5 +29,4 @@ export interface IUpdateUsuarioPayload {
   nome?: string;
   telefone?: string;
   papel?: Role;
-  ativo?: boolean;
 }

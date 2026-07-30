@@ -11,7 +11,6 @@ export const execute = withErrorHandling(
 
     const usuarios = await listUsuariosService({
       papel: query.papel as Role | undefined,
-      ativo: query.ativo !== undefined ? query.ativo === "true" : undefined,
     });
 
     return sendSuccessResponse(usuarios);

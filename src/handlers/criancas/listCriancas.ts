@@ -13,7 +13,6 @@ export const execute = withErrorHandling(
     const criancas = await listCriancasService(requester, {
       turmaId: query.turmaId,
       nome: query.nome,
-      ativo: query.ativo !== undefined ? query.ativo === "true" : undefined,
     });
 
     return sendSuccessResponse(criancas);

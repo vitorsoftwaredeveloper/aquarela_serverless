@@ -28,7 +28,7 @@ describe("listTurmasService", () => {
       { _id: "prof-2", nome: "Bruno", email: "bruno@example.com" },
     ]);
 
-    const result = await listTurmasService(admin, {});
+    const result = await listTurmasService(admin);
 
     expect(result).toEqual([
       {
@@ -56,7 +56,7 @@ describe("listTurmasService", () => {
     ]);
     (ProfessorRepository.find as jest.Mock).mockResolvedValue([]);
 
-    const result = await listTurmasService(admin, {});
+    const result = await listTurmasService(admin);
 
     expect(result).toEqual([
       {
@@ -71,7 +71,7 @@ describe("listTurmasService", () => {
   it("não consulta professores quando não há turmas", async () => {
     (TurmaRepository.find as jest.Mock).mockResolvedValue([]);
 
-    const result = await listTurmasService(admin, {});
+    const result = await listTurmasService(admin);
 
     expect(result).toEqual([]);
     expect(ProfessorRepository.find).not.toHaveBeenCalled();
@@ -91,7 +91,7 @@ describe("listTurmasService", () => {
     ]);
     (AgendaRepository.find as jest.Mock).mockResolvedValue([]);
 
-    const result = await listTurmasService(professor, {});
+    const result = await listTurmasService(professor);
 
     expect(result).toEqual([
       {

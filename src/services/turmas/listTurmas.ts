@@ -8,15 +8,10 @@ import { IUsuario } from "../../types/usuarios";
 import { resolveProfessorId } from "../../utils/requester";
 import { hojeMeiaNoiteBrasil } from "../../utils/date";
 
-export interface IListTurmasFilters {
-  ativo?: boolean;
-}
-
 export const listTurmasService = async (
   requester: IUsuario,
-  filters: IListTurmasFilters,
 ): Promise<ITurma[]> => {
-  const query: Record<string, unknown> = { ativo: filters.ativo ?? true };
+  const query: Record<string, unknown> = {};
 
   if (requester.papel === "professor") {
     query.professorId = await resolveProfessorId(requester);
@@ -58,7 +53,7 @@ export const listTurmasService = async (
 
   if (requester.papel !== "professor") {
     const criancasDasTurmas = await CriancaRepository.find(
-      { turmaId: { $in: turmaIds }, ativo: true },
+      { turmaId: { $in: turmaIds } },
       { turmaId: 1 },
     );
     const totalPorTurma = contarPorTurma(
@@ -76,7 +71,7 @@ export const listTurmasService = async (
   // (0 resultados) se `turmaId` chegasse como string em vez de ObjectId.
   const [criancasDasTurmas, agendasHoje] = await Promise.all([
     CriancaRepository.find(
-      { turmaId: { $in: turmaIds }, ativo: true },
+      { turmaId: { $in: turmaIds } },
       { turmaId: 1 },
     ),
     AgendaRepository.find(

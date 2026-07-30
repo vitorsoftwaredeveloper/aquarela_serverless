@@ -38,7 +38,7 @@ Perfil de app espelhando o Cognito.
   _id, cognitoSub: string (idx, unique),
   nome, email (idx, unique),
   papel: "admin" | "professor" | "responsavel",
-  telefone?, ativo: boolean,
+  telefone?,
   professorId?: ObjectId,        // se papel=professor
   criancasVinculadas?: [ObjectId],// se papel=responsavel (atalho de leitura)
   createdAt, updatedAt
@@ -68,7 +68,6 @@ Perfil de app espelhando o Cognito.
   financeiro: { planoId?: ObjectId, valorMensalidade: number, diaVencimento: number },
   consentimentoLgpd: { aceito: boolean, aceitoEm: Date },  // QA-03
   auditoria: [{ usuarioId: ObjectId, alteradoEm: Date, campos: [string] }],  // CAD-09
-  ativo: boolean,
   createdAt, updatedAt
 }
 ```
@@ -122,18 +121,18 @@ Perfil de app espelhando o Cognito.
 ### `professores`
 ```
 { _id, usuarioId: ObjectId, nome, cpf, telefone, email,
-  formacao?, foto?: string, ativo: boolean, createdAt, updatedAt }
+  formacao?, foto?: string, createdAt, updatedAt }
 ```
 > `foto`: mesma key-no-S3/`fotoUrl`-pré-assinada de `criancas.foto` — ver
-> `docs/03-Backend.md`. Soft delete (`ativo:false`) não apaga a foto do
-> bucket, ao contrário do hard delete de `criancas`.
+> `docs/03-Backend.md`. `DELETE /professores/{id}` é hard delete e apaga a
+> foto do bucket junto com o cadastro.
 
 ### `turmas`
 ```
 { _id, nome, descricao,
   faixaEtaria: { min: number, max: number },   // ex.: {1,3}
   professorId: ObjectId (idx),
-  capacidade?: number, ativo: boolean,
+  capacidade?: number,
   createdAt, updatedAt }
 ```
 > Contagem de crianças = query em `criancas` por `turmaId` (não duplicar).
@@ -220,9 +219,9 @@ Usado pelo simulador e pela geração de mensalidades.
 { _id, titulo, corpo,
   autorId: ObjectId (usuarios),
   turmaId?: ObjectId (turmas),   // ausente = visível a todos; presente = só à turma
-  ativo: boolean, createdAt, updatedAt }
+  createdAt, updatedAt }
 ```
-Hard delete — `DELETE /avisos/{id}` apaga o documento (`ativo` fica no schema, default `true`, mas nenhum fluxo grava `false`). Leitura: admin vê `ativo:true` por padrão (`?ativo=false` pra recuperar inativos, hoje sempre vazio); professor/responsável só os avisos globais ou da(s) turma(s) que lecionam/filho está matriculado.
+Hard delete — `DELETE /avisos/{id}` apaga o documento. Remover a turma apaga junto os avisos vinculados a ela. Leitura: admin vê todos; professor/responsável só os avisos globais ou da(s) turma(s) que lecionam/filho está matriculado.
 
 ### `dispositivos`
 ```
@@ -245,7 +244,7 @@ Um usuário pode ter N dispositivos (celular + notebook). `token` é upsert idem
 | mensalidades | `{criancaId, ano, mes}` unique; `status` | financeiro do pai/inadimplência |
 | pagamentos | `txid` unique | conciliação/idempotência |
 | despesas | `data` | balanço por período |
-| avisos | `{ativo, createdAt:-1}` | listagem por mais recente |
+| avisos | `{createdAt:-1}` | listagem por mais recente |
 | dispositivos | `token` unique; `usuarioId` | resolver tokens do usuário no envio; upsert por token |
 
 ---
@@ -257,12 +256,12 @@ Um usuário pode ter N dispositivos (celular + notebook). `token` é upsert idem
 - **Meses do responsável:** `mensalidades.find({ criancaId, ano }).sort({ mes })`.
 - **Inadimplentes:** `mensalidades.find({ status: "atrasado" })` + join lógico com `criancas`.
 - **Balanço mensal:** agregação de `mensalidades` pagas − `despesas` no período (`$group` por mês/ano).
-- **Alunos da turma:** `criancas.find({ turmaId, ativo: true })`.
+- **Alunos da turma:** `criancas.find({ turmaId })`.
 
 ---
 
 ## 6. Integridade & regras
-- **Soft delete** (`ativo: false`) para criança/turma/usuário — preserva histórico financeiro e de agenda.
+- **Hard delete** em todas as entidades — não existe soft delete/`ativo` no sistema. `criancas` remove em cadeia (agenda, mensalidades, pagamentos); `turmas` bloqueia a remoção enquanto houver crianças vinculadas.
 - **Transações** (replicaSet) ao gerar mensalidade + baixa de pagamento.
 - Geração mensal de `mensalidades` por job agendado a partir de `configPrecos`/`criancas.financeiro`.
 - Auditoria: `createdAt`/`updatedAt` em tudo; log de alterações no cadastro de criança e em baixas financeiras.

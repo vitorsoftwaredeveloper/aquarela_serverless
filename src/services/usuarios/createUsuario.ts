@@ -37,7 +37,6 @@ export const createUsuarioService = async (
       email,
       papel: payload.papel,
       telefone: payload.telefone,
-      ativo: true,
     });
 
     const usuario = (await UsuarioRepository.findById(created._id)) as IUsuario;

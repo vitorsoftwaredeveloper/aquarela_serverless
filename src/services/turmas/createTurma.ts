@@ -15,7 +15,7 @@ export const createTurmaService = async (
   }
 
   const professor = await ProfessorRepository.findById(payload.professorId);
-  if (!professor || !(professor as any).ativo) {
+  if (!professor) {
     throw httpError(
       STATUS_CODE.NOT_FOUND,
       "PROFESSOR_NOT_FOUND",
@@ -29,7 +29,6 @@ export const createTurmaService = async (
     faixaEtaria: payload.faixaEtaria,
     professorId: payload.professorId,
     capacidade: payload.capacidade,
-    ativo: true,
   });
 
   return (await TurmaRepository.findById(created._id)) as ITurma;
