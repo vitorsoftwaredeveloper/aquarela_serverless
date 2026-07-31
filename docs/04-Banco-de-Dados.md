@@ -230,7 +230,7 @@ Hard delete — `DELETE /avisos/{id}` apaga o documento. Remover a turma apaga j
   plataforma: "android"|"ios"|"web"|"desktop",
   ultimoUsoEm, createdAt, updatedAt }
 ```
-Um usuário pode ter N dispositivos (celular + notebook). `token` é upsert idempotente — se reaparecer vinculado a outro `usuarioId`, o registro mais recente vence (dispositivo compartilhado por outro login). Hard delete real (não soft): token invalidado pelo FCM (`registration-token-not-registered`) ou removido pelo próprio usuário (logout) não tem valor de auditoria.
+Um usuário pode ter N dispositivos (celular + notebook). `token` é upsert idempotente — se reaparecer vinculado a outro `usuarioId`, o registro mais recente vence (dispositivo compartilhado por outro login). Hard delete real (não soft): token invalidado pelo FCM (`registration-token-not-registered`) ou removido pelo próprio usuário (logout) não tem valor de auditoria. `DELETE /usuarios/{id}` também apaga em cadeia todos os `dispositivos` do `usuarioId` removido.
 
 ---
 

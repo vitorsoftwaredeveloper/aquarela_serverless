@@ -2,6 +2,7 @@ import { db } from "../../libs/mongo";
 import { TurmaRepository } from "../../repositories/turma.repository";
 import { CriancaRepository } from "../../repositories/crianca.repository";
 import { AvisoRepository } from "../../repositories/aviso.repository";
+import { PlanoAulaRepository } from "../../repositories/planoAula.repository";
 import { httpError, STATUS_CODE } from "../../utils/errors";
 
 export const removeTurmaService = async (turmaId: string): Promise<void> => {
@@ -22,6 +23,7 @@ export const removeTurmaService = async (turmaId: string): Promise<void> => {
   await db();
 
   await AvisoRepository.model.deleteMany({ turmaId });
+  await PlanoAulaRepository.model.deleteMany({ turmaId });
 
   await TurmaRepository.deleteOne({ _id: turmaId });
 };

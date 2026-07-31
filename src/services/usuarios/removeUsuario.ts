@@ -2,6 +2,7 @@ import { UsuarioRepository } from "../../repositories/usuario.repository";
 import { CriancaRepository } from "../../repositories/crianca.repository";
 import { ProfessorRepository } from "../../repositories/professor.repository";
 import { TurmaRepository } from "../../repositories/turma.repository";
+import { DispositivoRepository } from "../../repositories/dispositivo.repository";
 import { removeCognitoUser } from "../../libs/cognito";
 import { IUsuario } from "../../types/usuarios";
 import { IProfessor } from "../../types/professores";
@@ -61,9 +62,9 @@ export const removeUsuarioService = async (
 
   await UsuarioRepository.deleteOne({ _id: usuarioId });
 
-  // Apaga o Professor junto: senão `Professor.usuarioId` (required, ref
-  // "usuarios") fica órfão apontando pro usuário recém-removido.
   if (professor) {
     await ProfessorRepository.deleteOne({ _id: professor._id });
   }
+
+  await DispositivoRepository.model.deleteMany({ usuarioId });
 };

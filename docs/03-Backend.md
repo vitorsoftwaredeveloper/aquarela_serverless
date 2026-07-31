@@ -112,7 +112,7 @@ Base: `/v1`. Todos exigem JWT, exceto os marcados como público.
 >
 > **`PUT /usuarios/{id}/senha` — admin redefine a senha de qualquer usuário.** Body: `{ novaSenha }` (mín. 8 caracteres; o Cognito aplica a política de senha real do User Pool e responde `422 SENHA_INVALIDA` se não atender). Chama `AdminSetUserPassword` com `Permanent: false` — mesmo modelo do `POST /usuarios`: o admin comunica a nova senha ao usuário, que é obrigado a trocá-la no próximo login (challenge `NEW_PASSWORD`). **`204` sem corpo**; a senha não é persistida nem retornada. `404` se o usuário não existir no banco.
 >
-> `DELETE /usuarios/{id}` é **hard delete** (apaga banco + Cognito, irreversível). Bloqueado com `409 USUARIO_COM_VINCULOS` se o usuário for responsável por alguma criança, ou professor com turma vinculada.
+> `DELETE /usuarios/{id}` é **hard delete** (apaga banco + Cognito, irreversível). Bloqueado com `409 USUARIO_COM_VINCULOS` se o usuário for responsável por alguma criança, ou professor com turma vinculada. Em cadeia também apaga os `dispositivos` (tokens FCM) vinculados ao `usuarioId` — senão o registro fica órfão e o motor de notificação (`enviarNotificacao.ts`) tentaria enviar push pra um usuário que não existe mais.
 
 ### Professores (CRUD completo)
 | Método | Rota | Papel | Descrição |
@@ -168,7 +168,7 @@ Base: `/v1`. Todos exigem JWT, exceto os marcados como público.
 | GET | `/criancas/{id}` | admin/professor/responsavel* | Detalhe (*só o próprio filho) |
 | PUT | `/criancas/{id}` | admin/responsavel* | Editar dados/saúde/responsáveis/foto (*só o próprio filho e sem `financeiro`) |
 | DELETE | `/criancas/{id}/foto` | admin | Apagar só a foto (o cadastro permanece) |
-| DELETE | `/criancas/{id}` | admin | Remover **em definitivo, em cadeia** (apaga agenda diária, mensalidades e pagamentos da criança; desvincula — sem apagar — os usuários responsáveis) |
+| DELETE | `/criancas/{id}` | admin | Remover **em definitivo, em cadeia** (apaga agenda diária, mensalidades e pagamentos da criança; desvincula os usuários responsáveis e apaga a conta de quem ficar sem nenhuma criança vinculada) |
 
 > **Foto da criança — base64 no corpo.** `POST /criancas` e `PUT /criancas/{id}`
 > aceitam o campo opcional `foto: { contentType, base64 }`. A Lambda decodifica,
@@ -211,7 +211,7 @@ Base: `/v1`. Todos exigem JWT, exceto os marcados como público.
 >
 > **Valor personalizado (acordo fechado) vs. plano fixo:** `financeiro.valorMensalidade` é sempre obrigatório e é sempre o valor que o admin digitou — o backend não recalcula a partir de `planoId`/`configPrecos` em nenhum momento (`createCriancaService`/`updateCriancaService` gravam `payload.financeiro` como veio). `planoId` é **opcional** e só guarda a referência de qual plano fixo (`GET /config/precos/planos`) foi usado de base, quando foi usado. Omitir `planoId` representa um valor negociado direto com os responsáveis, sem vínculo com nenhum plano — os dois nunca são mandados como se fossem consistentes entre si.
 >
-> `DELETE /criancas/{id}` é **hard delete em cadeia** (irreversível): apaga a criança + toda `AgendaDiaria`/`Mensalidade`/`Pagamento` vinculados; usuários responsáveis são só desvinculados (`$pull` em `criancasVinculadas`), suas contas não são apagadas.
+> `DELETE /criancas/{id}` é **hard delete em cadeia** (irreversível): apaga a criança + toda `AgendaDiaria`/`Mensalidade`/`Pagamento` vinculados; usuários responsáveis são desvinculados (`$pull` em `criancasVinculadas`) e, **para cada um que fica sem nenhuma criança vinculada** (`CriancaRepository.count({ "responsaveis.usuarioId": ... }) === 0`, checado depois do `$pull`), a conta também é apagada em cadeia (Cognito `AdminDeleteUser` + registro em `usuarios`) — mesmo hard delete de `DELETE /usuarios/{id}`, só que automático. Só entra nessa remoção automática **usuário com `papel: "responsavel"`**: se o e-mail do responsável já batia com uma conta `admin`/`professor` existente (reuso por e-mail em `ensureResponsavelUsuario`), essa conta nunca é apagada por aqui.
 >
 > **Consentimento LGPD (QA-03).** `POST /criancas` exige `consentimentoLgpd:
 > boolean` no corpo (`additionalProperties:false` + `required` — sem o campo,
@@ -226,7 +226,7 @@ Base: `/v1`. Todos exigem JWT, exceto os marcados como público.
 
 **Regras de vínculo e remoção:**
 - Uma criança pertence a **uma turma por vez**. Vincular a uma nova turma (ou `PATCH .../turma`) substitui o vínculo anterior.
-- **Remover turma** com crianças ativas é bloqueado (`409`): o admin deve antes realocar/desvincular as crianças (o front pode oferecer "mover todos para a turma X").
+- **Remover turma** com crianças ativas é bloqueado (`409`): o admin deve antes realocar/desvincular as crianças (o front pode oferecer "mover todos para a turma X"). Ao remover, avisos e **planos de aula** vinculados à turma são apagados em cascata (hard delete).
 - **Remover professor** vinculado a uma turma retorna aviso/`409`; trocar a professora da turma é feito via `PUT /turmas/{id}`.
 
 ### Agenda diária
