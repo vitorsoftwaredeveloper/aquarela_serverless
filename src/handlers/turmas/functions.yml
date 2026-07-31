@@ -36,6 +36,8 @@ updateTurma:
 
 removeTurma:
   handler: src/handlers/turmas/removeTurma.execute
+  iamRoleStatementsInherit: true
+  iamRoleStatements: ${self:custom.encryptionKeyIamStatements}
   events:
     - httpApi:
         method: DELETE
@@ -46,7 +48,18 @@ removeTurma:
 listCriancasDaTurma:
   handler: src/handlers/turmas/listCriancasDaTurma.execute
   iamRoleStatementsInherit: true
-  iamRoleStatements: ${self:custom.fotosLeituraIamStatements}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - s3:GetObject
+      Resource:
+        - ${self:custom.fotosObjectArn}
+    - Effect: Allow
+      Action:
+        - ssm:GetParameter
+      Resource:
+        - ${self:custom.ssmParameterArn}/encryption_key
+        - ${self:custom.ssmParameterArn}/*/encryption_key
   events:
     - httpApi:
         method: GET
@@ -56,6 +69,8 @@ listCriancasDaTurma:
 
 vincularCrianca:
   handler: src/handlers/turmas/vincularCrianca.execute
+  iamRoleStatementsInherit: true
+  iamRoleStatements: ${self:custom.encryptionKeyIamStatements}
   events:
     - httpApi:
         method: POST
@@ -65,6 +80,8 @@ vincularCrianca:
 
 desvincularCrianca:
   handler: src/handlers/turmas/desvincularCrianca.execute
+  iamRoleStatementsInherit: true
+  iamRoleStatements: ${self:custom.encryptionKeyIamStatements}
   events:
     - httpApi:
         method: DELETE

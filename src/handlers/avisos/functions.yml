@@ -10,6 +10,8 @@ createAviso:
       Resource:
         - ${self:custom.ssmParameterArn}/firebase_service_account
         - ${self:custom.ssmParameterArn}/*/firebase_service_account
+        - ${self:custom.ssmParameterArn}/encryption_key
+        - ${self:custom.ssmParameterArn}/*/encryption_key
   events:
     - httpApi:
         method: POST

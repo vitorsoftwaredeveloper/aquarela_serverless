@@ -9,6 +9,8 @@ getBalanco:
 
 getInadimplentes:
   handler: src/handlers/financeiro/getInadimplentes.execute
+  iamRoleStatementsInherit: true
+  iamRoleStatements: ${self:custom.encryptionKeyIamStatements}
   events:
     - httpApi:
         method: GET

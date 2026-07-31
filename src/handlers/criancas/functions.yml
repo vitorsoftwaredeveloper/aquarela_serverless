@@ -21,6 +21,12 @@ createCrianca:
         - s3:DeleteObject
       Resource:
         - ${self:custom.fotosObjectArn}
+    - Effect: Allow
+      Action:
+        - ssm:GetParameter
+      Resource:
+        - ${self:custom.ssmParameterArn}/encryption_key
+        - ${self:custom.ssmParameterArn}/*/encryption_key
   events:
     - httpApi:
         method: POST
@@ -31,7 +37,18 @@ createCrianca:
 listCriancas:
   handler: src/handlers/criancas/listCriancas.execute
   iamRoleStatementsInherit: true
-  iamRoleStatements: ${self:custom.fotosLeituraIamStatements}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - s3:GetObject
+      Resource:
+        - ${self:custom.fotosObjectArn}
+    - Effect: Allow
+      Action:
+        - ssm:GetParameter
+      Resource:
+        - ${self:custom.ssmParameterArn}/encryption_key
+        - ${self:custom.ssmParameterArn}/*/encryption_key
   events:
     - httpApi:
         method: GET
@@ -42,7 +59,18 @@ listCriancas:
 getCriancaById:
   handler: src/handlers/criancas/getCriancaById.execute
   iamRoleStatementsInherit: true
-  iamRoleStatements: ${self:custom.fotosLeituraIamStatements}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - s3:GetObject
+      Resource:
+        - ${self:custom.fotosObjectArn}
+    - Effect: Allow
+      Action:
+        - ssm:GetParameter
+      Resource:
+        - ${self:custom.ssmParameterArn}/encryption_key
+        - ${self:custom.ssmParameterArn}/*/encryption_key
   events:
     - httpApi:
         method: GET
@@ -53,7 +81,20 @@ getCriancaById:
 updateCrianca:
   handler: src/handlers/criancas/updateCrianca.execute
   iamRoleStatementsInherit: true
-  iamRoleStatements: ${self:custom.fotosEscritaIamStatements}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - s3:GetObject
+        - s3:PutObject
+        - s3:DeleteObject
+      Resource:
+        - ${self:custom.fotosObjectArn}
+    - Effect: Allow
+      Action:
+        - ssm:GetParameter
+      Resource:
+        - ${self:custom.ssmParameterArn}/encryption_key
+        - ${self:custom.ssmParameterArn}/*/encryption_key
   events:
     - httpApi:
         method: PUT
@@ -64,7 +105,20 @@ updateCrianca:
 removeCrianca:
   handler: src/handlers/criancas/removeCrianca.execute
   iamRoleStatementsInherit: true
-  iamRoleStatements: ${self:custom.fotosEscritaIamStatements}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - s3:GetObject
+        - s3:PutObject
+        - s3:DeleteObject
+      Resource:
+        - ${self:custom.fotosObjectArn}
+    - Effect: Allow
+      Action:
+        - ssm:GetParameter
+      Resource:
+        - ${self:custom.ssmParameterArn}/encryption_key
+        - ${self:custom.ssmParameterArn}/*/encryption_key
   events:
     - httpApi:
         method: DELETE
@@ -75,7 +129,20 @@ removeCrianca:
 removeFotoCrianca:
   handler: src/handlers/criancas/removeFotoCrianca.execute
   iamRoleStatementsInherit: true
-  iamRoleStatements: ${self:custom.fotosEscritaIamStatements}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - s3:GetObject
+        - s3:PutObject
+        - s3:DeleteObject
+      Resource:
+        - ${self:custom.fotosObjectArn}
+    - Effect: Allow
+      Action:
+        - ssm:GetParameter
+      Resource:
+        - ${self:custom.ssmParameterArn}/encryption_key
+        - ${self:custom.ssmParameterArn}/*/encryption_key
   events:
     - httpApi:
         method: DELETE
@@ -85,6 +152,9 @@ removeFotoCrianca:
 
 moverCriancaTurma:
   handler: src/handlers/criancas/moverCriancaTurma.execute
+  # vincularCriancaTurma.ts busca a criança sem projeção — precisa decifrar.
+  iamRoleStatementsInherit: true
+  iamRoleStatements: ${self:custom.encryptionKeyIamStatements}
   events:
     - httpApi:
         method: PATCH

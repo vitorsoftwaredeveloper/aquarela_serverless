@@ -10,6 +10,8 @@ createPagamento:
       Resource:
         - ${self:custom.ssmParameterArn}/mercadopago_access_token
         - ${self:custom.ssmParameterArn}/*/mercadopago_access_token
+        - ${self:custom.ssmParameterArn}/encryption_key
+        - ${self:custom.ssmParameterArn}/*/encryption_key
   events:
     - httpApi:
         method: POST
@@ -39,6 +41,8 @@ getPagamentoStatus:
       Resource:
         - ${self:custom.ssmParameterArn}/mercadopago_access_token
         - ${self:custom.ssmParameterArn}/*/mercadopago_access_token
+        - ${self:custom.ssmParameterArn}/encryption_key
+        - ${self:custom.ssmParameterArn}/*/encryption_key
   events:
     - httpApi:
         method: GET

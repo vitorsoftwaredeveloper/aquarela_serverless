@@ -84,7 +84,7 @@ Base para todos os demais épicos. Não entrega valor ao usuário final, mas des
 | AGD-07 | ✅ Registro de **medicação administrada** (nome, dose, hora, por quem)                         | 🔴   | 3   | FS     | AGD-02, AGD-05 | Registro estruturado; aparece na agenda do pai          |
 | AGD-08 | ✅ Registro de **intercorrência** (febre, queda, doença) com flag de notificação — flag `notificado` gravada; disparo automático de push descartado por decisão do produto (ver NOT-09) | 🔴   | 5   | FS     | AGD-02, AGD-05 | Intercorrência destacada; marca `notificado`            |
 | AGD-09 | ✅ Tela **histórico** navegável por data (professor) — `HistoricoScreen.tsx` (aquarela_app)     | 🟡   | 3   | FE     | AGD-03         | Navegar dias anteriores; ver registro completo          |
-| AGD-10 | Anexar **fotos** ao registro do dia (S3)                                                      | 🟢   | 5   | FS     | AGD-02, CAD-12 | Até N fotos por dia; exibidas ao pai — _Fase 2_         |
+| AGD-10 | ⚪ Anexar **fotos** ao registro do dia (S3) — descartado (decisão do produto, 31/07/2026) | ⚪ | 5 | FS | AGD-02, CAD-12 | Até N fotos por dia; exibidas ao pai — _Fase 2_         |
 
 **Subtotal Épico B:** 45 pts (MVP: ~40 pts).
 
@@ -138,7 +138,7 @@ Base para todos os demais épicos. Não entrega valor ao usuário final, mas des
 | SIM-02 | ✅ Tela admin de **configuração de preços** — `ConfigSimuladorScreen.tsx` (aquarela_app) | 🟡   | 3   | FE     | SIM-01, INF-10 | Editar planos, valores mensal/diário, descontos        |
 | SIM-03 | ✅ Tela pública **simulador**: período (meses/dias) + plano + resultado — `SimuladorScreen.tsx` (aquarela_app) | 🔴   | 5   | FE     | SIM-01         | Sem login; total e por mês; comparação visual (barras) |
 | SIM-04 | ✅ Cálculo com descontos por período (semestral/anual) — `src/services/simulador/simularMensalidade.ts` | 🔴   | 3   | FS     | SIM-01, SIM-03 | Aplica descontos configurados; feedback claro          |
-| SIM-05 | 🟡 CTA "Agende uma visita" / captura de lead — **parcial**: `FinalCta.tsx` (aquarela_app) tem botão pro simulador + link direto de WhatsApp, mas não captura contato estruturado (nome/telefone) num form | 🟢   | 3   | FS     | SIM-03         | Captura contato do interessado — _Fase 2/3_            |
+| SIM-05 | ⚪ CTA "Agende uma visita" / captura de lead — descartado (decisão do produto, 31/07/2026); `FinalCta.tsx` (aquarela_app) segue só com botão pro simulador + link direto de WhatsApp, sem form estruturado | ⚪ | 3 | FS | SIM-03         | Captura contato do interessado — _Fase 2/3_            |
 
 **Subtotal Épico E:** 17 pts (MVP: ~11 pts).
 
@@ -151,7 +151,7 @@ Base para todos os demais épicos. Não entrega valor ao usuário final, mas des
 | PED-01 | ✅ Modelo + CRUD **planos de aula** por turma (BE) — `src/handlers/planosAula` | 🟡   | 3   | BE     | CAD-06         | CRUD vinculado a turma/professor    |
 | PED-02 | ✅ Tela **planos de aula** (professor)             | 🟡   | 5   | FE     | PED-01, INF-10 | Criar/editar/listar planos da turma (`PlanosAulaScreen`/`PlanoAulaFormScreen`); `NEXT_PUBLIC_USE_MOCKS=true` segue disponível pra preview |
 | PED-03 | ✅ Visão do professor: **minhas turmas → alunos** — `TurmasScreen.tsx`/`AlunosScreen.tsx` (professor, aquarela_app) | 🔴   | 3   | FE     | CAD-06, CAD-11 | Professor vê suas turmas e alunos   |
-| PED-04 | Calendário pedagógico de atividades             | 🟢   | 5   | FS     | PED-01         | Atividades por data — _Fase 3_      |
+| PED-04 | ⚪ Calendário pedagógico de atividades — descartado (decisão do produto, 31/07/2026) | ⚪ | 5 | FS | PED-01         | Atividades por data — _Fase 3_      |
 
 **Subtotal Épico F:** 16 pts (MVP: apenas PED-03 = 3 pts).
 
@@ -164,17 +164,43 @@ Base para todos os demais épicos. Não entrega valor ao usuário final, mas des
 | QA-01 | Testes unitários de services/validações (Jest) — cobertura crítica | 🔴   | 5   | BE     | Épicos A–D     | Cobertura em agenda, financeiro, auth                             |
 | QA-02 | ✅ Testes de componentes críticos (agenda, pagamento) (aquarela_app) | 🟡   | 3   | FE     | AGD-05, FIN-08 | RTL nos fluxos-chave                                              |
 | QA-03 | ✅ Revisão **LGPD**: consentimento, acesso, criptografia, retenção | 🔴   | 5   | FS     | CAD-08         | Consentimento no cadastro; acesso por papel; política de retenção |
-| QA-04 | Trilha de auditoria (cadastro de criança + baixas financeiras)     | 🟡   | 3   | BE     | CAD-09, FIN-05 | Log de quem alterou o quê e quando                                |
-| QA-05 | Seeds e dados de demonstração                                      | 🟡   | 2   | BE     | Épicos A–B     | Turmas/crianças fictícias para demo                               |
+| QA-04 | ✅ Trilha de auditoria (cadastro de criança + baixas financeiras)  | 🟡   | 3   | BE     | CAD-09, FIN-05 | Log de quem alterou o quê e quando                                |
+| QA-05 | ⚪ Seeds e dados de demonstração — descartado (decisão do produto, 31/07/2026) | ⚪ | 2 | BE | Épicos A–B | Turmas/crianças fictícias para demo                               |
 | QA-06 | Teste de usabilidade com 1 professor + 2 pais                      | 🟡   | 3   | UX     | Épicos B–C     | Ajustes de UX priorizados a partir do teste                       |
-| QA-07 | Hardening de segurança (IAM por Lambda, secrets, webhook assinado) | 🔴   | 5   | INFRA  | Épico D        | Menor privilégio; segredos em SSM; webhook verificado             |
-| QA-08 | Go-live: deploy prod, monitoramento, runbook                       | 🔴   | 3   | INFRA  | INF-11, INF-12 | Prod estável; alarmes; plano de rollback                          |
+| QA-07 | ✅ Hardening de segurança (IAM por Lambda, secrets, webhook assinado) | 🔴 | 5   | INFRA  | Épico D        | Menor privilégio; segredos em SSM; webhook verificado             |
+| QA-08 | ⚪ Go-live: deploy prod, monitoramento, runbook — descartado (decisão do produto, 31/07/2026) | ⚪ | 3 | INFRA | INF-11, INF-12 | Prod estável; alarmes; plano de rollback                          |
 
 > QA-03: consentimento no cadastro **implementado** — checkbox obrigatório
 > no último step do stepper (`aquarela_app`) + `criancas.consentimentoLgpd`
 > (`POST /criancas`, `422 CONSENTIMENTO_LGPD_OBRIGATORIO` se ausente,
 > imutável após criação) em `aquarela_serverless`. Restam de QA-03: revisão
 > de acesso por papel e política de retenção/expurgo.
+>
+> QA-04: cadastro de criança já coberto por CAD-09 (`criancas.auditoria`:
+> quem/quando/campos alterados, capado em 50 entradas). Para baixas
+> financeiras, decisão de produto (31/07/2026): `pagamentos.updatedAt`
+> (baixa automática via webhook) + `pagamentos.recebidoPor` (baixa manual)
+> + `mensalidades.pagamentoId` já bastam como AC — sem trilha própria.
+>
+> QA-05 e QA-08 descartados (decisão do produto, 31/07/2026): seeds de
+> demonstração e runbook/monitoramento de go-live saem do escopo.
+>
+> QA-07 (31/07/2026): `encryption_key`/`kms:Decrypt` saiu do
+> `iamRoleStatements` global do `provider` — ficou só `db`, que toda função
+> precisa. Criado `custom.encryptionKeyIamStatements`, concedido função a
+> função só onde o código de fato decifra `criancas.cpf`/`responsaveis[].cpf`/`saude.*`
+> (rastreado até `CriancaRepository`/`agendaAccess`/`financeiroAccess`/
+> `vincularCriancaTurma`): todas as funções de `criancas`, a maioria de
+> `agendas` e `turmas`, `financeiro/getInadimplentes`, `mensalidades`
+> (geração de mensalidade e listagem) e `pagamentos` (criação/consulta de
+> PIX). Endpoints sem nenhum vínculo com `Crianca` — `configPrecos`,
+> `despesas`, `dispositivos`, `planosAula`, `simulador` (único endpoint
+> público, sem `cognitoAuthorizer`), `professores`, a maior parte de
+> `usuarios` e o webhook do MercadoPago — não recebem mais essa permissão.
+> `s3:GetObject`/Cognito/MercadoPago/Firebase já eram por função (sem
+> mudança). `npm run typecheck` e `npm test` seguem verdes (2 falhas em
+> `listTurmas.test.ts` são bug pré-existente, não relacionado — reproduzido
+> também sem esta mudança).
 
 **Subtotal Épico G:** 29 pts (MVP: ~23 pts).
 

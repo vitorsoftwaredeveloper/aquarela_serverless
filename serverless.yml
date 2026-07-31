@@ -27,6 +27,14 @@ custom:
       Resource:
         - ${self:custom.fotosObjectArn}
 
+  encryptionKeyIamStatements:
+    - Effect: Allow
+      Action:
+        - ssm:GetParameter
+      Resource:
+        - ${self:custom.ssmParameterArn}/encryption_key
+        - ${self:custom.ssmParameterArn}/*/encryption_key
+
 package:
   individually: true
 
@@ -74,8 +82,6 @@ provider:
       Resource:
         - ${self:custom.ssmParameterArn}/db
         - ${self:custom.ssmParameterArn}/*/db
-        - ${self:custom.ssmParameterArn}/encryption_key
-        - ${self:custom.ssmParameterArn}/*/encryption_key
 
     - Effect: Allow
       Action:
