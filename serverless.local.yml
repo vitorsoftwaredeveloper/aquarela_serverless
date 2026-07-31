@@ -76,6 +76,13 @@ functions:
           method: PUT
           path: /v1/usuarios/{id}
 
+  redefinirSenhaUsuario:
+    handler: src/handlers/usuarios/redefinirSenhaUsuario.execute
+    events:
+      - httpApi:
+          method: PUT
+          path: /v1/usuarios/{id}/senha
+
   removeUsuario:
     handler: src/handlers/usuarios/removeUsuario.execute
     events:

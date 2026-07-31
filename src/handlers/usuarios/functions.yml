@@ -67,6 +67,24 @@ updateUsuario:
         authorizer:
           name: cognitoAuthorizer
 
+redefinirSenhaUsuario:
+  handler: src/handlers/usuarios/redefinirSenhaUsuario.execute
+  environment:
+    USER_POOL_ID: ${self:custom.environment.USER_POOL_ID}
+  iamRoleStatementsInherit: true
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - cognito-idp:AdminSetUserPassword
+      Resource:
+        - ${self:custom.environment.COGNITO_USER_POOL_ARN}
+  events:
+    - httpApi:
+        method: PUT
+        path: /v1/usuarios/{id}/senha
+        authorizer:
+          name: cognitoAuthorizer
+
 removeUsuario:
   handler: src/handlers/usuarios/removeUsuario.execute
   environment:

@@ -139,6 +139,21 @@ export const removeCognitoUser = async (email: string): Promise<void> => {
   );
 };
 
+export const adminSetUserPassword = async (
+  email: string,
+  novaSenha: string,
+): Promise<void> => {
+  const cognito = createCognitoClient();
+  await cognito.send(
+    new AdminSetUserPasswordCommand({
+      UserPoolId: process.env.USER_POOL_ID as string,
+      Username: email,
+      Password: novaSenha,
+      Permanent: false,
+    }),
+  );
+};
+
 export const updateCognitoUserEmail = async (
   oldEmail: string,
   newEmail: string,

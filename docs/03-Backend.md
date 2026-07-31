@@ -98,6 +98,7 @@ Base: `/v1`. Todos exigem JWT, exceto os marcados como público.
 | GET | `/usuarios` | admin | Listar usuários (filtro: papel) |
 | GET | `/usuarios/{id}` | admin | Detalhe do usuário |
 | PUT | `/usuarios/{id}` | admin | Atualizar dados/papel |
+| PUT | `/usuarios/{id}/senha` | admin | Redefinir a senha de qualquer usuário |
 | DELETE | `/usuarios/{id}` | admin | Remover usuário **em definitivo** (hard delete: apaga do banco + `AdminDeleteUser` no Cognito) |
 | GET | `/me` | todos | Dados do usuário logado + papel |
 
@@ -108,6 +109,8 @@ Base: `/v1`. Todos exigem JWT, exceto os marcados como público.
 > **Modelo de entrega = "admin define e comunica":** a resposta inclui **`senhaTemporaria`** (retornada **uma única vez**, não persistida) — o front mostra num modal para o admin copiar e repassar ao usuário. O usuário loga com ela e troca no 1º login (challenge `NEW_PASSWORD`). **O front nunca coleta senha.** Falha na gravação faz rollback do usuário no Cognito.
 >
 > Usuário preso em `FORCE_CHANGE_PASSWORD` sem a temp: `aws cognito-idp admin-set-user-password --user-pool-id <id> --username <email> --password '<Temp>' --no-permanent`. **`ForgotPassword` não funciona nesse estado** (Cognito bloqueia até haver senha própria).
+>
+> **`PUT /usuarios/{id}/senha` — admin redefine a senha de qualquer usuário.** Body: `{ novaSenha }` (mín. 8 caracteres; o Cognito aplica a política de senha real do User Pool e responde `422 SENHA_INVALIDA` se não atender). Chama `AdminSetUserPassword` com `Permanent: false` — mesmo modelo do `POST /usuarios`: o admin comunica a nova senha ao usuário, que é obrigado a trocá-la no próximo login (challenge `NEW_PASSWORD`). **`204` sem corpo**; a senha não é persistida nem retornada. `404` se o usuário não existir no banco.
 >
 > `DELETE /usuarios/{id}` é **hard delete** (apaga banco + Cognito, irreversível). Bloqueado com `409 USUARIO_COM_VINCULOS` se o usuário for responsável por alguma criança, ou professor com turma vinculada.
 

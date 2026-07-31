@@ -30,3 +30,7 @@ export interface IUpdateUsuarioPayload {
   telefone?: string;
   papel?: Role;
 }
+
+export interface IRedefinirSenhaPayload {
+  novaSenha: string;
+}
