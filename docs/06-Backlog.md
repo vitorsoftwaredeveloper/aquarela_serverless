@@ -166,7 +166,7 @@ Base para todos os demais épicos. Não entrega valor ao usuário final, mas des
 | QA-03 | ✅ Revisão **LGPD**: consentimento, acesso, criptografia, retenção | 🔴   | 5   | FS     | CAD-08         | Consentimento no cadastro; acesso por papel; política de retenção |
 | QA-04 | ✅ Trilha de auditoria (cadastro de criança + baixas financeiras)  | 🟡   | 3   | BE     | CAD-09, FIN-05 | Log de quem alterou o quê e quando                                |
 | QA-05 | ⚪ Seeds e dados de demonstração — descartado (decisão do produto, 31/07/2026) | ⚪ | 2 | BE | Épicos A–B | Turmas/crianças fictícias para demo                               |
-| QA-06 | Teste de usabilidade com 1 professor + 2 pais                      | 🟡   | 3   | UX     | Épicos B–C     | Ajustes de UX priorizados a partir do teste                       |
+| QA-06 | ✅ Teste de usabilidade com 1 professor + 2 pais — validado (31/07/2026), sem ajustes necessários | 🟡 | 3 | UX | Épicos B–C     | Ajustes de UX priorizados a partir do teste                       |
 | QA-07 | ✅ Hardening de segurança (IAM por Lambda, secrets, webhook assinado) | 🔴 | 5   | INFRA  | Épico D        | Menor privilégio; segredos em SSM; webhook verificado             |
 | QA-08 | ⚪ Go-live: deploy prod, monitoramento, runbook — descartado (decisão do produto, 31/07/2026) | ⚪ | 3 | INFRA | INF-11, INF-12 | Prod estável; alarmes; plano de rollback                          |
 
