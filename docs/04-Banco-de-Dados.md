@@ -21,7 +21,9 @@ usuarios ──(responsavel)──< responsavelCrianca >── criancas
                                           │
 criancas ──1:N── agendasDiarias          │
 criancas ──1:N── mensalidades ──1:1── pagamentos
+criancas ──1:N── mensagens ──(anexos)── S3
 turmas   ──1:N── planosAula
+turmas   ──1:N── eventos ──(fotos)── S3
 (admin)  ── despesas
          ── configPrecos (singleton)
          ── avisos ──(opcional)── turmas
@@ -234,6 +236,164 @@ Um usuário pode ter N dispositivos (celular + notebook). `token` é upsert idem
 
 ---
 
+### `mensagens` — Épico K (recados responsável ↔ professor)
+```
+{
+  _id,
+  criancaId: ObjectId (idx),        // thread é sempre por criança
+  turmaId: ObjectId (idx),          // DERIVADO da criança no backend, nunca do payload
+  autorId: ObjectId (usuarios),
+  autorPapel: "responsavel" | "professor",
+  corpo: string,                    // ≤ 2000 chars
+  anexos: [{ key: string, nome: string, contentType: string, tamanho: number }],  // máx. 5
+  lidaPor: [{ usuarioId: ObjectId, lidaEm: Date }],
+  createdAt, updatedAt
+}
+```
+Índices: `{criancaId, createdAt: -1}` (thread paginada) e `{turmaId, createdAt: -1}`
+(badge de não lidas do professor).
+
+> `turmaId` é redundante com `crianca.turmaId` **de propósito**: sem ele, contar
+> não lidas de uma turma exigiria varrer todas as crianças a cada abertura de
+> tela. É snapshot no momento do envio — criança que muda de turma depois não
+> reescreve o histórico, e isso é o comportamento desejado (o recado pertence à
+> professora que o recebeu).
+>
+> `anexos[].key` aponta para `mensagens/{criancaId}/{uuid}.{ext}` no
+> **`FotosBucket`** (o mesmo da foto de criança — nenhum bucket novo). O binário
+> nunca entra no Mongo. Leitura por presigned GET de 1h, gerada em
+> `GET /mensagens`. Hard delete (`DELETE /mensagens/{id}`) apaga o documento e os
+> objetos do S3 juntos.
+>
+> `lidaPor` é array porque a criança pode ter 2 responsáveis e a turma mais de um
+> professor (OPS-03) — "lida" não é booleano global.
+
+### `eventos` — Épico M (mural de fotos)
+```
+{
+  _id, titulo, descricao?, data: Date,
+  turmaId?: ObjectId (idx),         // ausente = evento da escola inteira
+  autorId: ObjectId (usuarios),
+  fotos: [{
+    key: string, legenda?: string, ordem: number,
+    criancasIds?: [ObjectId],       // quem aparece na foto — OPCIONAL (ver LGPD)
+    enviadoPor: ObjectId, enviadoEm: Date
+  }],                               // máx. 50
+  publicado: boolean,               // rascunho × publicado
+  publicadoEm?: Date,               // idempotência da notificação
+  createdAt, updatedAt
+}
+```
+Índices: `{turmaId, data: -1}` e `{publicado, data: -1}`.
+
+> **Não confundir com `avisos`:** avisos são texto do admin; eventos são álbuns
+> de foto do professor. Mesma mecânica de escopo (`turmaId` ausente = todos),
+> coleções e telas diferentes.
+>
+> Rascunho existe porque o professor sobe fotos ao longo do dia — nada aparece
+> ao responsável enquanto `publicado: false`. `publicadoEm` é o que torna
+> `POST /eventos/{id}/publicar` idempotente: 2ª chamada não renotifica.
+>
+> Hard delete apaga todos os objetos do S3 do prefixo `eventos/{eventoId}/`.
+
+### `criancas` — campos novos do lote de 01/08/2026
+```
+consentimentoImagem?: {           // Épico M — REVOGÁVEL (≠ consentimentoLgpd)
+  aceito: boolean, aceitoEm: Date, registradoPor: ObjectId
+},
+nascimentoDiaMes: string (idx),   // "MM-DD" derivado de dataNascimento — OPS-05
+ultimoAniversarioNotificadoEm?: Date  // idempotência do cron de aniversário
+```
+
+> **`consentimentoImagem` é o oposto de `consentimentoLgpd` em ciclo de vida.**
+> `consentimentoLgpd` é obrigatório no `POST /criancas` e **imutável** (fora de
+> `IUpdateCriancaPayload`). `consentimentoImagem` é **opcional** — recusar não
+> impede a matrícula — e **revogável a qualquer momento pelo responsável**, o
+> que é justamente o que a LGPD exige de consentimento para uso de imagem.
+> Revogar remove retroativamente as fotos em que a criança foi marcada
+> (`eventos.fotos[].criancasIds`).
+>
+> **`nascimentoDiaMes` existe para não varrer a coleção todo dia.** Casar
+> aniversário por `$expr` com `$dayOfMonth`/`$month` + `timezone` funciona, mas
+> não usa índice. O campo derivado (`"MM-DD"`, gravado no `POST`/`PUT` e
+> preenchido no acervo por migração) resolve com um índice simples.
+
+### `mensalidades` — campos novos do lote de 01/08/2026
+```
+inadimplenteDesde?: Date | null,  // COB-07 — null enquanto dentro da carência
+cobrancas: [{                     // COB-03 — capado nas últimas 12 entradas
+  enviadaEm: Date,
+  canal: "push",
+  gatilho: "dia05" | "dia20" | "manual"
+}]
+```
+
+> **`inadimplenteDesde` não substitui `status`.** `status: "atrasado"` continua
+> significando "vencimento passou" (transição feita por
+> `atualizarMensalidadesAtrasadas`). `inadimplenteDesde` marca o **corte formal**
+> depois da carência configurada em `configPrecos.inadimplencia` — é o que
+> alimenta `GET /financeiro/inadimplentes` e o KPI do dashboard a partir de
+> agora. Entre o vencimento e o corte a mensalidade é `atrasado` **e não**
+> inadimplente. Baixa (PIX, webhook ou manual) limpa o campo na mesma transação.
+>
+> `cobrancas[]` é o que torna o cron dos dias 05/20 idempotente: mesma
+> `(mensalidadeId, gatilho, competência do disparo)` não redispara. Capado em 12
+> entradas pelo mesmo motivo de `criancas.auditoria` — histórico de notificação
+> não justifica crescer sem limite dentro do documento.
+
+### `turmas` — múltiplos professores (OPS-03)
+```
+professorIds: [ObjectId] (idx),   // ≥ 1 — substitui professorId
+professorId: ObjectId             // DEPRECADO: derivado (= professorIds[0]), 1 release
+```
+
+> Migração `scripts/migrations/2026-08-turmas-professorIds.ts` preenche
+> `professorIds = [professorId]`. `professorId` sobrevive um release como campo
+> derivado somente-leitura para o front antigo não quebrar no meio do deploy, e
+> some no release seguinte.
+>
+> **Consequência em cascata:** todo ownership por turma deixa de ser igualdade e
+> vira `includes` — `agendaAccess`, `listTurmas`, `listCriancasDaTurma`,
+> `planosAula`, escopo por turma de `avisos`, e as coleções novas `mensagens` e
+> `eventos`. `planosAula.professorId` muda de significado: era "o professor da
+> turma" (derivado), passa a ser **o autor** do plano.
+
+### `agendasDiarias` — campos novos do lote de 01/08/2026
+```
+tarefaCasa?: { status: "feito"|"nao_feito"|"incompleto", observacao?: string },
+presenca?: {
+  status: "presente"|"falta"|"atrasado",
+  horaChegada?: string,           // "HH:mm" — obrigatório quando status = "atrasado"
+  justificativa?: string
+},
+anexos?: [{ key, nome, contentType, tamanho, enviadoEm }],  // máx. 5
+ultimoEnvioEm?: Date | null,      // AG2-01 — último (re)envio; enviadaEm segue sendo o 1º
+enviosCount: number               // default 0
+```
+
+> `enviadaEm` **não muda de significado** — continua marcando o 1º envio, que é o
+> que a tela do professor exibe. `ultimoEnvioEm`/`enviosCount` são o que sustenta
+> o reenvio a cada edição (AG2-01) e o **debounce de 10 minutos** que evita
+> transformar 5 saves seguidos em 5 pushes.
+>
+> `fotos?: [string]` (marcado como "S3 — fase 2" desde a v0.1) **continua sem
+> uso** — AGD-10 foi descartado em 31/07/2026 e o anexo de agenda agora vive em
+> `anexos[]`, com o mecanismo de presigned PUT do Épico K. Não reaproveitar
+> `fotos` para isso.
+
+### `configPrecos` — campo novo (COB-06)
+```
+inadimplencia: { diaCorte: number, mesesCarencia: number }
+// default { diaCorte: 10, mesesCarencia: 1 }; 1 ≤ diaCorte ≤ 28
+```
+
+> `diaCorte` fica em 28 no máximo porque 29/30/31 não existem em todo mês.
+> Com o default, uma mensalidade com vencimento em **05/08 só vira inadimplente
+> em 10/09** (36 dias de carência) — deliberado e configurável:
+> `mesesCarencia: 0` joga o corte para 10/08.
+
+---
+
 ## 4. Índices (resumo)
 
 | Coleção | Índice | Motivo |
@@ -246,6 +406,12 @@ Um usuário pode ter N dispositivos (celular + notebook). `token` é upsert idem
 | despesas | `data` | balanço por período |
 | avisos | `{createdAt:-1}` | listagem por mais recente |
 | dispositivos | `token` unique; `usuarioId` | resolver tokens do usuário no envio; upsert por token |
+| mensagens | `{criancaId, createdAt:-1}`; `{turmaId, createdAt:-1}` | thread da criança; badge de não lidas do professor |
+| eventos | `{turmaId, data:-1}`; `{publicado, data:-1}` | mural por turma; listagem do responsável só do publicado |
+| criancas | `nascimentoDiaMes` | cron de aniversário sem collection scan |
+| turmas | `professorIds` | "minhas turmas" com mais de um professor por turma |
+| mensalidades | `inadimplenteDesde` | lista de inadimplentes e KPI do dashboard |
+| pagamentos | `{status, pagoEm}` | balanço em regime de caixa (agrega por data do pagamento) |
 
 ---
 
@@ -264,6 +430,13 @@ Um usuário pode ter N dispositivos (celular + notebook). `token` é upsert idem
 - **Hard delete** em todas as entidades — não existe soft delete/`ativo` no sistema. `criancas` remove em cadeia (agenda, mensalidades, pagamentos); `turmas` bloqueia a remoção enquanto houver crianças vinculadas.
 - **Transações** (replicaSet) ao gerar mensalidade + baixa de pagamento.
 - Geração mensal de `mensalidades` por job agendado a partir de `configPrecos`/`criancas.financeiro`.
+- **Anexo nunca vive no Mongo.** `mensagens.anexos[]`, `agendasDiarias.anexos[]` e
+  `eventos.fotos[]` guardam só a `key` do S3 (bucket `FotosBucket`, privado). Todo
+  hard delete que apaga o documento apaga os objetos correspondentes; objeto que
+  subiu e nunca foi vinculado é limpo pelo cron diário `limparAnexosOrfaos`.
+- **Inadimplência é derivada por cron, não calculada na leitura.**
+  `mensalidades.inadimplenteDesde` é gravado por `marcarInadimplentes` (diário,
+  00:05 GMT-3) a partir de `configPrecos.inadimplencia` — a leitura só filtra.
 - Auditoria: `createdAt`/`updatedAt` em tudo; log de alterações no cadastro de criança e em baixas financeiras.
 
 ---

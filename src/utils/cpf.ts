@@ -1,4 +1,4 @@
-const onlyDigits = (value: string): string => value.replace(/\D/g, "");
+export const onlyDigits = (value: string): string => value.replace(/\D/g, "");
 
 /**
  * Valida CPF pelo algoritmo dos dígitos verificadores (módulo 11).

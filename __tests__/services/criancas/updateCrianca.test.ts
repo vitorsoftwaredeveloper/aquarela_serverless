@@ -130,6 +130,183 @@ describe("updateCriancaService", () => {
         updateCriancaService(responsavel, "crianca-2", { nome: "Outro" }),
       ).rejects.toMatchObject({ statusCode: 403 });
     });
+
+    describe("mutação de responsaveis (OPS-01)", () => {
+      const anaComUsuario = {
+        usuarioId: "usuario-9",
+        nome: "Ana",
+        cpf: "529.982.247-25",
+        parentesco: "Mãe",
+        telefone: "11999990000",
+        email: "ana@example.com",
+        podeRetirar: false,
+      };
+      const avoSemUsuario = {
+        nome: "Beatriz",
+        cpf: "111.444.777-35",
+        parentesco: "Avó",
+        telefone: "11999991111",
+        email: "bia@example.com",
+        podeRetirar: false,
+      };
+
+      it("adicionar um novo responsável é barrado, mesmo com podeRetirar:false", async () => {
+        mockCrianca({ responsaveis: [anaComUsuario] });
+
+        await expect(
+          updateCriancaService(responsavel, "crianca-1", {
+            responsaveis: [anaComUsuario, avoSemUsuario],
+          }),
+        ).rejects.toMatchObject({
+          statusCode: 403,
+          code: "RESPONSAVEL_EXCLUSIVO_ADMIN",
+        });
+
+        expect(CriancaRepository.updateOne).not.toHaveBeenCalled();
+      });
+
+      it("adicionar um novo responsável com podeRetirar:true também é barrado", async () => {
+        mockCrianca({ responsaveis: [anaComUsuario] });
+
+        await expect(
+          updateCriancaService(responsavel, "crianca-1", {
+            responsaveis: [
+              anaComUsuario,
+              { ...avoSemUsuario, podeRetirar: true },
+            ],
+          }),
+        ).rejects.toMatchObject({
+          statusCode: 403,
+          code: "RESPONSAVEL_EXCLUSIVO_ADMIN",
+        });
+
+        expect(CriancaRepository.updateOne).not.toHaveBeenCalled();
+      });
+
+      it("alterar podeRetirar de false para true é barrado", async () => {
+        mockCrianca({ responsaveis: [anaComUsuario] });
+
+        await expect(
+          updateCriancaService(responsavel, "crianca-1", {
+            responsaveis: [{ ...anaComUsuario, podeRetirar: true }],
+          }),
+        ).rejects.toMatchObject({
+          statusCode: 403,
+          code: "PODE_RETIRAR_EXCLUSIVO_ADMIN",
+        });
+      });
+
+      it("alterar podeRetirar de true para false também é barrado", async () => {
+        mockCrianca({
+          responsaveis: [{ ...anaComUsuario, podeRetirar: true }],
+        });
+
+        await expect(
+          updateCriancaService(responsavel, "crianca-1", {
+            responsaveis: [{ ...anaComUsuario, podeRetirar: false }],
+          }),
+        ).rejects.toMatchObject({
+          statusCode: 403,
+          code: "PODE_RETIRAR_EXCLUSIVO_ADMIN",
+        });
+      });
+
+      it("remover entrada com podeRetirar:true é barrado", async () => {
+        mockCrianca({
+          responsaveis: [
+            { ...anaComUsuario, podeRetirar: true },
+            avoSemUsuario,
+          ],
+        });
+
+        await expect(
+          updateCriancaService(responsavel, "crianca-1", {
+            responsaveis: [avoSemUsuario],
+          }),
+        ).rejects.toMatchObject({
+          statusCode: 403,
+          code: "PODE_RETIRAR_EXCLUSIVO_ADMIN",
+        });
+      });
+
+      it("remover entrada com podeRetirar:false passa", async () => {
+        mockCrianca({ responsaveis: [anaComUsuario, avoSemUsuario] });
+
+        await updateCriancaService(responsavel, "crianca-1", {
+          responsaveis: [anaComUsuario],
+        });
+
+        expect(CriancaRepository.updateOne).toHaveBeenCalled();
+      });
+
+      it("alterar usuarioId de uma entrada é barrado", async () => {
+        mockCrianca({ responsaveis: [avoSemUsuario] });
+
+        await expect(
+          updateCriancaService(responsavel, "crianca-1", {
+            responsaveis: [{ ...avoSemUsuario, usuarioId: "usuario-novo" }],
+          }),
+        ).rejects.toMatchObject({
+          statusCode: 403,
+          code: "PODE_RETIRAR_EXCLUSIVO_ADMIN",
+        });
+      });
+
+      it("editar nome/telefone/cpf de uma entrada passa", async () => {
+        mockCrianca({ responsaveis: [anaComUsuario] });
+
+        await updateCriancaService(responsavel, "crianca-1", {
+          responsaveis: [
+            {
+              ...anaComUsuario,
+              nome: "Ana Souza",
+              telefone: "11988887777",
+              cpf: "529.982.247-25",
+            },
+          ],
+        });
+
+        expect(CriancaRepository.updateOne).toHaveBeenCalled();
+      });
+
+      it("reordenar o array não muda o resultado (casamento não é por índice)", async () => {
+        mockCrianca({
+          responsaveis: [
+            { ...anaComUsuario, podeRetirar: true },
+            avoSemUsuario,
+          ],
+        });
+
+        await updateCriancaService(responsavel, "crianca-1", {
+          responsaveis: [
+            avoSemUsuario,
+            { ...anaComUsuario, podeRetirar: true },
+          ],
+        });
+
+        expect(CriancaRepository.updateOne).toHaveBeenCalled();
+      });
+
+      it("admin pode conceder podeRetirar livremente", async () => {
+        mockCrianca({ responsaveis: [anaComUsuario] });
+
+        await updateCriancaService(admin, "crianca-1", {
+          responsaveis: [{ ...anaComUsuario, podeRetirar: true }],
+        });
+
+        expect(CriancaRepository.updateOne).toHaveBeenCalled();
+      });
+
+      it("admin pode adicionar um novo responsável livremente", async () => {
+        mockCrianca({ responsaveis: [anaComUsuario] });
+
+        await updateCriancaService(admin, "crianca-1", {
+          responsaveis: [anaComUsuario, avoSemUsuario],
+        });
+
+        expect(CriancaRepository.updateOne).toHaveBeenCalled();
+      });
+    });
   });
 
   it("404 quando a criança não existe", async () => {

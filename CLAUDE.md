@@ -88,9 +88,56 @@ Detalhes: [`docs/03-Backend.md`](./docs/03-Backend.md).
 - **Edição por professor:** `PUT /professores/{id}` aceita `admin` e `professor`. O professor só edita o próprio cadastro e nunca `email` (é o username no Cognito, vinculado ao `usuarios` criado pelo admin) — `CAMPOS_EXCLUSIVOS_ADMIN` em `src/services/shared/professorAccess.ts`. Criação e remoção seguem admin-only.
 - **Consentimento LGPD (QA-03):** `POST /criancas` exige `consentimentoLgpd: boolean` — `false`/ausente é `422 CONSENTIMENTO_LGPD_OBRIGATORIO`. O backend grava `criancas.consentimentoLgpd = { aceito: true, aceitoEm }` com timestamp do próprio servidor (nunca do payload). Campo fora de `IUpdateCriancaPayload`: imutável após o cadastro.
 
+### 5.1 Lote de 01/08/2026 — Épicos J–N (planejado, ainda não implementado)
+
+14 pedidos da operação viraram os épicos **J** (cobrança/inadimplência), **K**
+(recados com anexo), **L** (agenda v2), **M** (mural de fotos) e **N** (ajustes).
+Contrato em [`docs/03-Backend.md`](./docs/03-Backend.md), modelo em
+[`docs/04-Banco-de-Dados.md`](./docs/04-Banco-de-Dados.md), tarefas e AC em
+[`docs/06-Backlog.md`](./docs/06-Backlog.md). As decisões que mudam código já
+existente:
+
+- **⚠️ `409 AGENDA_JA_ENVIADA` sai do contrato** (AG2-01). `POST /agenda/{id}/enviar`
+  passa a renotificar em **toda edição** ("agenda atualizada"), com **debounce de
+  10 min** por agenda. `enviadaEm` continua sendo o 1º envio; entram
+  `ultimoEnvioEm` e `enviosCount`.
+- **✅ Furo de segurança em `PUT /criancas/{id}` corrigido** (OPS-01):
+  `CAMPOS_EXCLUSIVOS_ADMIN = ["financeiro"]` deixava o array `responsaveis`
+  passar livre, então um responsável conseguia adicionar alguém com
+  `podeRetirar: true`. Agora, via `assertMutacaoResponsaveis`
+  (`src/services/shared/criancaAccess.ts`): responsável **não adiciona
+  ninguém novo à lista** — só admin (`403 RESPONSAVEL_EXCLUSIVO_ADMIN`) — e
+  não altera `podeRetirar`/`usuarioId` de quem já está lá (`403
+  PODE_RETIRAR_EXCLUSIVO_ADMIN`). Comparação banco × payload casa por CPF
+  normalizado/`usuarioId` — **nunca por índice do array**, senão reordenar
+  vira bypass. Front (`EditarCriancaScreen`) trava o toggle com `disabled` e
+  removeu o botão "Adicionar responsável".
+- **⚠️ `GET /financeiro/balanco` vira regime de caixa** (OPS-02): agrega
+  `pagamentos` por `pagoEm` (fuso `America/Sao_Paulo`), não `mensalidades` por
+  competência. Corrige junto o `$month` UTC das despesas e a janela em `Date.UTC`.
+  Foi o que fez um pagamento de 31/07 aparecer só em agosto.
+- **⚠️ `turmas.professorId` → `professorIds: [ObjectId]`** (OPS-03): todo
+  ownership por turma vira `includes` (`agendaAccess`, `listTurmas`,
+  `listCriancasDaTurma`, `planosAula`, escopo de `avisos`). `planosAula.professorId`
+  passa a significar **autor**, não "professor da turma".
+- **Inadimplência ≠ atraso** (COB-06/07): `configPrecos.inadimplencia
+  { diaCorte: 10, mesesCarencia: 1 }` + cron `marcarInadimplentes` gravando
+  `mensalidades.inadimplenteDesde`. `GET /financeiro/inadimplentes` deixa de
+  filtrar por `status: "atrasado"`.
+- **Anexo grande sobe direto ao S3** (MSG-01): `POST /anexos/upload-url` (presigned
+  PUT de 5 min, 10MB, whitelist de tipo) para recado/agenda/mural, validado por
+  `HeadObject` no vínculo. A **foto de criança e de professor continua em base64**
+  no corpo — dois mecanismos, não um substituindo o outro.
+- **Crons novos:** `dispararCobrancas` (dias 05 e 20, 09:00 GMT-3) ·
+  `marcarInadimplentes` (diário 00:05 GMT-3) · `notificarAniversariantes`
+  (diário 08:00 GMT-3) · `limparAnexosOrfaos` (diário).
+- **Pendências de produto antes de codar:** carência de 36 dias até virar
+  inadimplente · marcação obrigatória de criança nas fotos do mural ·
+  cobrança precisa de canal além do push (iPhone sem PWA não recebe).
+
 ## 6. Modelo de dados (MongoDB)
 
-Coleções principais: `usuarios`, `criancas`, `professores`, `turmas`, `agendasDiarias`, `planosAula`, `mensalidades`, `pagamentos`, `despesas`, `configPrecos`.
+Coleções principais: `usuarios`, `criancas`, `professores`, `turmas`, `agendasDiarias`, `planosAula`, `mensalidades`, `pagamentos`, `despesas`, `configPrecos`, `avisos`, `dispositivos`. Planejadas no lote de 01/08/2026: `mensagens` (recados com anexo) e `eventos` (mural de fotos).
 
 Índices-chave: `agendasDiarias {criancaId, data}` único · `mensalidades {criancaId, ano, mes}` único · `pagamentos.txid` único · `criancas.cpf` único.
 
@@ -98,7 +145,9 @@ Schema completo, índices e consultas: [`docs/04-Banco-de-Dados.md`](./docs/04-B
 
 ## 7. Endpoints (resumo — contrato completo em docs/03)
 
-`/usuarios` `/criancas` `/turmas` `/professores` · `/agenda` `/agenda/historico` · `/mensalidades` `/pagamentos` `/webhooks/mercadopago` `/financeiro/balanco` `/despesas` `/financeiro/inadimplentes` · `/simulador` `/config/precos`. Base `/v1`, JWT obrigatório exceto simulador/landing e webhook (assinado).
+`/usuarios` `/criancas` `/turmas` `/professores` · `/agenda` `/agenda/historico` · `/mensalidades` `/pagamentos` `/webhooks/mercadopago` `/financeiro/balanco` `/despesas` `/financeiro/inadimplentes` · `/avisos` `/planosAula` `/dispositivos` · `/simulador` `/config/precos`. Base `/v1`, JWT obrigatório exceto simulador/landing e webhook (assinado).
+
+Planejados (lote de 01/08/2026, ver §5.1): `/anexos/upload-url` · `/mensagens` · `/eventos` · `/financeiro/cobrancas/disparar`.
 
 ## 8. Como rodar
 

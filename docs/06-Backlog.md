@@ -14,7 +14,21 @@
 - **Dep.:** tarefas que precisam estar prontas antes.
 - **AC:** critérios de aceite resumidos.
 
-Épicos: **0** Fundação · **A** Cadastros · **B** Agenda diária · **C** Portal dos pais · **D** Financeiro/PIX · **E** Simulador · **F** Pedagógico · **G** Qualidade/Go-live · **H** Mural de avisos · **I** Notificações push.
+Épicos: **0** Fundação · **A** Cadastros · **B** Agenda diária · **C** Portal dos pais · **D** Financeiro/PIX · **E** Simulador · **F** Pedagógico · **G** Qualidade/Go-live · **H** Mural de avisos · **I** Notificações push · **J** Cobrança/inadimplência · **K** Recados com anexo · **L** Agenda v2 · **M** Mural de fotos · **N** Ajustes de cadastro/dashboard.
+
+> **Épicos J–N entraram em 01/08/2026**, depois do MVP fechado. São 14 pedidos
+> da operação (lista original preservada no mapa abaixo). A coluna "MVP" não se
+> aplica a eles — o MVP já foi definido nos épicos 0–I.
+
+| # do pedido | Vira | # do pedido | Vira |
+| --- | --- | --- | --- |
+| 1 · cobrança automática dias 05 e 20 | COB-01…COB-05 | 8 · professor lê os recados | MSG-05, MSG-10 |
+| 2 · corte de inadimplência no dia 10 | COB-06…COB-09 | 9 · tarefa de casa na agenda | AG2-03, AG2-04 |
+| 3 · responsável não concede `podeRetirar` | OPS-01 | 10 · falta / chegou atrasado | AG2-05, AG2-06 |
+| 4 · pagamento de 31/07 caiu em agosto | OPS-02 | 11 · imprimir ficha de cadastro | OPS-04 |
+| 5 · mais de um professor por turma | OPS-03 | 12 · anexar documento na agenda | AG2-07, AG2-08 |
+| 6 · toda edição de agenda renotifica | AG2-01, AG2-02 | 13 · notificar aniversário | OPS-05 |
+| 7 · responsável manda recado com anexo | MSG-01…MSG-09 | 14 · mural de fotos com eventos | FOT-01…FOT-08 |
 
 Resumo de esforço do MVP no fim do documento.
 
@@ -328,6 +342,377 @@ Spike executado com página estática (`public/spike-push.html` + `public/fireba
 
 ---
 
+## Épico J — Cobrança automática e inadimplência (COB)
+
+> Fecha duas lacunas do Épico D: hoje a mensalidade é gerada e fica esperando o
+> responsável lembrar de pagar, e "inadimplente" é só `status: "atrasado"`
+> (vencimento + 1 dia), sem carência nenhuma. Este épico coloca **lembrete
+> automático nos dias 05 e 20** e um **corte formal de inadimplência**
+> configurável, com o dia 10 como padrão.
+
+**Decisões travadas (01/08/2026):**
+
+1. **Canal = push (FCM) + badge in-app.** Reusa o motor `enviarNotificacao`
+   (NOT-05) e o canal `canalFcm`. Nada de e-mail/WhatsApp nesta fase — o motor
+   já nasceu plugável, então trocar/adicionar canal depois não muda quem chama.
+   Limitação herdada e conhecida: **iPhone só recebe com o PWA instalado**
+   (NOT-11), cobertura realista 75–85%. Por isso o badge in-app é parte do
+   escopo, não polimento: quem não recebe push precisa ver a pendência ao abrir.
+2. **Corpo da notificação sem valor em reais.** Nome da criança e competência
+   podem aparecer (mesmo padrão do "A agenda de hoje da Sofia já está
+   disponível"); **valor devido, não** — a notificação aparece na tela de
+   bloqueio. Valor só dentro do app autenticado.
+3. **Inadimplência = vencimento da criança + carência até o dia de corte.** O
+   `diaVencimento` individual continua mandando; o dia 10 é o **corte**, não um
+   vencimento global. Regra: a mensalidade vira inadimplente no **dia 10 do mês
+   seguinte ao da competência**, se ainda não estiver `pago`.
+   - ⚠️ **Consequência a conferir com a escola:** mensalidade com vencimento em
+     05/08 só entra na lista de inadimplentes em **10/09** — 36 dias de carência.
+     Se o corte tiver que ser mais curto, `configPrecos.inadimplencia.mesesCarencia = 0`
+     joga o corte para 10/08. É por isso que a regra nasce **configurável**
+     (COB-06) em vez de constante no código.
+   - Entre o vencimento e o corte a mensalidade continua `atrasado` (cobrável,
+     aparece em vermelho para o responsável) mas **fora** da lista de
+     inadimplentes e do KPI do dashboard.
+
+| ID     | Tarefa                                                                                       | Prio | Pts | Camada | Dep.            | AC                                                                                                       |
+| ------ | -------------------------------------------------------------------------------------------- | ---- | --- | ------ | --------------- | --------------------------------------------------------------------------------------------------------- |
+| COB-01 | Cron `dispararCobrancas` nos dias **05 e 20** (`cron(0 12 5,20 * ? *)` = 09:00 GMT-3)         | 🔴   | 5   | BE     | FIN-01, NOT-05  | Seleciona só mensalidades `aberto`/`atrasado` com `vencimento` **até o fim do mês corrente** — nunca cobra competência futura pré-gerada por `gerarMensalidadesAno` |
+| COB-02 | Agregar por responsável (1 push por pessoa, não por mensalidade) + deep link para `/financeiro` | 🔴   | 3   | BE     | COB-01          | Responsável com 3 filhos × 4 meses em aberto recebe **1** notificação, não 12; `dados.tipo = "cobranca"`  |
+| COB-03 | `mensalidades.cobrancas[]` + idempotência por `(mensalidadeId, gatilho, competência do disparo)` | 🔴   | 2   | BE     | COB-01          | Cron reexecutado no mesmo dia não redispara; histórico capado nas últimas 12 entradas                    |
+| COB-04 | `POST /financeiro/cobrancas/disparar` (admin) com `dryRun`                                    | 🟡   | 3   | BE     | COB-01          | `dryRun:true` devolve quem **seria** notificado sem enviar nada; `false` dispara e grava em `cobrancas[]` |
+| COB-05 | Tela admin: botão "Disparar cobranças agora" + prévia da lista                                | 🟡   | 3   | FE     | COB-04          | Prévia (dryRun) antes de confirmar; feedback de quantos foram notificados e quantos **sem token válido**  |
+| COB-06 | `configPrecos.inadimplencia { diaCorte, mesesCarencia }` + campo na tela de config             | 🔴   | 3   | FS     | SIM-01          | Admin edita o corte (default `{ diaCorte: 10, mesesCarencia: 1 }`); validação `1 ≤ diaCorte ≤ 28`         |
+| COB-07 | Cron diário `marcarInadimplentes` + `mensalidades.inadimplenteDesde`                          | 🔴   | 5   | BE     | COB-06          | Roda 00:05 GMT-3 (`cron(5 3 * * ? *)`); marca/desmarca conforme a regra; pagar limpa `inadimplenteDesde`  |
+| COB-08 | `GET /financeiro/inadimplentes` passa a filtrar `inadimplenteDesde` (não mais `status`) + KPI  | 🔴   | 3   | FS     | COB-07, FIN-12  | Mensalidade `atrasado` dentro da carência **some** da lista; KPI do dashboard conta **crianças distintas** |
+| COB-09 | Badge "Inadimplente" na lista de crianças + faixa no financeiro do responsável                | 🟡   | 3   | FE     | COB-08          | Ícone + texto (nunca só cor); responsável vê desde quando está inadimplente e o valor total              |
+
+**Subtotal Épico J:** 30 pts.
+
+---
+
+## Épico K — Recados com anexo entre responsável e professor (MSG)
+
+> Itens 7 e 8 da lista de 01/08/2026. Hoje a única comunicação escola→casa é a
+> agenda diária (mão única) e o mural de avisos (broadcast do admin). Falta o
+> canal **casa→escola**: o responsável mandar um recado com documento anexo
+> (atestado, receita, autorização) e o professor ler.
+>
+> **Escopo é thread por criança, não chat livre.** Toda mensagem nasce ligada a
+> uma `criancaId` — é isso que resolve a autorização (responsável só do próprio
+> filho, professor só de criança da sua turma) sem inventar um modelo de
+> conversa. Sem indicador de digitação, sem tempo real, sem edição de mensagem
+> enviada.
+
+**Decisão travada — anexo sobe direto para o S3 por URL pré-assinada.** O
+mecanismo base64-no-corpo usado hoje pela foto de criança/professor
+(`fotoUpload.ts`) tem teto rígido de **2MB decodificados** (payload síncrono de
+Lambda = 6MB, base64 infla 33%) — inviável para PDF de atestado e para o mural
+de fotos (Épico M). O padrão novo, usado por MSG/AG2/FOT:
+
+1. Front pede `POST /anexos/upload-url` com `{ escopo, nome, contentType, tamanho }`.
+2. Back devolve `{ key, uploadUrl, expiraEm }` — presigned **PUT** de 5 min, com
+   `Content-Type` e `Content-Length` **fixados na assinatura** (o browser não
+   consegue subir outra coisa que não o que foi declarado).
+3. Front faz o `PUT` direto no S3 (com barra de progresso) e depois manda só a
+   `key` no `POST /mensagens`.
+4. O back **nunca vê o arquivo**, então valida por `HeadObject` na hora de
+   vincular: objeto existe, `ContentType`/`ContentLength` batem com o declarado,
+   e a `key` tem o prefixo que ele mesmo emitiu. Não bateu → `422 ANEXO_INVALIDO`.
+5. Objeto que subiu e nunca foi vinculado é lixo — cron diário `limparAnexosOrfaos`
+   apaga o que tem mais de 24h sem referência em nenhuma coleção.
+
+Whitelist: `image/jpeg`, `image/png`, `image/webp`, `application/pdf`. Teto
+**10MB por arquivo**, máx. 5 anexos por mensagem. Bucket é o **`FotosBucket` que
+já existe** (privado, SSE-AES256, TLS obrigatório) — prefixo por escopo, sem
+provisionar bucket novo.
+
+| ID     | Tarefa                                                                                | Prio | Pts | Camada | Dep.           | AC                                                                                                  |
+| ------ | ------------------------------------------------------------------------------------- | ---- | --- | ------ | -------------- | ----------------------------------------------------------------------------------------------------- |
+| MSG-01 | `POST /anexos/upload-url` — presigned PUT + whitelist de tipo + teto de 10MB          | 🔴   | 5   | BE     | CAD-12         | `Content-Type`/`Content-Length` na assinatura; 5 min de validade; tipo fora da whitelist → `422`      |
+| MSG-02 | Validação `HeadObject` no vínculo + cron diário `limparAnexosOrfaos`                  | 🔴   | 3   | BE     | MSG-01         | Key forjada/de outro escopo → `422 ANEXO_INVALIDO`; órfão > 24h é apagado do bucket                  |
+| MSG-03 | Modelo `mensagens` + índices `{criancaId, createdAt:-1}` e `{turmaId, createdAt:-1}`  | 🔴   | 3   | BE     | CAD-08         | Estrutura da doc de banco; `turmaId` derivado da criança no back, **nunca** do payload               |
+| MSG-04 | `POST /mensagens` e `GET /mensagens?criancaId=` com ownership                          | 🔴   | 5   | BE     | MSG-03, MSG-02 | Responsável só do próprio filho, professor só de criança da sua turma, admin tudo; senão `403`       |
+| MSG-05 | `POST /mensagens/{id}/lida` + `GET /mensagens/nao-lidas` (badge)                       | 🔴   | 3   | BE     | MSG-04         | `lidaPor[]` idempotente; contagem agrupada por criança/turma para o professor                        |
+| MSG-06 | `DELETE /mensagens/{id}` (autor ou admin) apagando o anexo no S3                       | 🟡   | 2   | BE     | MSG-04         | Hard delete; objeto do S3 removido junto; terceiro → `403`                                           |
+| MSG-07 | Push ao professor quando o responsável envia (e vice-versa)                            | 🔴   | 2   | BE     | MSG-04, NOT-05 | Corpo genérico ("Novo recado sobre a Sofia"), **sem** o conteúdo da mensagem — LGPD, tela de bloqueio |
+| MSG-08 | Componente `UploadAnexo` (presigned PUT + progresso + resize de imagem)                | 🔴   | 5   | FE     | MSG-01, INF-10 | Reusa `utils/imagem.ts` para imagem; PDF sobe cru; erro de rede é retentável sem perder o texto      |
+| MSG-09 | Tela **Recados** do responsável (thread por filho + anexo)                             | 🔴   | 5   | FE     | MSG-04, MSG-08 | Entrada pela tela da criança; lista desc paginada; anexo baixa por URL pré-assinada                  |
+| MSG-10 | Tela **Recados** do professor + badge de não lidas na lista de alunos                  | 🔴   | 5   | FE     | MSG-05, MSG-09 | `AlunosScreen` mostra contador por aluno; abrir a thread marca como lida                             |
+| MSG-11 | Atualizar `docs/03-Backend.md` e `docs/04-Banco-de-Dados.md` com o contrato            | 🔴   | 1   | BE     | MSG-01…MSG-07  | `/anexos/upload-url`, `/mensagens` e a coleção `mensagens` documentados                              |
+
+**Subtotal Épico K:** 39 pts.
+
+---
+
+## Épico L — Agenda diária v2 (AG2)
+
+> Itens 6, 9, 10 e 12. Evolução do Épico B com o que a operação pediu depois de
+> usar a agenda de verdade.
+
+**⚠️ Mudança de contrato (item 6) — `409 AGENDA_JA_ENVIADA` deixa de existir.**
+Hoje `POST /agenda/{id}/enviar` é "envie uma vez": o 2º disparo responde `409` e
+**não notifica**. Como o front chama essa rota automaticamente depois de todo
+`save`, uma correção feita às 17h nunca chega ao responsável — ele leu a versão
+das 11h e não sabe que mudou. A rota passa a ser **"notificar (re)envio"**:
+
+- 1º envio → `enviadaEm` gravado, corpo "A agenda de hoje da Sofia já está disponível".
+- Envios seguintes → corpo "A agenda de hoje da Sofia foi **atualizada**",
+  `ultimoEnvioEm` e `enviosCount` atualizados. `enviadaEm` **não** é sobrescrito
+  (continua sendo o 1º envio, que é o que a tela do professor mostra).
+- **Debounce de 10 minutos por agenda**, sem o qual a mudança vira spam: o
+  professor salva 5 vezes em 3 minutos e o responsável leva 5 pushes. Reenvio
+  dentro da janela responde `200 { notificado: false, motivo: "DEBOUNCE" }` —
+  sucesso, só não notificou.
+- O front deixa de tratar `409` nesse fluxo (o branch atual pode ser removido).
+
+| ID     | Tarefa                                                                              | Prio | Pts | Camada | Dep.            | AC                                                                                            |
+| ------ | ----------------------------------------------------------------------------------- | ---- | --- | ------ | --------------- | ------------------------------------------------------------------------------------------------ |
+| AG2-01 | `enviarAgenda` renotifica em toda edição + debounce de 10 min; remove o `409`        | 🔴   | 5   | BE     | NOT-08          | 2º envio após 10 min notifica "atualizada"; dentro da janela responde 200 sem notificar        |
+| AG2-02 | Front: novo contrato (sem `409`) + estado "atualização enviada" na tela do professor | 🔴   | 2   | FE     | AG2-01, NOT-15  | Professor vê 1º envio e último reenvio; falha de envio não bloqueia o salvamento (best-effort) |
+| AG2-03 | `agendasDiarias.tarefaCasa { status, observacao? }` + schema ajv                     | 🔴   | 2   | BE     | AGD-01          | `status ∈ feito \| nao_feito \| incompleto`; campo ausente no `PUT` = esvaziado (regra vigente) |
+| AG2-04 | Chips de **tarefa de casa** no registro + destaque na leitura do responsável         | 🔴   | 3   | FE     | AG2-03, AGD-05  | 3 estados com ícone + texto (nunca só cor); observação opcional                                |
+| AG2-05 | `agendasDiarias.presenca { status, horaChegada?, justificativa? }` + validação       | 🔴   | 3   | BE     | AGD-01          | `status ∈ presente \| falta \| atrasado`; `horaChegada` **obrigatório** se `atrasado` (ajv `if/then`) |
+| AG2-06 | Seletor de presença/atraso na agenda + destaque na leitura                           | 🔴   | 3   | FE     | AG2-05, AGD-05  | `falta` colapsa os blocos de alimentação/sono/atividade na UI (não faz sentido preencher)      |
+| AG2-07 | `agendasDiarias.anexos[]` + `GET /agenda` devolvendo URL pré-assinada                | 🔴   | 3   | BE     | MSG-01, AGD-01  | Máx. 5 anexos/dia; mesma whitelist e teto do Épico K; leitura por presigned de 1h              |
+| AG2-08 | Anexar documento na agenda (professor) e baixar (responsável)                        | 🔴   | 5   | FE     | AG2-07, MSG-08  | Reusa `UploadAnexo`; responsável baixa da tela de agenda e do histórico                        |
+| AG2-09 | `GET /agenda/frequencia?criancaId=&de=&ate=` (presente/falta/atrasado no período)    | 🟢   | 3   | FS     | AG2-05          | Contagem por status; usado no histórico e num futuro relatório de frequência                   |
+| AG2-10 | Atualizar `docs/03-Backend.md` e `docs/04-Banco-de-Dados.md`                         | 🔴   | 1   | BE     | AG2-01…AG2-07   | Novo contrato de `/agenda/{id}/enviar` + campos novos documentados                             |
+
+**Subtotal Épico L:** 30 pts (MVP deste épico: 27 pts sem AG2-09).
+
+---
+
+## Épico M — Mural de fotos por evento (FOT)
+
+> Item 14. Diferente do Épico H (mural de **avisos**, texto do admin): aqui o
+> **professor** publica um álbum de um evento (festa junina, passeio, dia do
+> brinquedo) e os responsáveis daquele escopo veem as fotos.
+>
+> Reaproveita o épico K inteiro para upload (presigned PUT, whitelist, teto de
+> 10MB) e o motor de notificação do épico I para avisar que saiu álbum novo.
+
+**🔴 Ponto de LGPD que precisa de decisão da escola antes de codar.** Foto de
+criança é dado pessoal de menor, e o mural expõe a imagem de uma criança a
+**outros responsáveis** da turma — é um tratamento diferente do
+`consentimentoLgpd` genérico que já existe (aquele cobre cadastro/saúde). Por
+isso:
+
+- Nasce `criancas.consentimentoImagem { aceito, aceitoEm, registradoPor }`,
+  coletado no cadastro em checkbox **separado** e — ao contrário do
+  `consentimentoLgpd` — **revogável a qualquer momento** pelo responsável.
+  Recusar não impede a matrícula.
+- A tela de upload do professor mostra, fixa no topo, **os nomes das crianças da
+  turma sem consentimento de imagem** — quem não pode aparecer na foto.
+- Marcação de quem aparece (`fotos[].criancasIds`) é **opcional**; quando
+  preenchida, o back **bloqueia a publicação** se alguma criança marcada não tem
+  consentimento (`422 SEM_CONSENTIMENTO_IMAGEM`).
+- Revogação posterior remove retroativamente as fotos em que a criança foi
+  marcada e notifica o admin do que saiu do ar.
+
+> O bloqueio duro só funciona onde há marcação — a marcação por foto é
+> trabalhosa e o professor vai pular. **Trate o aviso na tela + o consentimento
+> registrado como o controle real, e a marcação como reforço.** Se a escola
+> quiser garantia forte, o caminho é tornar `criancasIds` obrigatório na
+> publicação, com o custo de UX que isso traz. Confirmar antes do FOT-05.
+
+| ID     | Tarefa                                                                    | Prio | Pts | Camada | Dep.           | AC                                                                                               |
+| ------ | ------------------------------------------------------------------------- | ---- | --- | ------ | -------------- | --------------------------------------------------------------------------------------------------- |
+| FOT-01 | Modelo `eventos` + índices `{turmaId, data:-1}` e `{publicado, data:-1}`  | 🔴   | 3   | BE     | CAD-06         | Estrutura da doc de banco; `turmaId` ausente = evento da escola inteira (mesma regra de `avisos`) |
+| FOT-02 | CRUD `/eventos` com escopo por papel                                      | 🔴   | 5   | BE     | FOT-01         | Professor só das próprias turmas; responsável só `publicado:true` no escopo dele; admin tudo     |
+| FOT-03 | `POST /eventos/{id}/fotos` e `DELETE /eventos/{id}/fotos/{fotoKey}`       | 🔴   | 3   | BE     | FOT-02, MSG-01 | Máx. 50 fotos/evento; `DELETE` apaga o objeto no S3; ordem preservada                            |
+| FOT-04 | `POST /eventos/{id}/publicar` + notificação idempotente                   | 🔴   | 3   | BE     | FOT-02, NOT-05 | 2ª chamada não renotifica (usa `publicadoEm`); corpo "Novas fotos do evento X"                   |
+| FOT-05 | `criancas.consentimentoImagem` (revogável) + regra de bloqueio            | 🔴   | 5   | FS     | CAD-08, FOT-03 | Checkbox separado no cadastro; revogação pelo responsável; lista de "não podem aparecer" na UI   |
+| FOT-06 | Tela do professor: criar evento + upload múltiplo com resize e progresso  | 🔴   | 8   | FE     | FOT-03, MSG-08 | Seleção múltipla, resize no canvas antes do PUT, reordenar, legenda, rascunho × publicado        |
+| FOT-07 | Tela do responsável: mural (grid + lightbox + download)                   | 🔴   | 5   | FE     | FOT-02         | Agrupado por evento/data; lightbox com teclado; baixa a foto original                            |
+| FOT-08 | Atualizar `docs/03-Backend.md` e `docs/04-Banco-de-Dados.md`              | 🔴   | 1   | BE     | FOT-01…FOT-05  | `/eventos`, coleção `eventos` e `consentimentoImagem` documentados                               |
+
+**Subtotal Épico M:** 33 pts.
+
+---
+
+## Épico N — Ajustes de cadastro, dashboard e operação (OPS)
+
+> Itens 3, 4, 5, 11 e 13 — tarefas independentes entre si, sem tema comum além
+> de "corrigir/completar o que já existe". **OPS-01 e OPS-02 são correção, não
+> feature**, e deveriam entrar antes do resto do lote.
+
+| ID     | Tarefa                                                                    | Prio | Pts | Camada | Dep.           | AC                                                                                             |
+| ------ | ------------------------------------------------------------------------- | ---- | --- | ------ | -------------- | ------------------------------------------------------------------------------------------------- |
+| OPS-01 | ✅ **Responsável não adiciona nem concede `podeRetirar`** (add é admin-only; edit/remove trava `podeRetirar`) | 🔴 | 5 | FS | CAD-09 | Ver regra detalhada abaixo; comparação por `usuarioId`/CPF normalizado, **nunca por índice do array** |
+| OPS-02 | 🔴 **Balanço em regime de caixa + fuso GMT-3**                            | 🔴   | 5   | FS     | FIN-11         | Pagamento de 31/07 23:00 GMT-3 aparece em **julho**; despesa lançada 31/07 22h idem            |
+| OPS-03 | **Múltiplos professores por turma** (`professorIds[]`)                    | 🔴   | 8   | FS     | CAD-06         | Migração sem downtime; todo ownership por turma passa a usar `includes`                        |
+| OPS-04 | **Ficha de cadastro da criança para impressão** (A4, `@media print`)      | 🟡   | 5   | FE     | CAD-08         | Sem endpoint novo e sem lib de PDF — impressão nativa do browser                               |
+| OPS-05 | **Notificação de aniversário** da criança                                 | 🟡   | 5   | FS     | NOT-05         | Cron 08:00 GMT-3; responsáveis + professores da turma; idempotente no mesmo dia                |
+
+**Subtotal Épico N:** 28 pts.
+
+### OPS-01 — `podeRetirar` é decisão da secretaria (✅ furo de segurança corrigido)
+
+Até aqui `PUT /criancas/{id}` aceitava papel `responsavel` e a única trava era
+`CAMPOS_EXCLUSIVOS_ADMIN = ["financeiro"]`. O array `responsaveis` inteiro
+passava livre — **um responsável conseguia adicionar qualquer pessoa com
+`podeRetirar: true`** e essa pessoa passava a constar como autorizada a tirar a
+criança da escola. É segurança física de menor, não regra administrativa.
+
+Regra em `assertMutacaoResponsaveis`
+(`src/services/shared/criancaAccess.ts`), chamada logo depois de
+`assertPodeEditarCrianca` em `updateCriancaService`, aplicada só quando o
+requester **não é admin**:
+
+| Ação sobre `responsaveis` | Admin | Responsável                                                     |
+| ------------------------- | ----- | --------------------------------------------------------------- |
+| Adicionar uma nova entrada (pessoa nova) | livre | **bloqueado** (`403 RESPONSAVEL_EXCLUSIVO_ADMIN`) — independe de `podeRetirar`, é a secretaria quem inclui gente nova |
+| Alterar `podeRetirar` de entrada existente | livre | **bloqueado** nos dois sentidos (`true→false` também), `403 PODE_RETIRAR_EXCLUSIVO_ADMIN` |
+| Remover entrada com `podeRetirar: true`    | livre | **bloqueado** (`403 PODE_RETIRAR_EXCLUSIVO_ADMIN`) — não derruba quem a escola autorizou |
+| Remover entrada com `podeRetirar: false`   | livre | permitido |
+| Alterar `usuarioId` de qualquer entrada    | livre | **bloqueado** (`403 PODE_RETIRAR_EXCLUSIVO_ADMIN`) |
+| Editar nome/telefone/parentesco/CPF de entrada já existente | livre | permitido |
+
+Detalhes que fazem a regra valer de fato:
+
+- A comparação entre o array do banco e o do payload é feita **casando por
+  CPF normalizado (só dígitos) e, quando existe, `usuarioId`** — nunca por
+  posição no array. Comparar por índice deixa o bypass trivial: basta
+  reordenar o array para uma entrada com `podeRetirar: true` "virar" outra.
+  Não existe `cpfHash` por entrada de `responsaveis` (só `criancas.cpfHash`,
+  da própria criança) — a comparação usa o CPF já decifrado em memória, sem
+  tocar `src/libs/crypto.ts`.
+- Toda mutação de `responsaveis` feita por responsável entra em
+  `criancas.auditoria` (CAD-09) com os campos alterados — é o registro de quem
+  mexeu em quê. Reusa o `appendAuditoria` que já existia, sem mecanismo novo.
+- **Front (`EditarCriancaScreen`, responsável):** o toggle "Pode retirar a
+  criança" fica `disabled` (checkbox não respeita `readOnly` em nenhum
+  browser), com nota explicativa ("Só a secretaria autoriza quem pode retirar
+  a criança"). O botão "Adicionar responsável" **não existe** nessa tela — no
+  lugar, uma nota fixa explica que só a secretaria adiciona alguém novo. No
+  admin (`CriancaStepper`) segue tudo livre: botão de adicionar, toggle
+  editável, sem nenhuma trava. O bloqueio do front é UX — a fonte da verdade é
+  o `403` do backend.
+
+### OPS-02 — Balanço em regime de caixa (bug relatado em 01/08/2026)
+
+**Sintoma:** pagamento feito em 31/07 não apareceu nas entradas de julho nem no
+card "Entradas do mês"; apareceu em **agosto**, e só ficou visível em 01/08.
+
+**Causa:** `getBalancoService` agrega `mensalidades` com
+`{ $match: { ano, mes, status: "pago" } }` e agrupa por `$mes` — ou seja, por
+**competência**, não por data do pagamento. A mensalidade paga em 31/07 era a
+competência de **agosto** (o sistema pré-gera as 12 competências do ano em
+`gerarMensalidadesAno`), então caiu em agosto por design. Somam-se dois erros de
+fuso menores: `$month: "$data"` nas despesas usa **UTC** (despesa lançada dia 31
+às 22h GMT-3 cai no mês seguinte) e a janela do período é montada com
+`Date.UTC`, deslocada 3h.
+
+**Correção (decisão travada: regime de caixa):**
+
+1. Entradas passam a vir de `pagamentos`, não de `mensalidades`:
+   `{ $match: { status: "pago", pagoEm: { $gte, $lt } } }` +
+   `$group: { _id: { $month: { date: "$pagoEm", timezone: "America/Sao_Paulo" } } }`.
+2. O valor somado passa a ser **`pagamentos.valor`** (o que entrou no caixa), não
+   `mensalidades.valor` — casa com a baixa manual em dinheiro, que aceita valor
+   diferente do da mensalidade (`POST /pagamentos/manual`, §7.1).
+3. Despesas ganham o mesmo `timezone: "America/Sao_Paulo"` no `$month`.
+4. A janela `inicioPeriodo`/`fimPeriodo` passa a ser calculada em GMT-3
+   (reusar `utils/date.ts`, que já tem `hojeMeiaNoiteBrasil`), não `Date.UTC`.
+5. O KPI "Entradas do mês" do dashboard usa o mesmo cálculo (mês corrente GMT-3).
+6. **Estorno já está coberto:** o webhook remove o `pagamento` do banco quando o
+   MercadoPago reporta `refunded`, então ele some do balanço sozinho.
+7. **Front:** rotular o card e o eixo como "Entradas (regime de caixa — data do
+   pagamento)", para não parecer inconsistente com a grade de competências que o
+   responsável vê em `/financeiro`.
+8. **Teste de regressão obrigatório:** pagamento com `pagoEm = 2026-07-31T23:00-03:00`
+   de uma mensalidade `{ano:2026, mes:8}` → entra em **julho** no balanço.
+
+### OPS-03 — Múltiplos professores por turma
+
+`turmas.professorId: ObjectId` → **`turmas.professorIds: [ObjectId]`** (mínimo 1),
+índice em `professorIds`.
+
+- **Migração** (`scripts/migrations/2026-08-turmas-professorIds.ts`):
+  `professorIds = [professorId]` para toda turma. `professorId` fica por **um
+  release** como campo derivado somente-leitura (`= professorIds[0]`) para o
+  front antigo não quebrar durante o deploy; some no release seguinte.
+- **API:** `POST`/`PUT /turmas` passam a aceitar `professorIds: string[]` (≥1).
+  `GET /turmas` devolve `professores: [{_id, nome, email}]` e mantém
+  `professor` (= `professores[0]`) durante a janela de compatibilidade.
+- **Ownership — todo ponto que hoje compara `turma.professorId === requester.professorId`
+  vira `turma.professorIds.includes(...)`.** Pontos conhecidos a varrer:
+  `services/shared/agendaAccess.ts`, `services/turmas/listTurmas.ts`,
+  `services/turmas/listCriancasDaTurma.ts`, os services de `planosAula`
+  (create/update/list), o escopo por turma de `listAvisos.ts` — e, quando
+  existirem, `mensagens` (K) e `eventos` (M).
+- **`planosAula.professorId` muda de significado:** hoje é derivado de
+  `turma.professorId` ("o professor da turma"); passa a ser o **autor** (o
+  `professorId` do requester; admin cai em `turma.professorIds[0]`).
+- **`DELETE /professores/{id}`** hoje bloqueia com `409` se houver qualquer turma
+  vinculada. Passa a bloquear só se o professor for o **único** de alguma turma;
+  caso contrário é removido do array.
+- **Front:** o formulário de turma vive dentro de `features/admin/turmas/TurmasScreen.tsx`
+  (não há `TurmaForm` separado) — o `Select` de professora vira multi-select
+  (mínimo 1); `TurmasScreen`/`AlunosScreen` listam os professores; a tela do professor
+  continua mostrando "minhas turmas" — agora uma turma pode aparecer para mais
+  de um professor.
+
+### OPS-04 — Ficha de cadastro para impressão
+
+100% front, **sem endpoint novo** (`GET /criancas/{id}` já devolve tudo) e **sem
+lib de PDF** — a impressão nativa do browser gera PDF via "Salvar como PDF", o
+que evita mais uma dependência e mais um caminho de código.
+
+- Rota `/admin/criancas/[id]/ficha`, botão "Imprimir ficha" na lista e no detalhe.
+- CSS: `@page { size: A4; margin: 12mm }` + `@media print` escondendo nav,
+  bottom-tabs, botões e o próprio botão de imprimir.
+- Conteúdo: foto, identificação (nome, nascimento, CPF, turma), responsáveis
+  **com destaque de quem tem `podeRetirar`**, saúde (alergias, restrições,
+  medicações contínuas, condições atípicas, cuidados), financeiro (valor e dia
+  de vencimento), consentimentos e rodapé com data de emissão + aviso de
+  documento confidencial (LGPD).
+- Acesso: admin. Responsável imprimir a ficha do próprio filho fica como 🟢 Could.
+
+### OPS-05 — Notificação de aniversário
+
+- Cron `notificarAniversariantes`, diário às 08:00 GMT-3 (`cron(0 11 * * ? *)`).
+- **Campo derivado indexado `criancas.nascimentoDiaMes: "MM-DD"`**, preenchido no
+  `POST`/`PUT /criancas` + migração para o acervo. Alternativa (`$expr` com
+  `$dayOfMonth`/`$month`) força collection scan diário — aceitável no volume
+  atual, mas o campo derivado custa quase nada e resolve de vez.
+- **Quem recebe:** responsáveis da criança ("Hoje é aniversário da Sofia! 🎉") e
+  professores da turma ("Hoje é aniversário de 2 alunos da Turma Azul", 1 push
+  agregado). Admin não recebe push — vê um card no dashboard.
+- **Idempotência:** `criancas.ultimoAniversarioNotificadoEm` — cron reexecutado
+  no mesmo dia não duplica.
+- **Front:** `BirthdayContext` aparece em `docs/02-Frontend.md` §4 como contexto
+  planejado, mas **não existe em `src/contexts/`** (só `Auth`, `Notifications`,
+  `Responsavel`, `Theme`). Ou se cria o contexto, ou — mais simples nesta escala —
+  o card de aniversariante lê direto do `GET /criancas` já carregado na Início do
+  responsável e na lista de alunos do professor.
+
+---
+
+## Ordem de execução sugerida (lote de 01/08/2026)
+
+| Fase | Tarefas                                        | Por quê                                                                              |
+| ---- | ---------------------------------------------- | ------------------------------------------------------------------------------------ |
+| 1    | OPS-01, OPS-02, AG2-01, AG2-02                 | Correções: furo de segurança, número errado no dashboard e agenda editada que não avisa |
+| 2    | MSG-01, MSG-02, MSG-08                         | Infra de anexo — destrava K, L e M de uma vez                                         |
+| 3    | COB-06, COB-07, COB-08, COB-09                 | Inadimplência precisa estar definida antes de cobrar                                  |
+| 4    | COB-01…COB-05                                  | Cobrança automática nos dias 05 e 20                                                  |
+| 5    | AG2-03…AG2-08, OPS-03                          | Agenda v2 + múltiplos professores                                                     |
+| 6    | MSG-03…MSG-07, MSG-09…MSG-11                   | Recados com anexo                                                                     |
+| 7    | FOT-01…FOT-08                                  | Mural de fotos (maior e o único com pendência jurídica aberta)                        |
+| 8    | OPS-04, OPS-05, AG2-09                         | Impressão, aniversário e frequência                                                   |
+
+## Pendências de decisão antes de codar
+
+| # | Pendência                                                                 | Bloqueia | Default se ninguém decidir                       |
+| - | ------------------------------------------------------------------------- | -------- | ------------------------------------------------ |
+| 1 | Carência de 36 dias até virar inadimplente é o que a escola quer?         | COB-07   | `{ diaCorte: 10, mesesCarencia: 1 }`, configurável |
+| 2 | Marcação de criança por foto é obrigatória na publicação do mural?        | FOT-05   | Opcional — aviso na tela + consentimento registrado |
+| 3 | Cobrança precisa alcançar quem não instalou o PWA (e-mail/WhatsApp)?      | COB-01   | Só push + badge in-app nesta fase                 |
+
+---
+
 ## Resumo de esforço
 
 | Épico                 | Total (pts) | MVP (pts) |
@@ -342,7 +727,12 @@ Spike executado com página estática (`public/spike-push.html` + `public/fireba
 | G — Qualidade/Go-live | 29          | 23        |
 | H — Mural de avisos   | 12          | 12        |
 | I — Notificações push | 62          | 49        |
-| **Total**             | **384**     | **315**   |
+| J — Cobrança/inadimplência | 30     | —         |
+| K — Recados com anexo | 39          | —         |
+| L — Agenda diária v2  | 30          | —         |
+| M — Mural de fotos    | 33          | —         |
+| N — Ajustes cadastro/dashboard | 28 | —         |
+| **Total**             | **544**     | **315**   |
 
 > Ordem de grandeza (não compromisso). Com um time de 2–3 devs a ~20–25 pts/sprint de 2 semanas, o MVP (~254 pts) fica em torno de **5 a 6 sprints (10–12 semanas)**. Refine as estimativas em planning com o time.
 

@@ -5,7 +5,10 @@ import { isValidCpf } from "../../utils/cpf";
 import { httpError, STATUS_CODE } from "../../utils/errors";
 import { sincronizarMensalidadesNaoPagas } from "../mensalidades/sincronizarMensalidadesNaoPagas";
 import { appendAuditoria } from "../shared/auditoriaCrianca";
-import { assertPodeEditarCrianca } from "../shared/criancaAccess";
+import {
+  assertMutacaoResponsaveis,
+  assertPodeEditarCrianca,
+} from "../shared/criancaAccess";
 import {
   removerFotoDoBucket,
   salvarFotoBase64,
@@ -29,6 +32,7 @@ export const updateCriancaService = async (
   }
 
   assertPodeEditarCrianca(requester, crianca, payload);
+  assertMutacaoResponsaveis(requester, crianca, payload);
 
   if (payload.responsaveis) {
     for (const responsavel of payload.responsaveis) {
