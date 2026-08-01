@@ -97,10 +97,13 @@ Contrato em [`docs/03-Backend.md`](./docs/03-Backend.md), modelo em
 [`docs/06-Backlog.md`](./docs/06-Backlog.md). As decisões que mudam código já
 existente:
 
-- **⚠️ `409 AGENDA_JA_ENVIADA` sai do contrato** (AG2-01). `POST /agenda/{id}/enviar`
-  passa a renotificar em **toda edição** ("agenda atualizada"), com **debounce de
-  10 min** por agenda. `enviadaEm` continua sendo o 1º envio; entram
-  `ultimoEnvioEm` e `enviosCount`.
+- **✅ `409 AGENDA_JA_ENVIADA` saiu do contrato** (AG2-01, implementado).
+  `POST /agenda/{id}/enviar` renotifica em **toda edição** ("agenda
+  atualizada"), com **debounce de 10 min** por agenda
+  (`src/services/agendas/enviarAgenda.ts`). `enviadaEm` continua sendo o 1º
+  envio; `ultimoEnvioEm`/`enviosCount` sustentam o reenvio. Resposta passa a
+  incluir `{ notificado, motivo? }`. Front (`RegistrarAgendaScreen`) não
+  precisou de mudança — já era fire-and-forget sem tratar `409`.
 - **✅ Furo de segurança em `PUT /criancas/{id}` corrigido** (OPS-01):
   `CAMPOS_EXCLUSIVOS_ADMIN = ["financeiro"]` deixava o array `responsaveis`
   passar livre, então um responsável conseguia adicionar alguém com

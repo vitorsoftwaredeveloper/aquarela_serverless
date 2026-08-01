@@ -84,6 +84,8 @@ export const AgendaDiariaSchema = new Schema(
     intercorrencias: { type: [IntercorrenciaSchema], default: [] },
     observacoes: { type: String },
     enviadaEm: { type: Date, default: null },
+    ultimoEnvioEm: { type: Date, default: null },
+    enviosCount: { type: Number, default: 0 },
   },
   { timestamps: true },
 );

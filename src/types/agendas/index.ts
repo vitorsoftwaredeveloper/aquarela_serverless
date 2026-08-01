@@ -55,6 +55,8 @@ export interface IAgendaDiaria {
   intercorrencias: IIntercorrencia[];
   observacoes?: string;
   enviadaEm?: Date | null;
+  ultimoEnvioEm?: Date | null;
+  enviosCount?: number;
   createdAt?: Date;
   updatedAt?: Date;
 }

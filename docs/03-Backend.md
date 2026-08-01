@@ -234,7 +234,7 @@ Base: `/v1`. Todos exigem JWT, exceto os marcados como público.
 | PUT | `/agenda/{id}` | professor | Editar registro do dia |
 | GET | `/agenda?criancaId=&data=` | professor/responsavel* | Registro por dia |
 | GET | `/agenda/historico?criancaId=&de=&ate=` | professor/responsavel* | Histórico |
-| POST | `/agenda/{id}/enviar` | professor | Gatilho **"Enviar para os pais"** — dispara a notificação push (ver §Notificações push abaixo). Só a professora da turma (mesma regra de `PUT /agenda/{id}`); 2ª chamada → `409 AGENDA_JA_ENVIADA`. Resposta é a agenda com `enviadaEm` preenchido |
+| POST | `/agenda/{id}/enviar` | professor | Gatilho **"Enviar para os pais"** — dispara a notificação push (ver §Notificações push abaixo). Só a professora da turma (mesma regra de `PUT /agenda/{id}`); **renotifica em toda chamada** ("agenda atualizada" a partir da 2ª), com debounce de 10 min por agenda (`200 { notificado: false, motivo: "DEBOUNCE" }` dentro da janela). Resposta é a agenda com `enviadaEm`/`ultimoEnvioEm`/`enviosCount` + `{ notificado, motivo? }` |
 | DELETE | `/agenda/{id}` | professor | Remover registro do dia. Mesma guarda de `PUT /agenda/{id}` (só a professora da turma; senão `403 FORBIDDEN`); agenda inexistente → `404 NOT_FOUND`. **Hard delete** — registro diário não tem soft delete |
 
 > **`PUT /agenda/{id}` substitui por completo os campos opcionais — não é patch parcial.**
@@ -280,7 +280,7 @@ Base: `/v1`. Todos exigem JWT, exceto os marcados como público.
 > - Fluxo de permissão: pedir `Notification.requestPermission()` só **depois** de explicar o benefício (o browser só pergunta uma vez — negou, só reverte manualmente nas configs do browser)
 > - `getToken()` do Firebase SDK (`firebase/messaging`) → `POST /dispositivos` no login; reenviar em `onTokenRefresh`; `DELETE /dispositivos/{token}` no logout
 > - **iPhone só recebe push com o PWA instalado na tela de início** (iOS 16.4+) — abrir pelo Safari normal não funciona, e abrir pelo **webview do WhatsApp/Instagram também não** (confirmado no spike `NOT-00`: `PushManager` indisponível). Precisa detectar os dois casos e instruir o responsável
-> - `RegistrarAgendaScreen` chama `POST /agenda/{id}/enviar` (ver acima) **automaticamente logo após salvar** a agenda (criação ou edição) — sem botão "Enviar para os pais" na tela. Cada criança gera seu próprio envio: um responsável com vários filhos na escola recebe uma notificação por criança. Falha ao notificar não bloqueia o salvamento (chamada best-effort, erro silenciado) e reenvio em edições posteriores é idempotente no back (`409 AGENDA_JA_ENVIADA`)
+> - `RegistrarAgendaScreen` chama `POST /agenda/{id}/enviar` (ver acima) **automaticamente logo após salvar** a agenda (criação ou edição) — sem botão "Enviar para os pais" na tela. Cada criança gera seu próprio envio: um responsável com vários filhos na escola recebe uma notificação por criança. Falha ao notificar não bloqueia o salvamento (chamada best-effort, erro silenciado) e reenvio em edições posteriores renotifica o responsável, com debounce de 10 min por agenda no back
 
 ### Planos de aula
 | Método | Rota | Papel | Descrição |

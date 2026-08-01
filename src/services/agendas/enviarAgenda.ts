@@ -5,17 +5,12 @@ import { loadCriancaDaTurmaDoProfessor } from "../shared/agendaAccess";
 import { enviarNotificacao } from "../notificacoes/enviarNotificacao";
 import { httpError, STATUS_CODE } from "../../utils/errors";
 
-/**
- * Gatilho explícito ("Enviar para os pais"), não `save`: a agenda é
- * preenchida ao longo do dia e disparar a cada gravação geraria uma
- * notificação por refeição/sono/atividade. `enviadaEm` só é gravado depois
- * que `enviarNotificacao` resolve sem lançar — se o FCM falhar, o professor
- * pode tentar de novo em vez de ficar travado num envio que não aconteceu.
- */
+const DEBOUNCE_MS = 10 * 60 * 1000;
+
 export const enviarAgendaService = async (
   requester: IUsuario,
   agendaId: string,
-): Promise<IAgendaDiaria> => {
+): Promise<IAgendaDiaria & { notificado: boolean; motivo?: "DEBOUNCE" }> => {
   const agenda = (await AgendaRepository.findById(
     agendaId,
   )) as IAgendaDiaria | null;
@@ -27,28 +22,28 @@ export const enviarAgendaService = async (
     );
   }
 
-  if (agenda.enviadaEm) {
-    throw httpError(
-      STATUS_CODE.CONFLICT,
-      "AGENDA_JA_ENVIADA",
-      "Agenda já foi enviada aos responsáveis.",
-    );
-  }
-
   const crianca = await loadCriancaDaTurmaDoProfessor(
     requester,
     agenda.criancaId,
   );
 
+  const agora = new Date();
+  const ultimoEnvio = agenda.ultimoEnvioEm ?? agenda.enviadaEm;
+  if (ultimoEnvio && agora.getTime() - new Date(ultimoEnvio).getTime() < DEBOUNCE_MS) {
+    return { ...agenda, notificado: false, motivo: "DEBOUNCE" };
+  }
+
+  const primeiraVez = !agenda.enviadaEm;
+
   const usuarioIds = crianca.responsaveis
     .map((responsavel) => responsavel.usuarioId)
     .filter((usuarioId): usuarioId is string => Boolean(usuarioId));
 
-  // Corpo genérico por design (LGPD): nunca leva saúde/alimentação/medicação
-  // — a notificação aparece na tela de bloqueio do responsável.
   await enviarNotificacao(usuarioIds, {
     titulo: "Aquarela Kids",
-    corpo: `A agenda de hoje de ${crianca.nome} já está disponível`,
+    corpo: primeiraVez
+      ? `A agenda de hoje de ${crianca.nome} já está disponível`
+      : `A agenda de hoje de ${crianca.nome} foi atualizada`,
     dados: {
       criancaId: String(agenda.criancaId),
       agendaId: String(agenda._id),
@@ -57,8 +52,18 @@ export const enviarAgendaService = async (
 
   await AgendaRepository.updateOne(
     { _id: agendaId },
-    { $set: { enviadaEm: new Date() } },
+    {
+      $set: {
+        ultimoEnvioEm: agora,
+        ...(primeiraVez ? { enviadaEm: agora } : {}),
+      },
+      $inc: { enviosCount: 1 },
+    },
   );
 
-  return (await AgendaRepository.findById(agendaId)) as IAgendaDiaria;
+  const atualizada = (await AgendaRepository.findById(
+    agendaId,
+  )) as IAgendaDiaria;
+
+  return { ...atualizada, notificado: true };
 };
