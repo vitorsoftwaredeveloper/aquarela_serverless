@@ -1,11 +1,6 @@
 import { IAnexoReferencia } from "../anexos";
 import { Role } from "../auth";
 
-export interface ILeituraMensagem {
-  usuarioId: string;
-  lidaEm: Date;
-}
-
 export interface IMensagem {
   _id: string;
   criancaId: string;
@@ -15,7 +10,6 @@ export interface IMensagem {
   autorPapel: Extract<Role, "professor" | "responsavel">;
   corpo: string;
   anexos: IAnexoReferencia[];
-  lidaPor: ILeituraMensagem[];
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -30,9 +24,5 @@ export interface IListMensagensFilters {
   criancaId: string;
   limit?: number;
   antesDe?: string;
-}
-
-export interface IMensagemNaoLidas {
-  criancaId: string;
-  naoLidas: number;
+  desde?: string;
 }

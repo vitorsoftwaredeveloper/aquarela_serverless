@@ -47,6 +47,7 @@ export const enviarAgendaService = async (
     dados: {
       criancaId: String(agenda.criancaId),
       agendaId: String(agenda._id),
+      url: `/agenda/${agenda.criancaId}`,
     },
   });
 

@@ -10,14 +10,6 @@ const AnexoMensagemSchema = new Schema(
   { _id: false },
 );
 
-const LeituraMensagemSchema = new Schema(
-  {
-    usuarioId: { type: Schema.Types.ObjectId, ref: "usuarios", required: true },
-    lidaEm: { type: Date, required: true },
-  },
-  { _id: false },
-);
-
 export const MensagemSchema = new Schema(
   {
     criancaId: {
@@ -35,10 +27,8 @@ export const MensagemSchema = new Schema(
     },
     corpo: { type: String, required: true, trim: true, maxlength: 2000 },
     anexos: { type: [AnexoMensagemSchema], default: [] },
-    lidaPor: { type: [LeituraMensagemSchema], default: [] },
   },
   { timestamps: true },
 );
 
 MensagemSchema.index({ criancaId: 1, createdAt: -1 });
-MensagemSchema.index({ turmaId: 1, createdAt: -1 });

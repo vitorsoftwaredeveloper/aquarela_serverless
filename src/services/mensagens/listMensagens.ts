@@ -21,6 +21,8 @@ export const listMensagensService = async (
   const query: Record<string, unknown> = { criancaId: filters.criancaId };
   if (filters.antesDe) {
     query.createdAt = { $lt: new Date(filters.antesDe) };
+  } else if (filters.desde) {
+    query.createdAt = { $gt: new Date(filters.desde) };
   }
 
   const mensagens = (await MensagemRepository.find(query, null, {

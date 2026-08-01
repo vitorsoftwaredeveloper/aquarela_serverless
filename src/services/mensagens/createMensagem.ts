@@ -51,17 +51,21 @@ export const createMensagemService = async (
     autorPapel: requester.papel as "professor" | "responsavel",
     corpo: payload.corpo,
     anexos: payload.anexos ?? [],
-    lidaPor: [],
   });
 
   try {
     const destinatarios = await resolveDestinatarios(requester, crianca);
+    const url =
+      requester.papel === "responsavel"
+        ? `/professor/recados/${crianca._id}`
+        : `/recados/${crianca._id}`;
     await enviarNotificacao(destinatarios, {
       titulo: "Novo recado",
       corpo: `Novo recado sobre ${crianca.nome}`,
       dados: {
         mensagemId: String(created._id),
         criancaId: String(crianca._id),
+        url,
       },
     });
   } catch (error) {

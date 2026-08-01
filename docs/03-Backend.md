@@ -404,15 +404,13 @@ Base: `/v1`. Todos exigem JWT, exceto os marcados como público.
 | Método | Rota | Papel | Descrição |
 |---|---|---|---|
 | POST | `/mensagens` | professor/responsavel | Enviar recado sobre uma criança (com anexos opcionais) |
-| GET | `/mensagens?criancaId=&limit=&antesDe=` | admin/professor/responsavel* | Thread da criança, mais recentes primeiro |
-| GET | `/mensagens/nao-lidas` | professor/responsavel | Contagem de não lidas agrupada por criança (badge) |
-| POST | `/mensagens/{id}/lida` | professor/responsavel | Marcar como lida (idempotente) |
+| GET | `/mensagens?criancaId=&limit=&antesDe=&desde=` | admin/professor/responsavel* | Thread da criança, mais recentes primeiro |
 | DELETE | `/mensagens/{id}` | autor/admin | Remover em definitivo (hard delete + apaga o anexo no S3) |
 
 > **É thread por criança, não chat livre.** Toda mensagem nasce ligada a uma
 > `criancaId` — é isso que resolve a autorização sem inventar um modelo de
 > conversa. Sem tempo real, sem indicador de digitação, sem edição de mensagem
-> já enviada.
+> já enviada, sem confirmação de leitura no servidor (ver push-driven abaixo).
 >
 > Body do `POST`: `{ criancaId, corpo, anexos?: [{ key, nome, contentType, tamanho }] }`.
 > `corpo` até 2000 caracteres, máx. **5 anexos** por mensagem. **`turmaId` é
@@ -426,7 +424,9 @@ Base: `/v1`. Todos exigem JWT, exceto os marcados como público.
 >
 > `GET /mensagens` devolve cada anexo já com `url` (presigned de 1h) além de
 > `key`/`nome`/`contentType`/`tamanho`. Paginação por cursor (`antesDe` =
-> `createdAt` da última lida), `limit` default 30, teto 100.
+> `createdAt` da mais antiga já em tela), `limit` default 30, teto 100.
+> `desde` = `createdAt` da mais recente já em tela — fetch incremental depois
+> de um push, sem repaginar a thread inteira.
 >
 > **Notificação:** recado do responsável notifica os professores das turmas da
 > criança; recado do professor notifica os responsáveis. Corpo **genérico**
@@ -435,6 +435,12 @@ Base: `/v1`. Todos exigem JWT, exceto os marcados como público.
 >
 > `DELETE` é permitido ao **autor** ou ao **admin**; qualquer outro recebe `403`.
 > Apaga o documento e os objetos do S3 vinculados.
+>
+> **Push-driven, sem polling nem "lida" no servidor:** o cliente busca
+> `/mensagens` só ao abrir a thread e ao receber push — nunca em intervalo. Não
+> existe `POST /mensagens/{id}/lida` nem `GET /mensagens/nao-lidas`: quem leu
+> não é informação de negócio aqui, então o contador de "não lidas" é
+> calculado no cliente comparando `createdAt` contra a última abertura local.
 
 ### Mural de fotos por evento — Épico M
 

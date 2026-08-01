@@ -46,32 +46,6 @@ listMensagens:
         authorizer:
           name: cognitoAuthorizer
 
-getMensagensNaoLidas:
-  handler: src/handlers/mensagens/getMensagensNaoLidas.execute
-  events:
-    - httpApi:
-        method: GET
-        path: /v1/mensagens/nao-lidas
-        authorizer:
-          name: cognitoAuthorizer
-
-marcarMensagemLida:
-  handler: src/handlers/mensagens/marcarMensagemLida.execute
-  iamRoleStatementsInherit: true
-  iamRoleStatements:
-    - Effect: Allow
-      Action:
-        - ssm:GetParameter
-      Resource:
-        - ${self:custom.ssmParameterArn}/encryption_key
-        - ${self:custom.ssmParameterArn}/*/encryption_key
-  events:
-    - httpApi:
-        method: POST
-        path: /v1/mensagens/{id}/lida
-        authorizer:
-          name: cognitoAuthorizer
-
 removeMensagem:
   handler: src/handlers/mensagens/removeMensagem.execute
   iamRoleStatementsInherit: true

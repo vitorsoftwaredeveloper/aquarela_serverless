@@ -64,6 +64,7 @@ export const updateAgendaService = async (
         dados: {
           criancaId: String(agenda.criancaId),
           agendaId: String(agenda._id),
+          url: `/agenda/${agenda.criancaId}`,
         },
       });
     } catch (erro) {

@@ -27,6 +27,7 @@ export const execute = withErrorHandling(
       criancaId: query.criancaId,
       limit: query.limit ? Number(query.limit) : undefined,
       antesDe: query.antesDe,
+      desde: query.desde,
     });
 
     return sendSuccessResponse(mensagens);

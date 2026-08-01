@@ -181,12 +181,21 @@ Regras:
 
 ### Recados (Épico K)
 
+- **Sem polling.** O recado chega por push (`onMessage`/`onBackgroundMessage`);
+  o app só chama `GET /mensagens?criancaId=&desde=` quando a notificação
+  chega ou quando a tela do recado ganha foreground — nunca em intervalo.
+  `desde` é o `createdAt` da última mensagem já em memória, então o fetch
+  busca só o delta.
+- **Não há "lida" no servidor** — o backend não sabe (nem precisa saber) se o
+  outro lado leu. Badge de não lidas é **contagem local**: o app guarda por
+  criança o `createdAt` da última mensagem vista (`ultimaAberturaChat`) e
+  conta quantas mensagens do `GET /mensagens` são mais recentes que isso.
+  Reinstalar o app/trocar de device zera essa marca (mostra badge "velho" uma
+  vez) — aceito, não é dado que precise sobreviver no servidor.
 - **Responsável** — `/crianca/[criancaId]/recados`: thread desc paginada por
-  cursor (`antesDe`), campo de texto + `UploadAnexo`, badge de não lidas na
-  entrada da tela da criança e no bottom-tab.
+  cursor (`antesDe`), campo de texto + `UploadAnexo`.
 - **Professor** — `/professor/turmas/[turmaId]/recados`: lista por aluno com
-  contador de não lidas; abrir a thread chama `POST /mensagens/{id}/lida`.
-  `AlunosScreen` ganha o contador por aluno (`GET /mensagens/nao-lidas`).
+  contador de não lidas (local, ver acima).
 - Admin **não envia** recado — só lê, para suporte.
 - O push do recado é **genérico** ("Novo recado sobre a Sofia"). O texto da
   mensagem nunca aparece na notificação; o `onMessage` em primeiro plano

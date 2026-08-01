@@ -22,7 +22,7 @@
 
 | # do pedido | Vira | # do pedido | Vira |
 | --- | --- | --- | --- |
-| 1 · cobrança automática dias 05 e 20 | COB-01…COB-05 | 8 · professor lê os recados | MSG-05, MSG-10 |
+| 1 · cobrança automática dias 05 e 20 | COB-01…COB-05 | 8 · professor lê os recados | MSG-10 |
 | 2 · corte de inadimplência no dia 10 | COB-06…COB-09 | 9 · tarefa de casa na agenda | AG2-03, AG2-04 |
 | 3 · responsável não concede `podeRetirar` | OPS-01 | 10 · falta / chegou atrasado | AG2-05, AG2-06 |
 | 4 · pagamento de 31/07 caiu em agosto | OPS-02 | 11 · imprimir ficha de cadastro | OPS-04 |
@@ -431,17 +431,17 @@ provisionar bucket novo.
 | ------ | ------------------------------------------------------------------------------------- | ---- | --- | ------ | -------------- | ----------------------------------------------------------------------------------------------------- |
 | MSG-01 | `POST /anexos/upload-url` — presigned PUT + whitelist de tipo + teto de 10MB          | 🔴   | 5   | BE     | CAD-12         | `Content-Type`/`Content-Length` na assinatura; 5 min de validade; tipo fora da whitelist → `422`      |
 | MSG-02 | Validação `HeadObject` no vínculo + cron diário `limparAnexosOrfaos`                  | 🔴   | 3   | BE     | MSG-01         | Key forjada/de outro escopo → `422 ANEXO_INVALIDO`; órfão > 24h é apagado do bucket                  |
-| MSG-03 | Modelo `mensagens` + índices `{criancaId, createdAt:-1}` e `{turmaId, createdAt:-1}`  | 🔴   | 3   | BE     | CAD-08         | Estrutura da doc de banco; `turmaId` derivado da criança no back, **nunca** do payload               |
-| MSG-04 | `POST /mensagens` e `GET /mensagens?criancaId=` com ownership                          | 🔴   | 5   | BE     | MSG-03, MSG-02 | Responsável só do próprio filho, professor só de criança da sua turma, admin tudo; senão `403`       |
-| MSG-05 | `POST /mensagens/{id}/lida` + `GET /mensagens/nao-lidas` (badge)                       | 🔴   | 3   | BE     | MSG-04         | `lidaPor[]` idempotente; contagem agrupada por criança/turma para o professor                        |
+| MSG-03 | Modelo `mensagens` + índice `{criancaId, createdAt:-1}`                              | 🔴   | 3   | BE     | CAD-08         | Estrutura da doc de banco; `turmaId` derivado da criança no back, **nunca** do payload               |
+| MSG-04 | `POST /mensagens` e `GET /mensagens?criancaId=&desde=` com ownership                   | 🔴   | 5   | BE     | MSG-03, MSG-02 | Responsável só do próprio filho, professor só de criança da sua turma, admin tudo; senão `403`; `desde` filtra por `createdAt >` para fetch incremental pós-push |
+| ~~MSG-05~~ | ~~`POST /mensagens/{id}/lida` + `GET /mensagens/nao-lidas`~~ — **removido (01/08/2026)** | ⚪ | – | – | – | Quem leu não é dado de negócio; badge vira cálculo local no cliente (ver MSG-10). Sem write nem query extra por abertura de thread |
 | MSG-06 | `DELETE /mensagens/{id}` (autor ou admin) apagando o anexo no S3                       | 🟡   | 2   | BE     | MSG-04         | Hard delete; objeto do S3 removido junto; terceiro → `403`                                           |
 | MSG-07 | Push ao professor quando o responsável envia (e vice-versa)                            | 🔴   | 2   | BE     | MSG-04, NOT-05 | Corpo genérico ("Novo recado sobre a Sofia"), **sem** o conteúdo da mensagem — LGPD, tela de bloqueio |
 | MSG-08 | Componente `UploadAnexo` (presigned PUT + progresso + resize de imagem)                | 🔴   | 5   | FE     | MSG-01, INF-10 | Reusa `utils/imagem.ts` para imagem; PDF sobe cru; erro de rede é retentável sem perder o texto      |
-| MSG-09 | Tela **Recados** do responsável (thread por filho + anexo)                             | 🔴   | 5   | FE     | MSG-04, MSG-08 | Entrada pela tela da criança; lista desc paginada; anexo baixa por URL pré-assinada                  |
-| MSG-10 | Tela **Recados** do professor + badge de não lidas na lista de alunos                  | 🔴   | 5   | FE     | MSG-05, MSG-09 | `AlunosScreen` mostra contador por aluno; abrir a thread marca como lida                             |
+| MSG-09 | Tela **Recados** do responsável (thread por filho + anexo), push-driven                | 🔴   | 5   | FE     | MSG-04, MSG-08 | Entrada pela tela da criança; lista desc paginada; sem polling — busca em `desde` ao abrir/receber push; anexo baixa por URL pré-assinada |
+| MSG-10 | Tela **Recados** do professor + badge de não lidas na lista de alunos                  | 🔴   | 5   | FE     | MSG-09         | `AlunosScreen` mostra contador por aluno calculado **no cliente** (mensagens com `createdAt` após a última abertura salva localmente); abrir a thread atualiza a marca |
 | MSG-11 | Atualizar `docs/03-Backend.md` e `docs/04-Banco-de-Dados.md` com o contrato            | 🔴   | 1   | BE     | MSG-01…MSG-07  | `/anexos/upload-url`, `/mensagens` e a coleção `mensagens` documentados                              |
 
-**Subtotal Épico K:** 39 pts.
+**Subtotal Épico K:** 36 pts.
 
 ---
 
