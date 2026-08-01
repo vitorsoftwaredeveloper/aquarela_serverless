@@ -425,3 +425,45 @@ functions:
       - httpApi:
           method: DELETE
           path: /v1/dispositivos/{token}
+
+  criarUploadUrlAnexo:
+    handler: src/handlers/anexos/criarUploadUrlAnexo.execute
+    events:
+      - httpApi:
+          method: POST
+          path: /v1/anexos/upload-url
+
+  createMensagem:
+    handler: src/handlers/mensagens/createMensagem.execute
+    events:
+      - httpApi:
+          method: POST
+          path: /v1/mensagens
+
+  listMensagens:
+    handler: src/handlers/mensagens/listMensagens.execute
+    events:
+      - httpApi:
+          method: GET
+          path: /v1/mensagens
+
+  getMensagensNaoLidas:
+    handler: src/handlers/mensagens/getMensagensNaoLidas.execute
+    events:
+      - httpApi:
+          method: GET
+          path: /v1/mensagens/nao-lidas
+
+  marcarMensagemLida:
+    handler: src/handlers/mensagens/marcarMensagemLida.execute
+    events:
+      - httpApi:
+          method: POST
+          path: /v1/mensagens/{id}/lida
+
+  removeMensagem:
+    handler: src/handlers/mensagens/removeMensagem.execute
+    events:
+      - httpApi:
+          method: DELETE
+          path: /v1/mensagens/{id}

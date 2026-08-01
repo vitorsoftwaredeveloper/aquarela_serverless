@@ -1,0 +1,84 @@
+createMensagem:
+  handler: src/handlers/mensagens/createMensagem.execute
+  environment:
+    FIREBASE_SERVICE_ACCOUNT: ${self:custom.environment.FIREBASE_SERVICE_ACCOUNT}
+  iamRoleStatementsInherit: true
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - ssm:GetParameter
+      Resource:
+        - ${self:custom.ssmParameterArn}/firebase_service_account
+        - ${self:custom.ssmParameterArn}/*/firebase_service_account
+        - ${self:custom.ssmParameterArn}/encryption_key
+        - ${self:custom.ssmParameterArn}/*/encryption_key
+    - Effect: Allow
+      Action:
+        - s3:GetObject
+      Resource:
+        - ${self:custom.fotosObjectArn}
+  events:
+    - httpApi:
+        method: POST
+        path: /v1/mensagens
+        authorizer:
+          name: cognitoAuthorizer
+
+listMensagens:
+  handler: src/handlers/mensagens/listMensagens.execute
+  iamRoleStatementsInherit: true
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - ssm:GetParameter
+      Resource:
+        - ${self:custom.ssmParameterArn}/encryption_key
+        - ${self:custom.ssmParameterArn}/*/encryption_key
+    - Effect: Allow
+      Action:
+        - s3:GetObject
+      Resource:
+        - ${self:custom.fotosObjectArn}
+  events:
+    - httpApi:
+        method: GET
+        path: /v1/mensagens
+        authorizer:
+          name: cognitoAuthorizer
+
+getMensagensNaoLidas:
+  handler: src/handlers/mensagens/getMensagensNaoLidas.execute
+  events:
+    - httpApi:
+        method: GET
+        path: /v1/mensagens/nao-lidas
+        authorizer:
+          name: cognitoAuthorizer
+
+marcarMensagemLida:
+  handler: src/handlers/mensagens/marcarMensagemLida.execute
+  iamRoleStatementsInherit: true
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - ssm:GetParameter
+      Resource:
+        - ${self:custom.ssmParameterArn}/encryption_key
+        - ${self:custom.ssmParameterArn}/*/encryption_key
+  events:
+    - httpApi:
+        method: POST
+        path: /v1/mensagens/{id}/lida
+        authorizer:
+          name: cognitoAuthorizer
+
+removeMensagem:
+  handler: src/handlers/mensagens/removeMensagem.execute
+  iamRoleStatementsInherit: true
+  iamRoleStatements: ${self:custom.fotosEscritaIamStatements}
+  events:
+    - httpApi:
+        method: DELETE
+        path: /v1/mensagens/{id}
+        authorizer:
+          name: cognitoAuthorizer

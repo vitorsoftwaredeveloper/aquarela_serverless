@@ -1,10 +1,13 @@
 import { db } from "../../libs/mongo";
 import { CriancaRepository } from "../../repositories/crianca.repository";
 import { AgendaRepository } from "../../repositories/agenda.repository";
+import { MensagemRepository } from "../../repositories/mensagem.repository";
 import { MensalidadeRepository } from "../../repositories/mensalidade.repository";
 import { PagamentoRepository } from "../../repositories/pagamento.repository";
 import { UsuarioRepository } from "../../repositories/usuario.repository";
 import { removeUsuarioService } from "../usuarios/removeUsuario";
+import { removerAnexosDoBucket } from "../mensagens/anexosCleanup";
+import { IMensagem } from "../../types/mensagens";
 import { IUsuario } from "../../types/usuarios";
 import { httpError, STATUS_CODE } from "../../utils/errors";
 import { removerFotoDoBucket } from "../shared/fotoCrianca";
@@ -23,10 +26,15 @@ export const removeCriancaService = async (
 
   await db();
 
+  const mensagens = (await MensagemRepository.find({
+    criancaId,
+  })) as IMensagem[];
+
   await Promise.all([
     AgendaRepository.model.deleteMany({ criancaId }),
     MensalidadeRepository.model.deleteMany({ criancaId }),
     PagamentoRepository.model.deleteMany({ criancaId }),
+    MensagemRepository.model.deleteMany({ criancaId }),
     UsuarioRepository.model.updateMany(
       { criancasVinculadas: criancaId },
       { $pull: { criancasVinculadas: criancaId } },
@@ -36,6 +44,9 @@ export const removeCriancaService = async (
   await CriancaRepository.deleteOne({ _id: criancaId });
 
   await removerFotoDoBucket(crianca.foto);
+  await Promise.all(
+    mensagens.map((mensagem) => removerAnexosDoBucket(mensagem.anexos)),
+  );
 
   const usuarioIds = [
     ...new Set(

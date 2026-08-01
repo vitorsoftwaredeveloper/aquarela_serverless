@@ -11,6 +11,7 @@ custom:
   ssmParameterArn: arn:aws:ssm:${aws:region}:${aws:accountId}:parameter/aquarela_serverless
 
   fotosBucket: ${self:service}-${self:provider.stage}-fotos-${aws:accountId}
+  fotosBucketArn: arn:aws:s3:::${self:custom.fotosBucket}
   fotosObjectArn: arn:aws:s3:::${self:custom.fotosBucket}/*
   fotosLeituraIamStatements:
     - Effect: Allow
@@ -23,6 +24,18 @@ custom:
       Action:
         - s3:GetObject
         - s3:PutObject
+        - s3:DeleteObject
+      Resource:
+        - ${self:custom.fotosObjectArn}
+  fotosLimpezaIamStatements:
+    - Effect: Allow
+      Action:
+        - s3:ListBucket
+      Resource:
+        - ${self:custom.fotosBucketArn}
+    - Effect: Allow
+      Action:
+        - s3:GetObject
         - s3:DeleteObject
       Resource:
         - ${self:custom.fotosObjectArn}
@@ -112,6 +125,8 @@ functions:
   - ${file(src/handlers/avisos/functions.yml)}
   - ${file(src/handlers/planosAula/functions.yml)}
   - ${file(src/handlers/dispositivos/functions.yml)}
+  - ${file(src/handlers/anexos/functions.yml)}
+  - ${file(src/handlers/mensagens/functions.yml)}
 
 resources:
   Resources:
@@ -135,6 +150,7 @@ resources:
           CorsRules:
             - AllowedMethods:
                 - GET
+                - PUT
               AllowedOrigins:
                 - ${self:custom.environment.FRONTEND_URL}
                 - http://localhost:3000

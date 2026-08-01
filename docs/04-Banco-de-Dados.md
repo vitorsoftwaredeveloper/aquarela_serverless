@@ -243,6 +243,7 @@ Um usuário pode ter N dispositivos (celular + notebook). `token` é upsert idem
   criancaId: ObjectId (idx),        // thread é sempre por criança
   turmaId: ObjectId (idx),          // DERIVADO da criança no backend, nunca do payload
   autorId: ObjectId (usuarios),
+  autorNome: string,                 // snapshot do nome no envio, para exibir no balão sem join
   autorPapel: "responsavel" | "professor",
   corpo: string,                    // ≤ 2000 chars
   anexos: [{ key: string, nome: string, contentType: string, tamanho: number }],  // máx. 5

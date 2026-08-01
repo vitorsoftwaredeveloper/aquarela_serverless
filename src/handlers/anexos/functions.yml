@@ -1,0 +1,18 @@
+criarUploadUrlAnexo:
+  handler: src/handlers/anexos/criarUploadUrlAnexo.execute
+  iamRoleStatementsInherit: true
+  iamRoleStatements: ${self:custom.fotosEscritaIamStatements}
+  events:
+    - httpApi:
+        method: POST
+        path: /v1/anexos/upload-url
+        authorizer:
+          name: cognitoAuthorizer
+
+limparAnexosOrfaos:
+  handler: src/handlers/anexos/limparAnexosOrfaos.execute
+  iamRoleStatementsInherit: true
+  iamRoleStatements: ${self:custom.fotosLimpezaIamStatements}
+  events:
+    - schedule:
+        rate: cron(0 6 * * ? *)
