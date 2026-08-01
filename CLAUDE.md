@@ -112,10 +112,13 @@ existente:
   normalizado/`usuarioId` — **nunca por índice do array**, senão reordenar
   vira bypass. Front (`EditarCriancaScreen`) trava o toggle com `disabled` e
   removeu o botão "Adicionar responsável".
-- **⚠️ `GET /financeiro/balanco` vira regime de caixa** (OPS-02): agrega
+- **✅ `GET /financeiro/balanco` vira regime de caixa** (OPS-02): agrega
   `pagamentos` por `pagoEm` (fuso `America/Sao_Paulo`), não `mensalidades` por
-  competência. Corrige junto o `$month` UTC das despesas e a janela em `Date.UTC`.
-  Foi o que fez um pagamento de 31/07 aparecer só em agosto.
+  competência — `src/services/financeiro/getBalanco.ts` +
+  `src/utils/date.ts` (`inicioMesBrasil`). Corrigido junto o `$month` UTC das
+  despesas e a janela em `Date.UTC`. Era o que fazia um pagamento de 31/07
+  aparecer só em agosto. Rótulo do card no `aquarela_app` ("Entradas — regime
+  de caixa") segue pendente, é front.
 - **⚠️ `turmas.professorId` → `professorIds: [ObjectId]`** (OPS-03): todo
   ownership por turma vira `includes` (`agendaAccess`, `listTurmas`,
   `listCriancasDaTurma`, `planosAula`, escopo de `avisos`). `planosAula.professorId`

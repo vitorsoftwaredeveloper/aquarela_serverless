@@ -10,3 +10,6 @@ export const hojeMeiaNoiteBrasil = (): Date => {
     ),
   );
 };
+
+export const inicioMesBrasil = (ano: number, mesUmBased: number): Date =>
+  new Date(Date.UTC(ano, mesUmBased - 1, 1, 3, 0, 0));

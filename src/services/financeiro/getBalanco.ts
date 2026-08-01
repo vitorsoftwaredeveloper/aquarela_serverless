@@ -1,6 +1,9 @@
 import { db } from "../../libs/mongo";
-import { MensalidadeRepository } from "../../repositories/mensalidade.repository";
+import { PagamentoRepository } from "../../repositories/pagamento.repository";
 import { DespesaRepository } from "../../repositories/despesa.repository";
+import { inicioMesBrasil } from "../../utils/date";
+
+const TIMEZONE_BRASIL = "America/Sao_Paulo";
 
 export interface IBalancoMes {
   ano: number;
@@ -35,17 +38,27 @@ export const getBalancoService = async (
 
   await db();
 
-  const entradasPorMes = await MensalidadeRepository.model.aggregate([
-    { $match: { ano, mes: { $in: mesesFiltro }, status: "pago" } },
-    { $group: { _id: "$mes", total: { $sum: "$valor" } } },
-  ]);
+  const inicioPeriodo = inicioMesBrasil(ano, mes ?? 1);
+  const fimPeriodo = inicioMesBrasil(ano, (mes ?? 12) + 1);
 
-  const inicioPeriodo = new Date(Date.UTC(ano, mes ? mes - 1 : 0, 1));
-  const fimPeriodo = new Date(Date.UTC(ano, mes ? mes : 12, 1));
+  const entradasPorMes = await PagamentoRepository.model.aggregate([
+    { $match: { status: "pago", pagoEm: { $gte: inicioPeriodo, $lt: fimPeriodo } } },
+    {
+      $group: {
+        _id: { $month: { date: "$pagoEm", timezone: TIMEZONE_BRASIL } },
+        total: { $sum: "$valor" },
+      },
+    },
+  ]);
 
   const despesasPorMes = await DespesaRepository.model.aggregate([
     { $match: { data: { $gte: inicioPeriodo, $lt: fimPeriodo } } },
-    { $group: { _id: { $month: "$data" }, total: { $sum: "$valor" } } },
+    {
+      $group: {
+        _id: { $month: { date: "$data", timezone: TIMEZONE_BRASIL } },
+        total: { $sum: "$valor" },
+      },
+    },
   ]);
 
   const entradasPorMesMap = new Map<number, number>(
