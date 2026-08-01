@@ -149,7 +149,7 @@ Base para todos os demais épicos. Não entrega valor ao usuário final, mas des
 | ID     | Tarefa                                                               | Prio | Pts | Camada | Dep.           | AC                                                     |
 | ------ | -------------------------------------------------------------------- | ---- | --- | ------ | -------------- | ------------------------------------------------------ |
 | SIM-01 | ✅ Modelo `configPrecos` (singleton) + endpoint admin de preços      | 🔴   | 3   | BE     | INF-06         | Admin define valores/planos/descontos                  |
-| SIM-02 | ✅ Tela admin de **configuração de preços** — `ConfigSimuladorScreen.tsx` (aquarela_app) | 🟡   | 3   | FE     | SIM-01, INF-10 | Editar planos, valores mensal/diário, descontos        |
+| SIM-02 | ✅ Tela admin de **configuração de preços** — `PlanosTab.tsx` (aba dentro de `FinanceiroAdminScreen.tsx`, aquarela_app) | 🟡   | 3   | FE     | SIM-01, INF-10 | Editar planos, valores mensal/diário, descontos        |
 | SIM-03 | ✅ Tela pública **simulador**: período (meses/dias) + plano + resultado — `SimuladorScreen.tsx` (aquarela_app) | 🔴   | 5   | FE     | SIM-01         | Sem login; total e por mês; comparação visual (barras) |
 | SIM-04 | ✅ Cálculo com descontos por período (semestral/anual) — `src/services/simulador/simularMensalidade.ts` | 🔴   | 3   | FS     | SIM-01, SIM-03 | Aplica descontos configurados; feedback claro          |
 | SIM-05 | ⚪ CTA "Agende uma visita" / captura de lead — descartado (decisão do produto, 31/07/2026); `FinalCta.tsx` (aquarela_app) segue só com botão pro simulador + link direto de WhatsApp, sem form estruturado | ⚪ | 3 | FS | SIM-03         | Captura contato do interessado — _Fase 2/3_            |

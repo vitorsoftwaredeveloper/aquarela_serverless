@@ -248,8 +248,10 @@ Regras:
   (`inadimplenteDesde`) e é o que alimenta o KPI do dashboard e o badge na lista
   de crianças. Usar rótulos diferentes — tratar os dois como a mesma coisa foi
   exatamente o que motivou a mudança.
-- Configuração do corte (`diaCorte`, `mesesCarencia`) entra na tela de
-  configuração de preços (`ConfigSimuladorScreen`).
+- Configuração do corte (`diaCorte`, `mesesCarencia`) entra na aba **Planos**
+  da tela Financeiro (`PlanosTab`, dentro de `FinanceiroAdminScreen`) — antiga
+  tela standalone "Valores do simulador" (`/admin/simulador`) foi incorporada
+  como terceira aba, ao lado de Despesas e Inadimplentes.
 
 ### Dashboard — regime de caixa (OPS-02)
 
