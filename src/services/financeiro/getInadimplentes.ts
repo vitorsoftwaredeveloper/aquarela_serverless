@@ -2,20 +2,23 @@ import { MensalidadeRepository } from "../../repositories/mensalidade.repository
 import { CriancaRepository } from "../../repositories/crianca.repository";
 import { IMensalidade } from "../../types/mensalidades";
 import { ICrianca, IResponsavel } from "../../types/criancas";
-import { atualizarMensalidadesAtrasadas } from "../shared/mensalidadeStatus";
 
 export interface IInadimplente {
   mensalidade: IMensalidade;
   crianca: { _id: string; nome: string; responsaveis: IResponsavel[] };
 }
 
+/**
+ * "Inadimplente" ≠ "atrasado": atrasado é vencimento + 1 dia (cobrável, em
+ * vermelho pro responsável); inadimplente é o estado formal depois da
+ * carência configurável, marcado pelo cron `marcarInadimplentes` em
+ * `mensalidade.inadimplenteDesde`. Esta lista filtra só o segundo.
+ */
 export const getInadimplentesService = async (): Promise<IInadimplente[]> => {
-  await atualizarMensalidadesAtrasadas();
-
   const mensalidades = (await MensalidadeRepository.find(
-    { status: "atrasado" },
+    { inadimplenteDesde: { $ne: null } },
     null,
-    { sort: { vencimento: 1 } },
+    { sort: { inadimplenteDesde: 1 } },
   )) as IMensalidade[];
 
   if (mensalidades.length === 0) {

@@ -1,5 +1,18 @@
 import { Schema } from "mongoose";
 
+const CobrancaSchema = new Schema(
+  {
+    enviadaEm: { type: Date, required: true },
+    canal: { type: String, enum: ["push"], required: true },
+    gatilho: {
+      type: String,
+      enum: ["dia05", "dia20", "manual"],
+      required: true,
+    },
+  },
+  { _id: false },
+);
+
 export const MensalidadeSchema = new Schema(
   {
     criancaId: {
@@ -19,6 +32,8 @@ export const MensalidadeSchema = new Schema(
       index: true,
     },
     pagamentoId: { type: Schema.Types.ObjectId, ref: "pagamentos" },
+    inadimplenteDesde: { type: Date, index: true },
+    cobrancas: { type: [CobrancaSchema], default: [] },
   },
   { timestamps: true },
 );

@@ -13,9 +13,15 @@ export interface IPlano {
   descontos?: IDesconto[];
 }
 
+export interface IInadimplenciaConfig {
+  diaCorte: number;
+  mesesCarencia: number;
+}
+
 export interface IConfigPrecos {
   _id: string;
   planos: IPlano[];
+  inadimplencia: IInadimplenciaConfig;
   atualizadoPor?: string;
   createdAt?: Date;
   updatedAt?: Date;
@@ -23,4 +29,5 @@ export interface IConfigPrecos {
 
 export interface IUpdateConfigPrecosPayload {
   planos: IPlano[];
+  inadimplencia: IInadimplenciaConfig;
 }

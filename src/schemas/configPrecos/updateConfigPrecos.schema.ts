@@ -11,6 +11,16 @@ const descontoSchema = {
   additionalProperties: false,
 } as const;
 
+const inadimplenciaSchema = {
+  type: "object",
+  properties: {
+    diaCorte: { type: "number", minimum: 1, maximum: 28 },
+    mesesCarencia: { type: "number", minimum: 0 },
+  },
+  required: ["diaCorte", "mesesCarencia"],
+  additionalProperties: false,
+} as const;
+
 export const updateConfigPrecosSchema: JSONSchemaType<IUpdateConfigPrecosPayload> = {
   type: "object",
   properties: {
@@ -30,7 +40,8 @@ export const updateConfigPrecosSchema: JSONSchemaType<IUpdateConfigPrecosPayload
       },
       minItems: 1,
     },
+    inadimplencia: inadimplenciaSchema,
   },
-  required: ["planos"],
+  required: ["planos", "inadimplencia"],
   additionalProperties: false,
 };

@@ -404,7 +404,7 @@ inadimplencia: { diaCorte: number, mesesCarencia: number }
 | usuarios | `cognitoSub` unique, `email` unique | login/lookup |
 | criancas | `cpfHash` unique, `turmaId` | busca e listagem por turma |
 | agendasDiarias | `{criancaId, data}` unique; `{criancaId, data:-1}` | dia e histórico |
-| mensalidades | `{criancaId, ano, mes}` unique; `status` | financeiro do pai/inadimplência |
+| mensalidades | `{criancaId, ano, mes}` unique; `status` | financeiro do pai/transição atrasado |
 | pagamentos | `txid` unique | conciliação/idempotência |
 | despesas | `data` | balanço por período |
 | avisos | `{createdAt:-1}` | listagem por mais recente |
@@ -423,7 +423,7 @@ inadimplencia: { diaCorte: number, mesesCarencia: number }
 - **Agenda do dia (pai/professor):** `agendasDiarias.findOne({ criancaId, data })`.
 - **Histórico:** `agendasDiarias.find({ criancaId, data: { $gte, $lte } }).sort({ data: -1 })`.
 - **Meses do responsável:** `mensalidades.find({ criancaId, ano }).sort({ mes })`.
-- **Inadimplentes:** `mensalidades.find({ status: "atrasado" })` + join lógico com `criancas`.
+- **Inadimplentes:** `mensalidades.find({ inadimplenteDesde: { $ne: null } })` + join lógico com `criancas`.
 - **Balanço mensal:** agregação de `mensalidades` pagas − `despesas` no período (`$group` por mês/ano).
 - **Alunos da turma:** `criancas.find({ turmaId })`.
 

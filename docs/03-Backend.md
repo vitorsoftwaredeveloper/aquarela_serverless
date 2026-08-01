@@ -491,10 +491,19 @@ Base: `/v1`. Todos exigem JWT, exceto os marcados como público.
 
 ### Cobrança automática e inadimplência — Épico J
 
+> **Status (01/08/2026): Fase 3 (inadimplência) e Fase 4 (cobrança automática)
+> implementadas.** `configPrecos.inadimplencia`, cron `marcarInadimplentes`,
+> `GET /financeiro/inadimplentes` filtrando por `inadimplenteDesde`, cron
+> `dispararCobrancas` (dias 05/20) e `POST /financeiro/cobrancas/disparar`
+> (com `dryRun`) — tudo em produção. **`GET /financeiro/cobrancas` (histórico
+> por `ano`/`mes`) segue fora do escopo, deliberado** — não corresponde a
+> nenhum item do backlog (COB-01…05 cobrem só o disparo, não um histórico
+> navegável); a rota abaixo é especificação, não contrato vigente.
+
 | Método | Rota | Papel | Descrição |
 |---|---|---|---|
 | POST | `/financeiro/cobrancas/disparar` | admin | Dispara o mesmo motor do cron sob demanda; `{ dryRun?: boolean }` |
-| GET | `/financeiro/cobrancas?ano=&mes=` | admin | Histórico do que foi disparado (a partir de `mensalidades.cobrancas[]`) |
+| GET | `/financeiro/cobrancas?ano=&mes=` | admin | **Não implementado.** Histórico do que foi disparado (a partir de `mensalidades.cobrancas[]`) |
 
 > **Cron `dispararCobrancas` — dias 05 e 20, 09:00 GMT-3** (`cron(0 12 5,20 * ? *)`).
 > Notifica por push (FCM, motor `enviarNotificacao`) **só quem ainda deve**.
@@ -517,9 +526,10 @@ Base: `/v1`. Todos exigem JWT, exceto os marcados como público.
 > **Idempotência:** cada envio grava em `mensalidades.cobrancas[]`
 > `{ enviadaEm, canal, gatilho: "dia05"|"dia20"|"manual" }` (capado nas últimas
 > 12 entradas). O cron reexecutado no mesmo dia com o mesmo gatilho não
-> redispara. `POST .../disparar` com `dryRun: true` devolve a lista de quem
-> **seria** notificado (e quantos estão **sem token válido**) sem enviar nem
-> gravar nada.
+> redispara. `POST .../disparar` com `dryRun: true` devolve **as contagens**
+> de quem seria notificado e quantos estão **sem token válido**
+> (`{ responsaveisNotificados, responsaveisSemToken, mensalidadesAtualizadas: 0 }`)
+> sem enviar nem gravar nada — não uma lista nominal de responsáveis.
 
 > **Inadimplência é diferente de atraso (mudança de contrato do
 > `GET /financeiro/inadimplentes`).** Hoje a rota devolve tudo que está

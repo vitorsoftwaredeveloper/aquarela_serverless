@@ -19,6 +19,14 @@ const PlanoSchema = new Schema(
   { _id: false },
 );
 
+const InadimplenciaSchema = new Schema(
+  {
+    diaCorte: { type: Number, required: true, min: 1, max: 28 },
+    mesesCarencia: { type: Number, required: true, min: 0 },
+  },
+  { _id: false },
+);
+
 /**
  * Singleton — sempre um único documento, `_id` fixo ("singleton"). Ver
  * `repositories/configPrecos.repository.ts` (upsert por esse `_id`).
@@ -27,6 +35,7 @@ export const ConfigPrecosSchema = new Schema(
   {
     _id: { type: String, default: "singleton" },
     planos: { type: [PlanoSchema], default: [] },
+    inadimplencia: { type: InadimplenciaSchema },
     atualizadoPor: { type: Schema.Types.ObjectId, ref: "usuarios" },
   },
   { timestamps: true },

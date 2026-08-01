@@ -32,7 +32,10 @@ const confirmarPagamento = async (pagamento: IPagamento): Promise<void> => {
 
       await MensalidadeRepository.updateOne(
         { _id: pagamento.mensalidadeId },
-        { $set: { status: "pago", pagamentoId: pagamento._id } },
+        {
+          $set: { status: "pago", pagamentoId: pagamento._id },
+          $unset: { inadimplenteDesde: "" },
+        },
         { session },
       );
 

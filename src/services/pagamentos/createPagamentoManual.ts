@@ -61,7 +61,10 @@ export const createPagamentoManualService = async (
 
       const mensalidadeUpdate = (await MensalidadeRepository.updateOne(
         { _id: mensalidade._id, status: { $nin: ["pago", "cancelado"] } },
-        { $set: { status: "pago", pagamentoId } },
+        {
+          $set: { status: "pago", pagamentoId },
+          $unset: { inadimplenteDesde: "" },
+        },
         { session },
       )) as { modifiedCount: number };
 

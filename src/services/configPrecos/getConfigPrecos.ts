@@ -9,5 +9,10 @@ export const getConfigPrecosService = async (): Promise<IConfigPrecos> => {
     _id: CONFIG_PRECOS_ID,
   })) as IConfigPrecos | null;
 
-  return config ?? { _id: CONFIG_PRECOS_ID, planos: [] };
+  return {
+    _id: CONFIG_PRECOS_ID,
+    planos: [],
+    inadimplencia: { diaCorte: 10, mesesCarencia: 1 },
+    ...config,
+  };
 };

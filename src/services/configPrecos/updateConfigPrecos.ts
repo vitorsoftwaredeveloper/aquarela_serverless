@@ -21,7 +21,13 @@ export const updateConfigPrecosService = async (
 
   await ConfigPrecosRepository.updateOne(
     { _id: CONFIG_PRECOS_ID },
-    { $set: { planos: payload.planos, atualizadoPor: requester._id } },
+    {
+      $set: {
+        planos: payload.planos,
+        inadimplencia: payload.inadimplencia,
+        atualizadoPor: requester._id,
+      },
+    },
     { upsert: true },
   );
 
