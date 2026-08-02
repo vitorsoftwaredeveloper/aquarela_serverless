@@ -21,9 +21,11 @@ export const updateTurmaService = async (
     );
   }
 
-  if (payload.professorId) {
-    const professor = await ProfessorRepository.findById(payload.professorId);
-    if (!professor) {
+  if (payload.professorIds) {
+    const professores = await ProfessorRepository.find({
+      _id: { $in: payload.professorIds },
+    });
+    if (professores.length !== new Set(payload.professorIds).size) {
       throw httpError(
         STATUS_CODE.NOT_FOUND,
         "PROFESSOR_NOT_FOUND",

@@ -15,7 +15,7 @@ jest.mock("../../../src/repositories/turma.repository", () => ({
   TurmaRepository: { findById: jest.fn() },
 }));
 jest.mock("../../../src/repositories/professor.repository", () => ({
-  ProfessorRepository: { findById: jest.fn() },
+  ProfessorRepository: { findById: jest.fn(), find: jest.fn() },
 }));
 jest.mock("../../../src/services/shared/mensagemAccess", () => ({
   loadCriancaParaMensagem: jest.fn(),
@@ -50,15 +50,15 @@ describe("createMensagemService", () => {
     });
   });
 
-  it("responsável envia: notifica o professor da turma da criança", async () => {
+  it("responsável envia: notifica todos os professores da turma da criança", async () => {
     (TurmaRepository.findById as jest.Mock).mockResolvedValue({
       _id: "turma-1",
-      professorId: "professor-doc-1",
+      professorIds: ["professor-doc-1", "professor-doc-2"],
     });
-    (ProfessorRepository.findById as jest.Mock).mockResolvedValue({
-      _id: "professor-doc-1",
-      usuarioId: "usuario-professor-1",
-    });
+    (ProfessorRepository.find as jest.Mock).mockResolvedValue([
+      { _id: "professor-doc-1", usuarioId: "usuario-professor-1" },
+      { _id: "professor-doc-2", usuarioId: "usuario-professor-2" },
+    ]);
 
     const requester = { _id: "resp-1", papel: "responsavel", nome: "Maria" } as any;
     await createMensagemService(requester, {
@@ -67,7 +67,7 @@ describe("createMensagemService", () => {
     });
 
     expect(enviarNotificacao).toHaveBeenCalledWith(
-      ["usuario-professor-1"],
+      ["usuario-professor-1", "usuario-professor-2"],
       expect.objectContaining({ corpo: "Novo recado sobre Sofia" }),
     );
     expect(MensagemRepository.insertOne).toHaveBeenCalledWith(
@@ -136,12 +136,11 @@ describe("createMensagemService", () => {
   it("mensagem já foi salva: falha ao notificar não derruba a criação", async () => {
     (TurmaRepository.findById as jest.Mock).mockResolvedValue({
       _id: "turma-1",
-      professorId: "professor-doc-1",
+      professorIds: ["professor-doc-1"],
     });
-    (ProfessorRepository.findById as jest.Mock).mockResolvedValue({
-      _id: "professor-doc-1",
-      usuarioId: "usuario-professor-1",
-    });
+    (ProfessorRepository.find as jest.Mock).mockResolvedValue([
+      { _id: "professor-doc-1", usuarioId: "usuario-professor-1" },
+    ]);
     (enviarNotificacao as jest.Mock).mockRejectedValue(
       new Error("Firebase fora do ar"),
     );

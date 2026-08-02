@@ -121,7 +121,7 @@ Base: `/v1`. Todos exigem JWT, exceto os marcados como público.
 | GET | `/professores` | admin | Listar professores (com `turmas: [{ _id, nome }]` vinculadas) |
 | GET | `/professores/{id}` | admin/professor* | Detalhe (*só o próprio cadastro) |
 | PUT | `/professores/{id}` | admin/professor* | Atualizar dados/**foto** (*só o próprio cadastro, e sem `email`) |
-| DELETE | `/professores/{id}` | admin | Remover em definitivo (professor + usuário/Cognito vinculado); bloqueado se houver turma vinculada |
+| DELETE | `/professores/{id}` | admin | Remover em definitivo (professor + usuário/Cognito vinculado); bloqueado só se for o **único** professor de alguma turma — senão só sai do array `professorIds` |
 
 > **`POST /professores` — cria o usuário (papel=professor) junto, sem `usuarioId`.** Body: `{ nome, cpf, telefone, email, formacao?, foto? }` — todos obrigatórios exceto `formacao` e `foto`. Mesmo padrão de `POST /usuarios`: o backend cria o usuário no Cognito com senha temporária gerada (`AdminCreateUser`, `MessageAction: "SUPPRESS"`), grupo `professor`, guarda `cognitoSub`, cria o registro em `professores` vinculado (`usuarioId` interno) e retorna **`senhaTemporaria`** no payload (uma única vez, não persistida) — o front mostra num modal para o admin copiar e repassar. Valida CPF por dígitos verificadores (`400`) e e-mail único (`409`). Falha em qualquer etapa faz rollback (usuário no Cognito + registro).
 >
@@ -134,10 +134,10 @@ Base: `/v1`. Todos exigem JWT, exceto os marcados como público.
 ### Turmas (CRUD completo + vínculo de crianças)
 | Método | Rota | Papel | Descrição |
 |---|---|---|---|
-| POST | `/turmas` | admin | Criar turma (nome, descrição, faixa etária, professora) |
-| GET | `/turmas` | admin/professor | Listar turmas (com `professor: { _id, nome, email }`) |
+| POST | `/turmas` | admin | Criar turma (nome, descrição, faixa etária, `professorIds: string[]` — mínimo 1) |
+| GET | `/turmas` | admin/professor | Listar turmas (com `professores: [{ _id, nome, email }]`) |
 | GET | `/turmas/{id}` | admin/professor | Detalhe da turma |
-| PUT | `/turmas/{id}` | admin | Atualizar dados / trocar professora |
+| PUT | `/turmas/{id}` | admin | Atualizar dados / trocar professoras (`professorIds`) |
 | DELETE | `/turmas/{id}` | admin | Remover turma em definitivo (só se vazia, ou realocando as crianças antes — ver regra) |
 | GET | `/turmas/{id}/criancas` | admin/professor | Listar alunos da turma |
 | POST | `/turmas/{id}/criancas` | admin | **Vincular** criança à turma (body: `criancaId`) |
@@ -159,6 +159,23 @@ Base: `/v1`. Todos exigem JWT, exceto os marcados como público.
 > como "Registrada" até o professor atualizar a tela depois da meia-noite. `POST /agenda`
 > retornava sucesso, mas o `GET` seguinte não refletia o registro — não era bug de cache do
 > front.
+>
+> **✅ OPS-03 — múltiplos professores por turma.** `turmas.professorId: ObjectId` virou
+> `turmas.professorIds: [ObjectId]` (mínimo 1, índice em `professorIds`). Migração
+> (`scripts/migrations/2026-08-turmas-professorIds.ts`, `npm run migrate:turmas-professorIds`)
+> converte `professorId` legado em `professorIds: [professorId]` e remove o campo antigo.
+> **Compat de 1 release:** `GET /turmas` segue devolvendo `professorId` (= `professorIds[0]`)
+> e `professor` (= `professores[0]`) — só derivados na resposta, não persistidos — pro front
+> antigo não quebrar durante o deploy; somem no release seguinte. Todo ownership por turma
+> passou a usar `professorIds.includes(...)` (`getTurmaById`, `listTurmas`, `listCriancas`,
+> `getCriancaById`, `listAvisos`, `agendaAccess`, `mensagemAccess`). **`planosAula.professorId`
+> muda de significado:** era "o professor da turma" (derivado), agora é o **autor** do plano
+> (o `professorId` de quem criou; admin cai em `turma.professorIds[0]`) — não é mais
+> recalculado se o plano muda de turma. **`DELETE /professores/{id}`** deixa de bloquear por
+> qualquer turma vinculada: só bloqueia (`409 PROFESSOR_COM_TURMA_VINCULADA`) se o professor
+> for o **único** de alguma turma; caso contrário sai do array (`$pull`) e a turma continua com
+> os demais. Responsável ao enviar recado (`POST /mensagens`) agora notifica **todos** os
+> professores da turma, não só o primeiro.
 
 ### Crianças (CRUD completo)
 | Método | Rota | Papel | Descrição |

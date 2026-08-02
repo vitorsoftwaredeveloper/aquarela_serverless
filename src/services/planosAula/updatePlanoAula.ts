@@ -23,14 +23,11 @@ export const updatePlanoAulaService = async (
   // ownership da turma atual (professor só mexe nas suas)
   await getTurmaByIdService(requester, plano.turmaId);
 
-  const update: Record<string, unknown> = { ...payload };
-
   if (payload.turmaId && payload.turmaId !== String(plano.turmaId)) {
-    const novaTurma = await getTurmaByIdService(requester, payload.turmaId);
-    update.professorId = novaTurma.professorId;
+    await getTurmaByIdService(requester, payload.turmaId);
   }
 
-  await PlanoAulaRepository.updateOne({ _id: planoAulaId }, { $set: update });
+  await PlanoAulaRepository.updateOne({ _id: planoAulaId }, { $set: payload });
 
   return (await PlanoAulaRepository.findById(planoAulaId)) as IPlanoAula;
 };

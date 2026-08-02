@@ -133,11 +133,26 @@ Perfil de app espelhando o Cognito.
 ```
 { _id, nome, descricao,
   faixaEtaria: { min: number, max: number },   // ex.: {1,3}
-  professorId: ObjectId (idx),
+  professorIds: [ObjectId] (idx),   // ≥ 1
   capacidade?: number,
   createdAt, updatedAt }
 ```
 > Contagem de crianças = query em `criancas` por `turmaId` (não duplicar).
+>
+> **✅ OPS-03 concluído — múltiplos professores por turma.** `professorId: ObjectId`
+> único virou `professorIds: [ObjectId]` (mínimo 1). `professorId`/`professor` **não
+> são persistidos** — `listTurmas`/`getTurmaById` os calculam na resposta
+> (`= professorIds[0]`/`professores[0]`) só como compat de 1 release para o front
+> antigo não quebrar; somem no release seguinte. Migração
+> `scripts/migrations/2026-08-turmas-professorIds.ts`
+> (`npm run migrate:turmas-professorIds`) converte o acervo já gravado
+> (`professorIds = [professorId]`, unset do campo antigo). Ownership por turma
+> deixou de ser igualdade e virou `includes` — `getTurmaById`, `listTurmas`,
+> `listCriancas`, `getCriancaById`, `listAvisos`, `agendaAccess`, `mensagemAccess`.
+> `planosAula.professorId` mudou de significado: era "o professor da turma"
+> (derivado), agora é **o autor** do plano — não recalcula se o plano muda de
+> turma. `DELETE /professores/{id}` só bloqueia se o professor for o **único** de
+> alguma turma; senão sai do array (`$pull`).
 
 ### `agendasDiarias`
 Um documento por **criança + dia**.
@@ -165,7 +180,7 @@ Um documento por **criança + dia**.
 
 ### `planosAula`
 ```
-{ _id, turmaId: ObjectId (idx), professorId: ObjectId,
+{ _id, turmaId: ObjectId (idx), professorId: ObjectId,  // autor (OPS-03), não "o professor da turma"
   titulo, descricao, data: Date, objetivos?: [string],
   materiais?: [string], createdAt, updatedAt }
 ```
@@ -362,23 +377,6 @@ cobrancas: [{                     // COB-03 — capado nas últimas 12 entradas
 > `(mensalidadeId, gatilho, competência do disparo)` não redispara. Capado em 12
 > entradas pelo mesmo motivo de `criancas.auditoria` — histórico de notificação
 > não justifica crescer sem limite dentro do documento.
-
-### `turmas` — múltiplos professores (OPS-03)
-```
-professorIds: [ObjectId] (idx),   // ≥ 1 — substitui professorId
-professorId: ObjectId             // DEPRECADO: derivado (= professorIds[0]), 1 release
-```
-
-> Migração `scripts/migrations/2026-08-turmas-professorIds.ts` preenche
-> `professorIds = [professorId]`. `professorId` sobrevive um release como campo
-> derivado somente-leitura para o front antigo não quebrar no meio do deploy, e
-> some no release seguinte.
->
-> **Consequência em cascata:** todo ownership por turma deixa de ser igualdade e
-> vira `includes` — `agendaAccess`, `listTurmas`, `listCriancasDaTurma`,
-> `planosAula`, escopo por turma de `avisos`, e as coleções novas `mensagens` e
-> `eventos`. `planosAula.professorId` muda de significado: era "o professor da
-> turma" (derivado), passa a ser **o autor** do plano.
 
 ### `agendasDiarias` — campos novos do lote de 01/08/2026
 ```

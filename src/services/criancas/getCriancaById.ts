@@ -24,7 +24,10 @@ export const getCriancaByIdService = async (
     }
     const turma = await TurmaRepository.findById(crianca.turmaId);
     const professorId = await resolveProfessorId(requester);
-    if (!turma || String((turma as any).professorId) !== professorId) {
+    if (
+      !turma ||
+      !(turma as any).professorIds.map(String).includes(professorId)
+    ) {
       throw httpError(STATUS_CODE.FORBIDDEN, "FORBIDDEN", "Acesso permitido apenas às suas turmas.");
     }
   }

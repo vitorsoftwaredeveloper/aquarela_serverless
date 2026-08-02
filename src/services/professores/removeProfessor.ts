@@ -1,3 +1,4 @@
+import { db } from "../../libs/mongo";
 import { ProfessorRepository } from "../../repositories/professor.repository";
 import { TurmaRepository } from "../../repositories/turma.repository";
 import { UsuarioRepository } from "../../repositories/usuario.repository";
@@ -18,12 +19,24 @@ export const removeProfessorService = async (
     );
   }
 
-  const turmaVinculada = await TurmaRepository.findOne({ professorId });
-  if (turmaVinculada) {
+  const turmasVinculadas = await TurmaRepository.find({
+    professorIds: professorId,
+  });
+  const turmaOndeEhUnico = turmasVinculadas.find(
+    (turma: any) => turma.professorIds.length === 1,
+  );
+  if (turmaOndeEhUnico) {
     throw httpError(
       STATUS_CODE.CONFLICT,
       "PROFESSOR_COM_TURMA_VINCULADA",
-      "Não é possível remover: professor possui turma(s) vinculada(s). Troque a professora da turma antes.",
+      "Não é possível remover: professor é o único responsável por uma turma. Adicione outro professor antes.",
+    );
+  }
+  if (turmasVinculadas.length > 0) {
+    await db();
+    await TurmaRepository.model.updateMany(
+      { professorIds: professorId },
+      { $pull: { professorIds: professorId } },
     );
   }
 

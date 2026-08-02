@@ -15,7 +15,7 @@ export const getTurmaByIdService = async (
 
   if (requester.papel === "professor") {
     const professorId = await resolveProfessorId(requester);
-    if (String(turma.professorId) !== professorId) {
+    if (!turma.professorIds.map(String).includes(professorId)) {
       throw httpError(
         STATUS_CODE.FORBIDDEN,
         "FORBIDDEN",

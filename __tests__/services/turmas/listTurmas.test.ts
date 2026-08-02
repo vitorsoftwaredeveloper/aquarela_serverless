@@ -18,14 +18,15 @@ describe("listTurmasService", () => {
     jest.clearAllMocks();
   });
 
-  it("inclui o professor vinculado a cada turma para o admin", async () => {
+  it("inclui os professores vinculados a cada turma para o admin", async () => {
     (TurmaRepository.find as jest.Mock).mockResolvedValue([
-      { _id: "turma-1", nome: "Flor", professorId: "prof-1" },
-      { _id: "turma-2", nome: "Girassóis", professorId: "prof-2" },
+      { _id: "turma-1", nome: "Flor", professorIds: ["prof-1", "prof-3"] },
+      { _id: "turma-2", nome: "Girassóis", professorIds: ["prof-2"] },
     ]);
     (ProfessorRepository.find as jest.Mock).mockResolvedValue([
       { _id: "prof-1", nome: "Ana", email: "ana@example.com" },
       { _id: "prof-2", nome: "Bruno", email: "bruno@example.com" },
+      { _id: "prof-3", nome: "Carla", email: "carla@example.com" },
     ]);
     (CriancaRepository.find as jest.Mock).mockResolvedValue([
       { turmaId: "turma-1" },
@@ -39,6 +40,11 @@ describe("listTurmasService", () => {
       {
         _id: "turma-1",
         nome: "Flor",
+        professorIds: ["prof-1", "prof-3"],
+        professores: [
+          { _id: "prof-1", nome: "Ana", email: "ana@example.com" },
+          { _id: "prof-3", nome: "Carla", email: "carla@example.com" },
+        ],
         professorId: "prof-1",
         professor: { _id: "prof-1", nome: "Ana", email: "ana@example.com" },
         totalCriancas: 2,
@@ -46,20 +52,22 @@ describe("listTurmasService", () => {
       {
         _id: "turma-2",
         nome: "Girassóis",
+        professorIds: ["prof-2"],
+        professores: [{ _id: "prof-2", nome: "Bruno", email: "bruno@example.com" }],
         professorId: "prof-2",
         professor: { _id: "prof-2", nome: "Bruno", email: "bruno@example.com" },
         totalCriancas: 1,
       },
     ]);
     expect(ProfessorRepository.find).toHaveBeenCalledWith(
-      { _id: { $in: ["prof-1", "prof-2"] } },
+      { _id: { $in: ["prof-1", "prof-3", "prof-2"] } },
       { nome: 1, email: 1 },
     );
   });
 
-  it("devolve professor: null quando o professor vinculado não existe mais", async () => {
+  it("devolve professores vazio quando nenhum professor vinculado existe mais", async () => {
     (TurmaRepository.find as jest.Mock).mockResolvedValue([
-      { _id: "turma-1", nome: "Flor", professorId: "prof-orfao" },
+      { _id: "turma-1", nome: "Flor", professorIds: ["prof-orfao"] },
     ]);
     (ProfessorRepository.find as jest.Mock).mockResolvedValue([]);
     (CriancaRepository.find as jest.Mock).mockResolvedValue([]);
@@ -70,6 +78,8 @@ describe("listTurmasService", () => {
       {
         _id: "turma-1",
         nome: "Flor",
+        professorIds: ["prof-orfao"],
+        professores: [],
         professorId: "prof-orfao",
         professor: null,
         totalCriancas: 0,
@@ -86,14 +96,15 @@ describe("listTurmasService", () => {
     expect(ProfessorRepository.find).not.toHaveBeenCalled();
   });
 
-  it("mantém o join de professor junto com as estatísticas do professor", async () => {
+  it("filtra por professorIds e mantém o join junto com as estatísticas do professor", async () => {
     const professor = { _id: "prof-1", papel: "professor" } as any;
     (resolveProfessorId as jest.Mock).mockResolvedValue("prof-1");
     (TurmaRepository.find as jest.Mock).mockResolvedValue([
-      { _id: "turma-1", nome: "Flor", professorId: "prof-1" },
+      { _id: "turma-1", nome: "Flor", professorIds: ["prof-1", "prof-2"] },
     ]);
     (ProfessorRepository.find as jest.Mock).mockResolvedValue([
       { _id: "prof-1", nome: "Ana", email: "ana@example.com" },
+      { _id: "prof-2", nome: "Bruno", email: "bruno@example.com" },
     ]);
     (CriancaRepository.find as jest.Mock).mockResolvedValue([
       { turmaId: "turma-1" },
@@ -102,10 +113,20 @@ describe("listTurmasService", () => {
 
     const result = await listTurmasService(professor);
 
+    expect(TurmaRepository.find).toHaveBeenCalledWith(
+      { professorIds: "prof-1" },
+      null,
+      { sort: { nome: 1 } },
+    );
     expect(result).toEqual([
       {
         _id: "turma-1",
         nome: "Flor",
+        professorIds: ["prof-1", "prof-2"],
+        professores: [
+          { _id: "prof-1", nome: "Ana", email: "ana@example.com" },
+          { _id: "prof-2", nome: "Bruno", email: "bruno@example.com" },
+        ],
         professorId: "prof-1",
         professor: { _id: "prof-1", nome: "Ana", email: "ana@example.com" },
         totalCriancas: 1,

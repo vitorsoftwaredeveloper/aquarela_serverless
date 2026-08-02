@@ -14,7 +14,7 @@ export const listTurmasService = async (
   const query: Record<string, unknown> = {};
 
   if (requester.papel === "professor") {
-    query.professorId = await resolveProfessorId(requester);
+    query.professorIds = await resolveProfessorId(requester);
   }
 
   const turmas = (await TurmaRepository.find(query, null, {
@@ -25,7 +25,9 @@ export const listTurmasService = async (
     return turmas;
   }
 
-  const professorIds = [...new Set(turmas.map((t) => t.professorId))];
+  const professorIds = [
+    ...new Set(turmas.flatMap((t) => t.professorIds.map(String))),
+  ];
   const professores = (await ProfessorRepository.find(
     { _id: { $in: professorIds } },
     { nome: 1, email: 1 },
@@ -35,10 +37,17 @@ export const listTurmasService = async (
     professores.map((p) => [String(p._id), { _id: String(p._id), nome: p.nome, email: p.email }]),
   );
 
-  const turmasComProfessor = turmas.map((t) => ({
-    ...t,
-    professor: professorPorId.get(String(t.professorId)) ?? null,
-  }));
+  const turmasComProfessor = turmas.map((t) => {
+    const professoresDaTurma = t.professorIds
+      .map((id) => professorPorId.get(String(id)))
+      .filter((p): p is { _id: string; nome: string; email: string } => Boolean(p));
+    return {
+      ...t,
+      professores: professoresDaTurma,
+      professorId: String(t.professorIds[0]),
+      professor: professoresDaTurma[0] ?? null,
+    };
+  });
 
   const turmaIds = turmas.map((t) => t._id);
 

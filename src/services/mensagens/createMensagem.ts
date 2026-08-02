@@ -16,11 +16,13 @@ const resolveDestinatarios = async (
     if (!crianca.turmaId) return [];
     const turma = await TurmaRepository.findById(crianca.turmaId);
     if (!turma) return [];
-    const professor = await ProfessorRepository.findById(
-      (turma as any).professorId,
-    );
-    const usuarioId = (professor as any)?.usuarioId;
-    return usuarioId ? [String(usuarioId)] : [];
+    const professores = await ProfessorRepository.find({
+      _id: { $in: (turma as any).professorIds },
+    });
+    return professores
+      .map((professor: any) => professor.usuarioId)
+      .filter((usuarioId: unknown): usuarioId is string => Boolean(usuarioId))
+      .map((usuarioId: string) => String(usuarioId));
   }
 
   return [

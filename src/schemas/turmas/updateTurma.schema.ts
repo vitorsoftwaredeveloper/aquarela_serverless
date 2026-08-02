@@ -16,7 +16,12 @@ export const updateTurmaSchema: JSONSchemaType<IUpdateTurmaPayload> = {
       additionalProperties: false,
       nullable: true,
     },
-    professorId: { type: "string", minLength: 1, nullable: true },
+    professorIds: {
+      type: "array",
+      items: { type: "string", minLength: 1 },
+      minItems: 1,
+      nullable: true,
+    },
     capacidade: { type: "number", minimum: 1, nullable: true },
   },
   required: [],

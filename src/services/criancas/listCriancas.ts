@@ -20,7 +20,7 @@ export const listCriancasService = async (
   if (requester.papel === "professor") {
     const professorId = await resolveProfessorId(requester);
     const turmasDoProfessor = await TurmaRepository.find(
-      { professorId },
+      { professorIds: professorId },
       { _id: 1 },
     );
     const turmaIds = turmasDoProfessor.map((turma: any) => String(turma._id));

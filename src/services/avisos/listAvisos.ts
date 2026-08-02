@@ -10,7 +10,10 @@ const resolveTurmaIdsVisiveis = async (
 ): Promise<string[]> => {
   if (requester.papel === "professor") {
     const professorId = await resolveProfessorId(requester);
-    const turmas = await TurmaRepository.find({ professorId }, { _id: 1 });
+    const turmas = await TurmaRepository.find(
+      { professorIds: professorId },
+      { _id: 1 },
+    );
     return turmas.map((t: any) => String(t._id));
   }
 

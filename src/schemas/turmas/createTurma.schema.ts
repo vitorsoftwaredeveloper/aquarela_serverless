@@ -15,9 +15,13 @@ export const createTurmaSchema: JSONSchemaType<ICreateTurmaPayload> = {
       required: ["min", "max"],
       additionalProperties: false,
     },
-    professorId: { type: "string", minLength: 1 },
+    professorIds: {
+      type: "array",
+      items: { type: "string", minLength: 1 },
+      minItems: 1,
+    },
     capacidade: { type: "number", minimum: 1, nullable: true },
   },
-  required: ["nome", "faixaEtaria", "professorId"],
+  required: ["nome", "faixaEtaria", "professorIds"],
   additionalProperties: false,
 };

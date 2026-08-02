@@ -14,8 +14,10 @@ export const createTurmaService = async (
     );
   }
 
-  const professor = await ProfessorRepository.findById(payload.professorId);
-  if (!professor) {
+  const professores = await ProfessorRepository.find({
+    _id: { $in: payload.professorIds },
+  });
+  if (professores.length !== new Set(payload.professorIds).size) {
     throw httpError(
       STATUS_CODE.NOT_FOUND,
       "PROFESSOR_NOT_FOUND",
@@ -27,7 +29,7 @@ export const createTurmaService = async (
     nome: payload.nome,
     descricao: payload.descricao,
     faixaEtaria: payload.faixaEtaria,
-    professorId: payload.professorId,
+    professorIds: payload.professorIds,
     capacidade: payload.capacidade,
   });
 
