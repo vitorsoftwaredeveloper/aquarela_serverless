@@ -23,3 +23,10 @@ export const dataBrasil = (
   mesUmBased: number,
   dia: number,
 ): Date => new Date(Date.UTC(ano, mesUmBased - 1, dia, 3, 0, 0));
+
+/** "MM-DD" a partir de uma data de calendário (UTC — sem componente de hora). */
+export const diaMesDeData = (data: Date): string => {
+  const mes = String(data.getUTCMonth() + 1).padStart(2, "0");
+  const dia = String(data.getUTCDate()).padStart(2, "0");
+  return `${mes}-${dia}`;
+};

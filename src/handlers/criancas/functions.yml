@@ -161,3 +161,21 @@ moverCriancaTurma:
         path: /v1/criancas/{id}/turma
         authorizer:
           name: cognitoAuthorizer
+
+notificarAniversariantes:
+  handler: src/handlers/criancas/notificarAniversariantes.execute
+  environment:
+    FIREBASE_SERVICE_ACCOUNT: ${self:custom.environment.FIREBASE_SERVICE_ACCOUNT}
+  iamRoleStatementsInherit: true
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - ssm:GetParameter
+      Resource:
+        - ${self:custom.ssmParameterArn}/firebase_service_account
+        - ${self:custom.ssmParameterArn}/*/firebase_service_account
+        - ${self:custom.ssmParameterArn}/encryption_key
+        - ${self:custom.ssmParameterArn}/*/encryption_key
+  events:
+    - schedule:
+        rate: cron(0 11 * * ? *)

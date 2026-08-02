@@ -537,18 +537,18 @@ isso:
 ## Épico N — Ajustes de cadastro, dashboard e operação (OPS)
 
 > Itens 3, 4, 5, 11 e 13 — tarefas independentes entre si, sem tema comum além
-> de "corrigir/completar o que já existe". **OPS-01 e OPS-02 são correção, não
-> feature**, e deveriam entrar antes do resto do lote.
+> de "corrigir/completar o que já existe". **Épico N fechado (02/08/2026)** —
+> as 5 tarefas concluídas.
 
 | ID     | Tarefa                                                                    | Prio | Pts | Camada | Dep.           | AC                                                                                             |
 | ------ | ------------------------------------------------------------------------- | ---- | --- | ------ | -------------- | ------------------------------------------------------------------------------------------------- |
 | OPS-01 | ✅ **Responsável não adiciona nem concede `podeRetirar`** (add é admin-only; edit/remove trava `podeRetirar`) | 🔴 | 5 | FS | CAD-09 | Ver regra detalhada abaixo; comparação por `usuarioId`/CPF normalizado, **nunca por índice do array** |
-| OPS-02 | ✅ **Balanço em regime de caixa + fuso GMT-3** (back pronto; rótulo do card no `aquarela_app` segue pendente) | 🔴   | 5   | FS     | FIN-11         | Pagamento de 31/07 23:00 GMT-3 aparece em **julho**; despesa lançada 31/07 22h idem            |
-| OPS-03 | **Múltiplos professores por turma** (`professorIds[]`)                    | 🔴   | 8   | FS     | CAD-06         | Migração sem downtime; todo ownership por turma passa a usar `includes`                        |
-| OPS-04 | **Ficha de cadastro da criança para impressão** (A4, `@media print`)      | 🟡   | 5   | FE     | CAD-08         | Sem endpoint novo e sem lib de PDF — impressão nativa do browser                               |
-| OPS-05 | **Notificação de aniversário** da criança                                 | 🟡   | 5   | FS     | NOT-05         | Cron 08:00 GMT-3; responsáveis + professores da turma; idempotente no mesmo dia                |
+| OPS-02 | ✅ **Balanço em regime de caixa + fuso GMT-3** (back e front prontos — rótulo "regime de caixa — data do pagamento" no `aquarela_app`) | 🔴   | 5   | FS     | FIN-11         | Pagamento de 31/07 23:00 GMT-3 aparece em **julho**; despesa lançada 31/07 22h idem            |
+| OPS-03 | ✅ **Múltiplos professores por turma** (`professorIds[]`)                 | 🔴   | 8   | FS     | CAD-06         | Migração sem downtime; todo ownership por turma passa a usar `includes`                        |
+| OPS-04 | ✅ **Ficha de cadastro da criança para impressão** (A4, `@media print`)   | 🟡   | 5   | FE     | CAD-08         | Sem endpoint novo e sem lib de PDF — impressão nativa do browser                               |
+| OPS-05 | ✅ **Notificação de aniversário** da criança                              | 🟡   | 5   | FS     | NOT-05         | Cron 08:00 GMT-3; responsáveis + professores da turma; idempotente no mesmo dia                |
 
-**Subtotal Épico N:** 28 pts.
+**Subtotal Épico N:** 28 pts — ✅ concluído.
 
 ### OPS-01 — `podeRetirar` é decisão da secretaria (✅ furo de segurança corrigido)
 
@@ -627,7 +627,7 @@ fuso menores: `$month: "$data"` nas despesas usa **UTC** (despesa lançada dia 3
 8. **Teste de regressão obrigatório:** pagamento com `pagoEm = 2026-07-31T23:00-03:00`
    de uma mensalidade `{ano:2026, mes:8}` → entra em **julho** no balanço.
 
-### OPS-03 — Múltiplos professores por turma
+### OPS-03 — ✅ Múltiplos professores por turma
 
 `turmas.professorId: ObjectId` → **`turmas.professorIds: [ObjectId]`** (mínimo 1),
 índice em `professorIds`.
@@ -657,7 +657,7 @@ fuso menores: `$month: "$data"` nas despesas usa **UTC** (despesa lançada dia 3
   continua mostrando "minhas turmas" — agora uma turma pode aparecer para mais
   de um professor.
 
-### OPS-04 — Ficha de cadastro para impressão
+### OPS-04 — ✅ Ficha de cadastro para impressão
 
 100% front, **sem endpoint novo** (`GET /criancas/{id}` já devolve tudo) e **sem
 lib de PDF** — a impressão nativa do browser gera PDF via "Salvar como PDF", o
@@ -673,7 +673,7 @@ que evita mais uma dependência e mais um caminho de código.
   documento confidencial (LGPD).
 - Acesso: admin. Responsável imprimir a ficha do próprio filho fica como 🟢 Could.
 
-### OPS-05 — Notificação de aniversário
+### OPS-05 — ✅ Notificação de aniversário
 
 - Cron `notificarAniversariantes`, diário às 08:00 GMT-3 (`cron(0 11 * * ? *)`).
 - **Campo derivado indexado `criancas.nascimentoDiaMes: "MM-DD"`**, preenchido no

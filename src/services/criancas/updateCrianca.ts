@@ -3,6 +3,7 @@ import { ICrianca, IUpdateCriancaPayload } from "../../types/criancas";
 import { IUsuario } from "../../types/usuarios";
 import { isValidCpf } from "../../utils/cpf";
 import { httpError, STATUS_CODE } from "../../utils/errors";
+import { diaMesDeData } from "../../utils/date";
 import { sincronizarMensalidadesNaoPagas } from "../mensalidades/sincronizarMensalidadesNaoPagas";
 import { appendAuditoria } from "../shared/auditoriaCrianca";
 import {
@@ -52,6 +53,7 @@ export const updateCriancaService = async (
     ...camposDiretos,
     ...(payload.dataNascimento && {
       dataNascimento: new Date(payload.dataNascimento),
+      nascimentoDiaMes: diaMesDeData(new Date(payload.dataNascimento)),
     }),
   };
 

@@ -792,19 +792,27 @@ anexos?: { key: string; nome: string; contentType: string; tamanho: number }[]; 
 > `GET /agenda` e `GET /agenda/historico` devolvem `anexos[].url` (presigned de
 > 1h) além de `key`/`nome`/`contentType`/`tamanho`.
 
-**Notificação de aniversário** (OPS-05).
+**✅ Notificação de aniversário** (OPS-05).
 
-Cron `notificarAniversariantes`, diário às 08:00 GMT-3 (`cron(0 11 * * ? *)`).
-Sem rota HTTP.
+Cron `notificarAniversariantes` (`src/handlers/criancas/notificarAniversariantes.ts`
++ `src/services/criancas/notificarAniversariantes.ts`), diário às 08:00 GMT-3
+(`cron(0 11 * * ? *)`). Sem rota HTTP.
 
 - Casa por **`criancas.nascimentoDiaMes: "MM-DD"`**, campo derivado indexado
-  preenchido no `POST`/`PUT /criancas` (+ migração do acervo). A alternativa
-  (`$expr` com `$dayOfMonth`/`$month` e `timezone`) força collection scan diário.
-- Notifica os **responsáveis** da criança ("Hoje é aniversário da Sofia! 🎉") e
-  os **professores** da turma (1 push agregado: "Hoje é aniversário de 2 alunos
-  da Turma Azul"). Admin não recebe push — vê um card no dashboard.
+  preenchido no `POST`/`PUT /criancas` (`diaMesDeData` em `utils/date.ts`) +
+  migração do acervo (`scripts/migrations/2026-08-criancas-nascimentoDiaMes.ts`,
+  `npm run migrate:criancas-nascimentoDiaMes`). A alternativa (`$expr` com
+  `$dayOfMonth`/`$month` e `timezone`) força collection scan diário.
+- Notifica os **responsáveis** da criança, agregado por pessoa — 1 push mesmo
+  com 2+ filhos aniversariantes no mesmo dia ("Hoje é aniversário da Sofia! 🎉"
+  ou "Hoje é aniversário de 2 dos seus filhos: Sofia, Davi! 🎉") — e **todos os
+  professores** da turma (OPS-03: `turma.professorIds[]`, não só o primeiro),
+  1 push agregado por turma ("Hoje é aniversário de 2 alunos da Turma Azul!").
+  Admin não recebe push — vê um card no dashboard (`DashboardScreen.tsx`,
+  `aquarela_app`), calculado no cliente a partir do `GET /criancas` já
+  carregado (sem endpoint novo).
 - Idempotência: `criancas.ultimoAniversarioNotificadoEm` — cron reexecutado no
-  mesmo dia não duplica.
+  mesmo dia não duplica (filtro `$lt` hoje-meia-noite-Brasil).
 
 **Novos códigos de erro do lote:** `PODE_RETIRAR_EXCLUSIVO_ADMIN` (403) ·
 `RESPONSAVEL_EXCLUSIVO_ADMIN` (403) ·

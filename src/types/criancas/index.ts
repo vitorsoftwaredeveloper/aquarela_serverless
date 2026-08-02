@@ -49,6 +49,9 @@ export interface ICrianca {
   _id: string;
   nome: string;
   dataNascimento: Date;
+  /** Derivado ("MM-DD") — indexado para o cron de aniversário. */
+  nascimentoDiaMes: string;
+  ultimoAniversarioNotificadoEm?: Date | null;
   cpf: string;
   foto?: string;
   fotoUrl?: string;

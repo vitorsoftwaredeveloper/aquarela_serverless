@@ -5,6 +5,7 @@ import { UsuarioRepository } from "../../repositories/usuario.repository";
 import { createUsuarioService } from "../usuarios/createUsuario";
 import { gerarMensalidadesIniciaisService } from "../mensalidades/gerarMensalidadesIniciais";
 import { hashForLookup } from "../../libs/crypto";
+import { diaMesDeData } from "../../utils/date";
 import {
   IAcessoResponsavelCriado,
   ICreateCriancaPayload,
@@ -136,6 +137,7 @@ export const createCriancaService = async (
       _id: criancaId,
       nome: payload.nome,
       dataNascimento: new Date(payload.dataNascimento),
+      nascimentoDiaMes: diaMesDeData(new Date(payload.dataNascimento)),
       cpf: payload.cpf,
       foto: fotoKey,
       turmaId: payload.turmaId ?? null,

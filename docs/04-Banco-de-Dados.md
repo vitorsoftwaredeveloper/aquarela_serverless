@@ -335,11 +335,11 @@ incremental por `desde`).
 
 ### `criancas` — campos novos do lote de 01/08/2026
 ```
-consentimentoImagem?: {           // Épico M — REVOGÁVEL (≠ consentimentoLgpd)
+consentimentoImagem?: {           // Épico M (pendente) — REVOGÁVEL (≠ consentimentoLgpd)
   aceito: boolean, aceitoEm: Date, registradoPor: ObjectId
 },
-nascimentoDiaMes: string (idx),   // "MM-DD" derivado de dataNascimento — OPS-05
-ultimoAniversarioNotificadoEm?: Date  // idempotência do cron de aniversário
+nascimentoDiaMes: string (idx),   // ✅ OPS-05 — "MM-DD" derivado de dataNascimento
+ultimoAniversarioNotificadoEm: Date | null  // ✅ OPS-05 — idempotência do cron
 ```
 
 > **`consentimentoImagem` é o oposto de `consentimentoLgpd` em ciclo de vida.**

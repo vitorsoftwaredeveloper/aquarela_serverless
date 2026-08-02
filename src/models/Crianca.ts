@@ -65,6 +65,10 @@ export const CriancaSchema = new Schema(
   {
     nome: { type: String, required: true, trim: true },
     dataNascimento: { type: Date, required: true },
+    // Derivado de `dataNascimento` ("MM-DD") — permite achar aniversariantes
+    // do dia sem collection scan (cron `notificarAniversariantes`).
+    nascimentoDiaMes: { type: String, required: true, index: true },
+    ultimoAniversarioNotificadoEm: { type: Date, default: null },
     // Cifrado em repouso (LGPD) — ver src/repositories/transforms/criancaCrypto.ts.
     // IV aleatório por gravação, então não pode carregar o índice único;
     // `cpfHash` (HMAC determinístico) garante a unicidade no lugar dele.
