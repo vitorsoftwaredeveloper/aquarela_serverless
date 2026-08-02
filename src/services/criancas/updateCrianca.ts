@@ -48,12 +48,19 @@ export const updateCriancaService = async (
   }
 
   const camposAlterados = Object.keys(payload);
-  const { foto, ...camposDiretos } = payload;
+  const { foto, consentimentoImagem, ...camposDiretos } = payload;
   const update: Record<string, unknown> = {
     ...camposDiretos,
     ...(payload.dataNascimento && {
       dataNascimento: new Date(payload.dataNascimento),
       nascimentoDiaMes: diaMesDeData(new Date(payload.dataNascimento)),
+    }),
+    ...(consentimentoImagem !== undefined && {
+      consentimentoImagem: {
+        aceito: consentimentoImagem,
+        aceitoEm: new Date(),
+        registradoPor: requester._id,
+      },
     }),
   };
 

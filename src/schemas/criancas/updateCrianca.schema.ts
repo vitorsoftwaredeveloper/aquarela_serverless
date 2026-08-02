@@ -74,6 +74,7 @@ export const updateCriancaSchema: JSONSchemaType<IUpdateCriancaPayload> = {
       additionalProperties: false,
       nullable: true,
     },
+    consentimentoImagem: { type: "boolean", nullable: true },
   },
   required: [],
   additionalProperties: false,

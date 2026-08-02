@@ -183,6 +183,7 @@ Base para todos os demais épicos. Não entrega valor ao usuário final, mas des
 | QA-06 | ✅ Teste de usabilidade com 1 professor + 2 pais — validado (31/07/2026), sem ajustes necessários | 🟡 | 3 | UX | Épicos B–C     | Ajustes de UX priorizados a partir do teste                       |
 | QA-07 | ✅ Hardening de segurança (IAM por Lambda, secrets, webhook assinado) | 🔴 | 5   | INFRA  | Épico D        | Menor privilégio; segredos em SSM; webhook verificado             |
 | QA-08 | ⚪ Go-live: deploy prod, monitoramento, runbook — descartado (decisão do produto, 31/07/2026) | ⚪ | 3 | INFRA | INF-11, INF-12 | Prod estável; alarmes; plano de rollback                          |
+| QA-09 | Sessão dedicada de testes — unitários (débito de `avisos`/`mensagens`/`eventos`) + suíte de integração nova | 🔴 | 8 | BE | Épicos I, K, M | Ver detalhamento abaixo; decisão do usuário (02/08/2026): sessão própria, não misturar com feature nova |
 
 > QA-03: consentimento no cadastro **implementado** — checkbox obrigatório
 > no último step do stepper (`aquarela_app`) + `criancas.consentimentoLgpd`
@@ -216,7 +217,45 @@ Base para todos os demais épicos. Não entrega valor ao usuário final, mas des
 > `listTurmas.test.ts` são bug pré-existente, não relacionado — reproduzido
 > também sem esta mudança).
 
-**Subtotal Épico G:** 29 pts (MVP: ~23 pts).
+> **QA-09 — o que entra na sessão de testes (não codar isso junto de feature nova):**
+>
+> **1. Unitário, débito acumulado** (padrão já usado em `createMensagem.test.ts`/
+> `removeMensagem.test.ts` — Jest + repository/S3 mockados, sem Mongo real):
+> - `avisos`: zero teste hoje (`createAviso`, `listAvisos` com escopo por
+>   papel, `updateAviso`, `removeAviso`).
+> - `mensagens`: falta `listMensagens.test.ts` (paginação/`antesDe`/`desde`).
+> - `eventos` (Épico M, implementado 02/08/2026 sem teste — ver
+>   `src/services/eventos/` e `src/services/shared/eventoAccess.ts`):
+>   - `eventoAccess`: professor sem `turmaId` no create → `403`; professor
+>     mexendo em evento de turma alheia → `403`; professor mexendo em evento
+>     **global** (sem `turmaId`), mesmo sendo autor → `403`; admin passa em
+>     tudo.
+>   - `publicarEvento`: 1ª chamada seta `publicado`/`publicadoEm` e notifica
+>     (`notificado: true`); 2ª chamada não renotifica (`notificado: false`);
+>     falha do `enviarNotificacao` não derruba a publicação.
+>   - `adicionarFotos`: estoura `MAX_FOTOS_POR_EVENTO` (50) → `422
+>     LIMITE_FOTOS_EXCEDIDO`; chama `validarAnexosVinculados("mural", ...)`
+>     antes de gravar; `ordem` continua da lista existente, não reseta.
+>   - `listEventos`: responsável só vê `publicado: true`; professor vê
+>     rascunho das próprias turmas + tudo que é global; admin vê tudo.
+>
+> **2. Integração — suíte nova, ainda não existe no repo.** Hoje 100% dos
+> testes mockam `Mongo`/S3/FCM; não há nenhuma verificação rodando contra
+> Mongo real. Decisão a tomar na própria sessão: subir o
+> `docker-compose.yml` (replicaSet local já documentado no `CLAUDE.md` §8)
+> num `jest.integration.config.js` separado, e cobrir pelo menos:
+> - Índices únicos reais (`criancas.cpfHash`, `mensalidades{criancaId,ano,mes}`,
+>   `pagamentos.txid`) — hoje só testados indiretamente via mock de erro
+>   `11000`.
+> - Transação de geração de mensalidade + baixa de pagamento
+>   (`sincronizarMensalidadesNaoPagas`/webhook) num replicaSet de verdade.
+> - Round-trip de criptografia (`criancaCrypto.ts`) gravando e lendo do Mongo
+>   real, não só chamando `encrypt`/`decrypt` isolado.
+>
+> Escopo grande de propósito — por isso vira sessão própria (QA-09), não um
+> apêndice da próxima feature.
+
+**Subtotal Épico G:** 29 pts + 8 pts (QA-09, ainda não commitado no MVP) = 37 pts.
 
 ---
 
@@ -495,42 +534,39 @@ das 11h e não sabe que mudou. A rota passa a ser **"notificar (re)envio"**:
 > Reaproveita o épico K inteiro para upload (presigned PUT, whitelist, teto de
 > 10MB) e o motor de notificação do épico I para avisar que saiu álbum novo.
 
-**🔴 Ponto de LGPD que precisa de decisão da escola antes de codar.** Foto de
-criança é dado pessoal de menor, e o mural expõe a imagem de uma criança a
-**outros responsáveis** da turma — é um tratamento diferente do
-`consentimentoLgpd` genérico que já existe (aquele cobre cadastro/saúde). Por
-isso:
+**✅ Decisão de LGPD tomada (02/08/2026).** Foto de criança é dado pessoal de
+menor, e o mural expõe a imagem de uma criança a **outros responsáveis** da
+turma — tratamento diferente do `consentimentoLgpd` genérico que já existe
+(aquele cobre cadastro/saúde). A escola optou por **não exigir marcação de
+criança por foto**:
 
 - Nasce `criancas.consentimentoImagem { aceito, aceitoEm, registradoPor }`,
   coletado no cadastro em checkbox **separado** e — ao contrário do
-  `consentimentoLgpd` — **revogável a qualquer momento** pelo responsável.
-  Recusar não impede a matrícula.
-- A tela de upload do professor mostra, fixa no topo, **os nomes das crianças da
-  turma sem consentimento de imagem** — quem não pode aparecer na foto.
-- Marcação de quem aparece (`fotos[].criancasIds`) é **opcional**; quando
-  preenchida, o back **bloqueia a publicação** se alguma criança marcada não tem
-  consentimento (`422 SEM_CONSENTIMENTO_IMAGEM`).
-- Revogação posterior remove retroativamente as fotos em que a criança foi
-  marcada e notifica o admin do que saiu do ar.
-
-> O bloqueio duro só funciona onde há marcação — a marcação por foto é
-> trabalhosa e o professor vai pular. **Trate o aviso na tela + o consentimento
-> registrado como o controle real, e a marcação como reforço.** Se a escola
-> quiser garantia forte, o caminho é tornar `criancasIds` obrigatório na
-> publicação, com o custo de UX que isso traz. Confirmar antes do FOT-05.
+  `consentimentoLgpd` — **revogável a qualquer momento** pelo responsável
+  (`PUT /criancas/{id}`). Recusar não impede a matrícula.
+- **Não existe `fotos[].criancasIds`.** Sem marcação, não há o que bloquear:
+  `POST /eventos/{id}/publicar` nunca responde `422` por consentimento. O
+  controle real é o consentimento registrado + o professor conhecer a
+  própria turma — decisão consciente de trocar garantia técnica por
+  simplicidade de uso (marcação por foto era trabalho manual que o professor
+  ia pular de qualquer forma).
+- Front (FOT-06) ainda deve mostrar, fixo no topo da tela de upload, os nomes
+  das crianças da turma sem consentimento de imagem — é aviso informativo
+  para o professor evitar fotografá-las, não um bloqueio do sistema.
 
 | ID     | Tarefa                                                                    | Prio | Pts | Camada | Dep.           | AC                                                                                               |
 | ------ | ------------------------------------------------------------------------- | ---- | --- | ------ | -------------- | --------------------------------------------------------------------------------------------------- |
-| FOT-01 | Modelo `eventos` + índices `{turmaId, data:-1}` e `{publicado, data:-1}`  | 🔴   | 3   | BE     | CAD-06         | Estrutura da doc de banco; `turmaId` ausente = evento da escola inteira (mesma regra de `avisos`) |
-| FOT-02 | CRUD `/eventos` com escopo por papel                                      | 🔴   | 5   | BE     | FOT-01         | Professor só das próprias turmas; responsável só `publicado:true` no escopo dele; admin tudo     |
-| FOT-03 | `POST /eventos/{id}/fotos` e `DELETE /eventos/{id}/fotos/{fotoKey}`       | 🔴   | 3   | BE     | FOT-02, MSG-01 | Máx. 50 fotos/evento; `DELETE` apaga o objeto no S3; ordem preservada                            |
-| FOT-04 | `POST /eventos/{id}/publicar` + notificação idempotente                   | 🔴   | 3   | BE     | FOT-02, NOT-05 | 2ª chamada não renotifica (usa `publicadoEm`); corpo "Novas fotos do evento X"                   |
-| FOT-05 | `criancas.consentimentoImagem` (revogável) + regra de bloqueio            | 🔴   | 5   | FS     | CAD-08, FOT-03 | Checkbox separado no cadastro; revogação pelo responsável; lista de "não podem aparecer" na UI   |
+| FOT-01 | Modelo `eventos` + índices `{turmaId, data:-1}` e `{publicado, data:-1}`  | ✅   | 3   | BE     | CAD-06         | Estrutura da doc de banco; `turmaId` ausente = evento da escola inteira (mesma regra de `avisos`) |
+| FOT-02 | CRUD `/eventos` com escopo por papel                                      | ✅   | 5   | BE     | FOT-01         | Professor só das próprias turmas; responsável só `publicado:true` no escopo dele; admin tudo     |
+| FOT-03 | `POST /eventos/{id}/fotos` e `DELETE /eventos/{id}/fotos/{fotoKey}`       | ✅   | 3   | BE     | FOT-02, MSG-01 | Máx. 50 fotos/evento; `DELETE` apaga o objeto no S3; ordem preservada                            |
+| FOT-04 | `POST /eventos/{id}/publicar` + notificação idempotente                   | ✅   | 3   | BE     | FOT-02, NOT-05 | 2ª chamada não renotifica (usa `publicadoEm`); corpo "Novas fotos do evento X"                   |
+| FOT-05 | `criancas.consentimentoImagem` (revogável, sem marcação/bloqueio)          | ✅   | 3   | FS     | CAD-08, FOT-03 | Checkbox separado no cadastro (back ✅); revogação pelo responsável (back ✅); UI da lista "não podem aparecer" fica com FOT-06 |
 | FOT-06 | Tela do professor: criar evento + upload múltiplo com resize e progresso  | 🔴   | 8   | FE     | FOT-03, MSG-08 | Seleção múltipla, resize no canvas antes do PUT, reordenar, legenda, rascunho × publicado        |
 | FOT-07 | Tela do responsável: mural (grid + lightbox + download)                   | 🔴   | 5   | FE     | FOT-02         | Agrupado por evento/data; lightbox com teclado; baixa a foto original                            |
-| FOT-08 | Atualizar `docs/03-Backend.md` e `docs/04-Banco-de-Dados.md`              | 🔴   | 1   | BE     | FOT-01…FOT-05  | `/eventos`, coleção `eventos` e `consentimentoImagem` documentados                               |
+| FOT-08 | Atualizar `docs/03-Backend.md` e `docs/04-Banco-de-Dados.md`              | ✅   | 1   | BE     | FOT-01…FOT-05  | `/eventos`, coleção `eventos` e `consentimentoImagem` documentados                               |
 
-**Subtotal Épico M:** 33 pts.
+**Subtotal Épico M:** 33 pts (17 pts ✅ back-end feito 02/08/2026 — FOT-01…05, 08; 13 pts restantes são front, FOT-06/07).
+Pontos reduzidos de FOT-05 (5→3) refletem o escopo menor sem a lógica de bloqueio por marcação.
 
 ---
 
@@ -703,7 +739,7 @@ que evita mais uma dependência e mais um caminho de código.
 | 4    | COB-01…COB-05                                  | Cobrança automática nos dias 05 e 20                                                  |
 | 5    | AG2-03…AG2-08, OPS-03                          | Agenda v2 + múltiplos professores                                                     |
 | 6    | MSG-03…MSG-07, MSG-09…MSG-11                   | Recados com anexo                                                                     |
-| 7    | FOT-01…FOT-08                                  | Mural de fotos (maior e o único com pendência jurídica aberta)                        |
+| 7    | ~~FOT-01…FOT-05, FOT-08~~ ✅ · FOT-06, FOT-07  | Mural de fotos — back-end pronto (02/08/2026); resta só a UI (professor + responsável) |
 | 8    | OPS-04, OPS-05, AG2-09                         | Impressão, aniversário e frequência                                                   |
 
 ## Pendências de decisão antes de codar
@@ -711,7 +747,7 @@ que evita mais uma dependência e mais um caminho de código.
 | # | Pendência                                                                 | Bloqueia | Default se ninguém decidir                       |
 | - | ------------------------------------------------------------------------- | -------- | ------------------------------------------------ |
 | 1 | Carência de 36 dias até virar inadimplente é o que a escola quer?         | COB-07   | `{ diaCorte: 10, mesesCarencia: 1 }`, configurável |
-| 2 | Marcação de criança por foto é obrigatória na publicação do mural?        | FOT-05   | Opcional — aviso na tela + consentimento registrado |
+| 2 | ~~Marcação de criança por foto é obrigatória na publicação do mural?~~ **Resolvido 02/08/2026: sem marcação nenhuma** — consentimento é só registro, sem `criancasIds`/bloqueio técnico. | FOT-05 ✅ | — |
 | 3 | Cobrança precisa alcançar quem não instalou o PWA (e-mail/WhatsApp)?      | COB-01   | Só push + badge in-app nesta fase                 |
 
 ---

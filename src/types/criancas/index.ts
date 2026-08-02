@@ -45,6 +45,12 @@ export interface IConsentimentoLgpd {
   aceitoEm: Date;
 }
 
+export interface IConsentimentoImagem {
+  aceito: boolean;
+  aceitoEm: Date;
+  registradoPor: string;
+}
+
 export interface ICrianca {
   _id: string;
   nome: string;
@@ -61,6 +67,7 @@ export interface ICrianca {
   saude: ISaude;
   financeiro: IFinanceiroCrianca;
   consentimentoLgpd: IConsentimentoLgpd;
+  consentimentoImagem?: IConsentimentoImagem;
   auditoria?: IAuditoriaEntry[];
   createdAt?: Date;
   updatedAt?: Date;
@@ -78,6 +85,7 @@ export interface ICreateCriancaPayload {
   saude?: ISaude;
   financeiro: IFinanceiroCrianca;
   consentimentoLgpd: boolean;
+  consentimentoImagem?: boolean;
 }
 
 /** Acesso de responsável criado junto com a criança (senha entregue 1x ao admin). */
@@ -100,4 +108,5 @@ export interface IUpdateCriancaPayload {
   responsaveis?: IResponsavel[];
   saude?: ISaude;
   financeiro?: IFinanceiroCrianca;
+  consentimentoImagem?: boolean;
 }

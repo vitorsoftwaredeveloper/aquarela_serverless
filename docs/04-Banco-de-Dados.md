@@ -305,17 +305,17 @@ incremental por `desde`).
 > última abertura da thread. Evita 1 write + 1 query extra por
 > abertura/mensagem sem perder nada que o produto realmente usa.
 
-### `eventos` — Épico M (mural de fotos)
+### `eventos` — Épico M (mural de fotos) ✅ implementado (02/08/2026)
 ```
 {
   _id, titulo, descricao?, data: Date,
   turmaId?: ObjectId (idx),         // ausente = evento da escola inteira
   autorId: ObjectId (usuarios),
   fotos: [{
-    key: string, legenda?: string, ordem: number,
-    criancasIds?: [ObjectId],       // quem aparece na foto — OPCIONAL (ver LGPD)
+    key: string, nome: string, contentType: string, tamanho: number,
+    legenda?: string, ordem: number,
     enviadoPor: ObjectId, enviadoEm: Date
-  }],                               // máx. 50
+  }],                               // máx. 50 — SEM criancasIds (ver nota abaixo)
   publicado: boolean,               // rascunho × publicado
   publicadoEm?: Date,               // idempotência da notificação
   createdAt, updatedAt
@@ -331,11 +331,23 @@ incremental por `desde`).
 > ao responsável enquanto `publicado: false`. `publicadoEm` é o que torna
 > `POST /eventos/{id}/publicar` idempotente: 2ª chamada não renotifica.
 >
-> Hard delete apaga todos os objetos do S3 do prefixo `eventos/{eventoId}/`.
+> Hard delete apaga todos os objetos do S3 do prefixo `eventos/` referentes às
+> `fotos[].key` do evento (key é `eventos/{uuid}.{ext}`, sem segmento de
+> `eventoId` — mesma convenção plana de `mensagens/` e `agendas/`, ver
+> `src/services/anexos/criarUploadUrlAnexo.ts`).
+>
+> **Sem `fotos[].criancasIds`.** A especificação original previa marcar quem
+> aparece em cada foto para bloquear a publicação sem consentimento — decisão
+> de produto (02/08/2026) descartou a marcação: custo de UX pro professor
+> maior que o ganho, e o controle real já é o consentimento registrado em
+> `criancas.consentimentoImagem` + o professor conhecer a própria turma. Não
+> há, portanto, nenhum `422` de bloqueio de publicação por falta de
+> consentimento — `POST /eventos/{id}/publicar` só falha se o evento não
+> existir ou o requisitante não tiver acesso.
 
 ### `criancas` — campos novos do lote de 01/08/2026
 ```
-consentimentoImagem?: {           // Épico M (pendente) — REVOGÁVEL (≠ consentimentoLgpd)
+consentimentoImagem?: {           // ✅ Épico M — REVOGÁVEL (≠ consentimentoLgpd)
   aceito: boolean, aceitoEm: Date, registradoPor: ObjectId
 },
 nascimentoDiaMes: string (idx),   // ✅ OPS-05 — "MM-DD" derivado de dataNascimento
@@ -345,10 +357,12 @@ ultimoAniversarioNotificadoEm: Date | null  // ✅ OPS-05 — idempotência do c
 > **`consentimentoImagem` é o oposto de `consentimentoLgpd` em ciclo de vida.**
 > `consentimentoLgpd` é obrigatório no `POST /criancas` e **imutável** (fora de
 > `IUpdateCriancaPayload`). `consentimentoImagem` é **opcional** — recusar não
-> impede a matrícula — e **revogável a qualquer momento pelo responsável**, o
-> que é justamente o que a LGPD exige de consentimento para uso de imagem.
-> Revogar remove retroativamente as fotos em que a criança foi marcada
-> (`eventos.fotos[].criancasIds`).
+> impede a matrícula — e **revogável a qualquer momento pelo responsável**
+> (`PUT /criancas/{id}`, campo fora de `CAMPOS_EXCLUSIVOS_ADMIN`), o que é
+> justamente o que a LGPD exige de consentimento para uso de imagem.
+> **Revogar não tem efeito técnico retroativo sobre `eventos`** — como não há
+> marcação por foto (`criancasIds` foi descartado, ver acima), não existe o
+> que "desmarcar"; o registro é só histórico/jurídico.
 >
 > **`nascimentoDiaMes` existe para não varrer a coleção todo dia.** Casar
 > aniversário por `$expr` com `$dayOfMonth`/`$month` + `timezone` funciona, mas

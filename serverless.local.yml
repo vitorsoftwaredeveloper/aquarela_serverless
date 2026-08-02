@@ -481,3 +481,52 @@ functions:
       - httpApi:
           method: DELETE
           path: /v1/mensagens/{id}
+
+  criarEvento:
+    handler: src/handlers/eventos/criarEvento.execute
+    events:
+      - httpApi:
+          method: POST
+          path: /v1/eventos
+
+  listEventos:
+    handler: src/handlers/eventos/listEventos.execute
+    events:
+      - httpApi:
+          method: GET
+          path: /v1/eventos
+
+  atualizarEvento:
+    handler: src/handlers/eventos/atualizarEvento.execute
+    events:
+      - httpApi:
+          method: PUT
+          path: /v1/eventos/{id}
+
+  adicionarFotos:
+    handler: src/handlers/eventos/adicionarFotos.execute
+    events:
+      - httpApi:
+          method: POST
+          path: /v1/eventos/{id}/fotos
+
+  removerFoto:
+    handler: src/handlers/eventos/removerFoto.execute
+    events:
+      - httpApi:
+          method: DELETE
+          path: /v1/eventos/{id}/fotos/{fotoKey+}
+
+  publicarEvento:
+    handler: src/handlers/eventos/publicarEvento.execute
+    events:
+      - httpApi:
+          method: POST
+          path: /v1/eventos/{id}/publicar
+
+  removeEvento:
+    handler: src/handlers/eventos/removeEvento.execute
+    events:
+      - httpApi:
+          method: DELETE
+          path: /v1/eventos/{id}

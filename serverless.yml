@@ -57,6 +57,7 @@ provider:
   region: ${opt:region, 'us-east-1'}
   stage: ${opt:stage, 'dev'}
   timeout: 27
+  versionFunctions: false
   environment:
     STAGE: ${self:provider.stage}
     DB: ${self:custom.environment.DB}
@@ -127,6 +128,7 @@ functions:
   - ${file(src/handlers/dispositivos/functions.yml)}
   - ${file(src/handlers/anexos/functions.yml)}
   - ${file(src/handlers/mensagens/functions.yml)}
+  - ${file(src/handlers/eventos/functions.yml)}
   - ${file(src/handlers/relatorios/functions.yml)}
   - ${file(src/handlers/manutencao/functions.yml)}
 

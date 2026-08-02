@@ -57,6 +57,7 @@ const ensureResponsavelUsuario = async (
 };
 
 export const createCriancaService = async (
+  requester: IUsuario,
   payload: ICreateCriancaPayload,
 ): Promise<ICreateCriancaResult> => {
   if (!isValidCpf(payload.cpf)) {
@@ -145,6 +146,13 @@ export const createCriancaService = async (
       saude: payload.saude ?? {},
       financeiro: payload.financeiro,
       consentimentoLgpd: { aceito: true, aceitoEm: new Date() },
+      consentimentoImagem: payload.consentimentoImagem
+        ? {
+            aceito: true,
+            aceitoEm: new Date(),
+            registradoPor: requester._id,
+          }
+        : undefined,
       auditoria: [],
     });
 

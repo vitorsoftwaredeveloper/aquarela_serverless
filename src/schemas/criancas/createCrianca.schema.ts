@@ -77,6 +77,7 @@ export const createCriancaSchema: JSONSchemaType<ICreateCriancaPayload> = {
       additionalProperties: false,
     },
     consentimentoLgpd: { type: "boolean" },
+    consentimentoImagem: { type: "boolean", nullable: true },
   },
   required: [
     "nome",

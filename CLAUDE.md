@@ -94,9 +94,9 @@ Detalhes: [`docs/03-Backend.md`](./docs/03-Backend.md).
 
 14 pedidos da operação viraram os épicos **J** (cobrança/inadimplência, ✅),
 **K** (recados com anexo, ✅), **L** (agenda v2, ✅ — MVP fechado, AG2-09 adiado
-por decisão do usuário), **M** (mural de fotos, pendente — bloqueio jurídico de
-consentimento de imagem, ver `docs/06-Backlog.md` §Épico M) e **N** (ajustes,
-✅ — OPS-01…OPS-05 concluídos em 02/08/2026).
+por decisão do usuário), **M** (mural de fotos — back-end ✅ 02/08/2026, front
+pendente, FOT-06/07 em `aquarela_app`) e **N** (ajustes, ✅ — OPS-01…OPS-05
+concluídos em 02/08/2026).
 Contrato em [`docs/03-Backend.md`](./docs/03-Backend.md), modelo em
 [`docs/04-Banco-de-Dados.md`](./docs/04-Banco-de-Dados.md), tarefas e AC em
 [`docs/06-Backlog.md`](./docs/06-Backlog.md). As decisões que mudam código já
@@ -142,13 +142,23 @@ existente:
 - **Crons novos:** `dispararCobrancas` (dias 05 e 20, 09:00 GMT-3) ·
   `marcarInadimplentes` (diário 00:05 GMT-3) · `notificarAniversariantes`
   (diário 08:00 GMT-3) · `limparAnexosOrfaos` (diário).
+- **✅ Mural de fotos** (FOT-01…05, 08): `/eventos` (CRUD + escopo por papel,
+  igual `/avisos`), `POST /eventos/{id}/fotos` (reaproveita
+  `validarAnexosVinculados("mural", ...)`), `POST /eventos/{id}/publicar`
+  (idempotente via `publicadoEm`, mesmo padrão binário do envio de agenda,
+  sem debounce). **Decisão de produto: sem marcação de criança por foto** —
+  `fotos[].criancasIds` não existe, `criancas.consentimentoImagem` é só
+  registro (opcional, revogável via `PUT /criancas/{id}`), sem bloqueio
+  técnico de publicação. Evento sem `turmaId` (global) é exclusivo do admin;
+  professor só gerencia evento de turma onde está em `turma.professorIds`
+  (`src/services/shared/eventoAccess.ts`).
 - **Pendências de produto antes de codar:** carência de 36 dias até virar
-  inadimplente · marcação obrigatória de criança nas fotos do mural ·
-  cobrança precisa de canal além do push (iPhone sem PWA não recebe).
+  inadimplente · cobrança precisa de canal além do push (iPhone sem PWA não
+  recebe).
 
 ## 6. Modelo de dados (MongoDB)
 
-Coleções principais: `usuarios`, `criancas`, `professores`, `turmas`, `agendasDiarias`, `planosAula`, `mensalidades`, `pagamentos`, `despesas`, `configPrecos`, `avisos`, `dispositivos`, `relatoriosAnuais`. Planejadas no lote de 01/08/2026: `mensagens` (recados com anexo) e `eventos` (mural de fotos).
+Coleções principais: `usuarios`, `criancas`, `professores`, `turmas`, `agendasDiarias`, `planosAula`, `mensalidades`, `pagamentos`, `despesas`, `configPrecos`, `avisos`, `dispositivos`, `relatoriosAnuais`, `mensagens` (recados com anexo, ✅), `eventos` (mural de fotos, ✅).
 
 Índices-chave: `agendasDiarias {criancaId, data}` único · `mensalidades {criancaId, ano, mes}` único · `pagamentos.txid` único · `criancas.cpf` único.
 
@@ -156,9 +166,7 @@ Schema completo, índices e consultas: [`docs/04-Banco-de-Dados.md`](./docs/04-B
 
 ## 7. Endpoints (resumo — contrato completo em docs/03)
 
-`/usuarios` `/criancas` `/turmas` `/professores` · `/agenda` `/agenda/historico` · `/mensalidades` `/pagamentos` `/webhooks/mercadopago` `/financeiro/balanco` `/despesas` `/financeiro/inadimplentes` · `/avisos` `/planosAula` `/dispositivos` · `/simulador` `/config/precos`. Base `/v1`, JWT obrigatório exceto simulador/landing e webhook (assinado).
-
-Planejados (lote de 01/08/2026, ver §5.1): `/anexos/upload-url` · `/mensagens` · `/eventos` · `/financeiro/cobrancas/disparar`.
+`/usuarios` `/criancas` `/turmas` `/professores` · `/agenda` `/agenda/historico` · `/mensalidades` `/pagamentos` `/webhooks/mercadopago` `/financeiro/balanco` `/despesas` `/financeiro/inadimplentes` `/financeiro/cobrancas/disparar` · `/avisos` `/planosAula` `/dispositivos` · `/anexos/upload-url` `/mensagens` `/eventos` · `/simulador` `/config/precos`. Base `/v1`, JWT obrigatório exceto simulador/landing e webhook (assinado).
 
 ## 8. Como rodar
 

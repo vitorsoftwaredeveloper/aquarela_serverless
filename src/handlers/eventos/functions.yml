@@ -1,0 +1,100 @@
+criarEvento:
+  handler: src/handlers/eventos/criarEvento.execute
+  events:
+    - httpApi:
+        method: POST
+        path: /v1/eventos
+        authorizer:
+          name: cognitoAuthorizer
+
+listEventos:
+  handler: src/handlers/eventos/listEventos.execute
+  iamRoleStatementsInherit: true
+  iamRoleStatements: ${self:custom.fotosLeituraIamStatements}
+  events:
+    - httpApi:
+        method: GET
+        path: /v1/eventos
+        authorizer:
+          name: cognitoAuthorizer
+
+atualizarEvento:
+  handler: src/handlers/eventos/atualizarEvento.execute
+  iamRoleStatementsInherit: true
+  iamRoleStatements: ${self:custom.fotosLeituraIamStatements}
+  events:
+    - httpApi:
+        method: PUT
+        path: /v1/eventos/{id}
+        authorizer:
+          name: cognitoAuthorizer
+
+adicionarFotos:
+  handler: src/handlers/eventos/adicionarFotos.execute
+  iamRoleStatementsInherit: true
+  iamRoleStatements: ${self:custom.fotosEscritaIamStatements}
+  events:
+    - httpApi:
+        method: POST
+        path: /v1/eventos/{id}/fotos
+        authorizer:
+          name: cognitoAuthorizer
+
+atualizarFotos:
+  handler: src/handlers/eventos/atualizarFotos.execute
+  iamRoleStatementsInherit: true
+  iamRoleStatements: ${self:custom.fotosLeituraIamStatements}
+  events:
+    - httpApi:
+        method: PUT
+        path: /v1/eventos/{id}/fotos
+        authorizer:
+          name: cognitoAuthorizer
+
+removerFoto:
+  handler: src/handlers/eventos/removerFoto.execute
+  iamRoleStatementsInherit: true
+  iamRoleStatements: ${self:custom.fotosEscritaIamStatements}
+  events:
+    - httpApi:
+        method: DELETE
+        path: /v1/eventos/{id}/fotos/{fotoKey+}
+        authorizer:
+          name: cognitoAuthorizer
+
+publicarEvento:
+  handler: src/handlers/eventos/publicarEvento.execute
+  environment:
+    FIREBASE_SERVICE_ACCOUNT: ${self:custom.environment.FIREBASE_SERVICE_ACCOUNT}
+  iamRoleStatementsInherit: true
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - ssm:GetParameter
+      Resource:
+        - ${self:custom.ssmParameterArn}/firebase_service_account
+        - ${self:custom.ssmParameterArn}/*/firebase_service_account
+        - ${self:custom.ssmParameterArn}/encryption_key
+        - ${self:custom.ssmParameterArn}/*/encryption_key
+    - Effect: Allow
+      Action:
+        - s3:GetObject
+      Resource:
+        - ${self:custom.fotosObjectArn}
+  events:
+    - httpApi:
+        method: POST
+        path: /v1/eventos/{id}/publicar
+        authorizer:
+          name: cognitoAuthorizer
+
+removeEvento:
+  handler: src/handlers/eventos/removeEvento.execute
+  iamRoleStatementsInherit: true
+  iamRoleStatements: ${self:custom.fotosEscritaIamStatements}
+  events:
+    - httpApi:
+        method: DELETE
+        path: /v1/eventos/{id}
+        authorizer:
+          name: cognitoAuthorizer
