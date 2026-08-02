@@ -560,12 +560,15 @@ criança por foto**:
 | FOT-02 | CRUD `/eventos` com escopo por papel                                      | ✅   | 5   | BE     | FOT-01         | Professor só das próprias turmas; responsável só `publicado:true` no escopo dele; admin tudo     |
 | FOT-03 | `POST /eventos/{id}/fotos` e `DELETE /eventos/{id}/fotos/{fotoKey}`       | ✅   | 3   | BE     | FOT-02, MSG-01 | Máx. 50 fotos/evento; `DELETE` apaga o objeto no S3; ordem preservada                            |
 | FOT-04 | `POST /eventos/{id}/publicar` + notificação idempotente                   | ✅   | 3   | BE     | FOT-02, NOT-05 | 2ª chamada não renotifica (usa `publicadoEm`); corpo "Novas fotos do evento X"                   |
-| FOT-05 | `criancas.consentimentoImagem` (revogável, sem marcação/bloqueio)          | ✅   | 3   | FS     | CAD-08, FOT-03 | Checkbox separado no cadastro (back ✅); revogação pelo responsável (back ✅); UI da lista "não podem aparecer" fica com FOT-06 |
-| FOT-06 | Tela do professor: criar evento + upload múltiplo com resize e progresso  | 🔴   | 8   | FE     | FOT-03, MSG-08 | Seleção múltipla, resize no canvas antes do PUT, reordenar, legenda, rascunho × publicado        |
-| FOT-07 | Tela do responsável: mural (grid + lightbox + download)                   | 🔴   | 5   | FE     | FOT-02         | Agrupado por evento/data; lightbox com teclado; baixa a foto original                            |
+| FOT-05 | `criancas.consentimentoImagem` (revogável, sem marcação/bloqueio)          | ✅   | 3   | FS     | CAD-08, FOT-03 | Checkbox separado no cadastro (✅); revogação pelo responsável (✅); lista "não podem aparecer" no FOT-06 (✅) |
+| FOT-06 | Tela do professor: criar evento + upload múltiplo com resize e progresso  | ✅   | 8   | FE     | FOT-03, MSG-08 | Seleção múltipla, resize no canvas antes do PUT, reordenar, legenda, rascunho × publicado        |
+| FOT-07 | Tela do responsável: mural (grid + lightbox + download)                   | ✅   | 5   | FE     | FOT-02         | Agrupado por evento/data; lightbox com teclado; baixa a foto original                            |
 | FOT-08 | Atualizar `docs/03-Backend.md` e `docs/04-Banco-de-Dados.md`              | ✅   | 1   | BE     | FOT-01…FOT-05  | `/eventos`, coleção `eventos` e `consentimentoImagem` documentados                               |
 
-**Subtotal Épico M:** 33 pts (17 pts ✅ back-end feito 02/08/2026 — FOT-01…05, 08; 13 pts restantes são front, FOT-06/07).
+**Subtotal Épico M:** 33 pts — **✅ concluído (03/08/2026)**, back-end e front-end
+(front em `aquarela_app`). Reordenar/legenda pós-upload exigiu um endpoint novo
+não previsto no contrato original — `PUT /eventos/{id}/fotos` — ver §"Mural de
+fotos por evento" em `docs/03-Backend.md`.
 Pontos reduzidos de FOT-05 (5→3) refletem o escopo menor sem a lógica de bloqueio por marcação.
 
 ---
@@ -739,7 +742,7 @@ que evita mais uma dependência e mais um caminho de código.
 | 4    | COB-01…COB-05                                  | Cobrança automática nos dias 05 e 20                                                  |
 | 5    | AG2-03…AG2-08, OPS-03                          | Agenda v2 + múltiplos professores                                                     |
 | 6    | MSG-03…MSG-07, MSG-09…MSG-11                   | Recados com anexo                                                                     |
-| 7    | ~~FOT-01…FOT-05, FOT-08~~ ✅ · FOT-06, FOT-07  | Mural de fotos — back-end pronto (02/08/2026); resta só a UI (professor + responsável) |
+| 7    | ~~FOT-01…FOT-08~~ ✅                            | Mural de fotos — épico M concluído (03/08/2026), back-end e front-end                 |
 | 8    | OPS-04, OPS-05, AG2-09                         | Impressão, aniversário e frequência                                                   |
 
 ## Pendências de decisão antes de codar

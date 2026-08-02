@@ -544,6 +544,7 @@ Base: `/v1`. Todos exigem JWT, exceto os marcados como público.
 | POST | `/eventos` | admin/professor | Criar evento (`titulo`, `descricao?`, `data`, `turmaId?`) |
 | PUT | `/eventos/{id}` | admin/professor* | Editar (*só evento de turma que leciona) |
 | POST | `/eventos/{id}/fotos` | admin/professor* | Vincular fotos já subidas via presigned (`{ fotos: [{ key, nome, contentType, tamanho, legenda? }] }`, máx. 50 itens por chamada) |
+| PUT | `/eventos/{id}/fotos` | admin/professor* | Reordenar/editar legenda das fotos já vinculadas (`{ fotos: [{ key, legenda?, ordem }] }`) — a lista precisa conter **exatamente** as mesmas `key` já vinculadas (nenhuma a mais, nenhuma a menos); adicionar/remover é só pelas rotas dedicadas |
 | DELETE | `/eventos/{id}/fotos/{fotoKey}` | admin/professor* | Remover uma foto (apaga o objeto no S3); `fotoKey` vai na própria rota (path greedy, pois a key contém `/`) |
 | POST | `/eventos/{id}/publicar` | admin/professor* | Publica e notifica os responsáveis do escopo |
 | DELETE | `/eventos/{id}` | admin/professor* | Remover em definitivo (hard delete + apaga todas as fotos no S3) |

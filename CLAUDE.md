@@ -90,13 +90,13 @@ Detalhes: [`docs/03-Backend.md`](./docs/03-Backend.md).
 - **Edição por professor:** `PUT /professores/{id}` aceita `admin` e `professor`. O professor só edita o próprio cadastro e nunca `email` (é o username no Cognito, vinculado ao `usuarios` criado pelo admin) — `CAMPOS_EXCLUSIVOS_ADMIN` em `src/services/shared/professorAccess.ts`. Criação e remoção seguem admin-only.
 - **Consentimento LGPD (QA-03):** `POST /criancas` exige `consentimentoLgpd: boolean` — `false`/ausente é `422 CONSENTIMENTO_LGPD_OBRIGATORIO`. O backend grava `criancas.consentimentoLgpd = { aceito: true, aceitoEm }` com timestamp do próprio servidor (nunca do payload). Campo fora de `IUpdateCriancaPayload`: imutável após o cadastro.
 
-### 5.1 Lote de 01/08/2026 — Épicos J, K, L, N ✅ concluídos · M pendente
+### 5.1 Lote de 01/08/2026 — Épicos J, K, L, M, N ✅ concluídos
 
 14 pedidos da operação viraram os épicos **J** (cobrança/inadimplência, ✅),
 **K** (recados com anexo, ✅), **L** (agenda v2, ✅ — MVP fechado, AG2-09 adiado
-por decisão do usuário), **M** (mural de fotos — back-end ✅ 02/08/2026, front
-pendente, FOT-06/07 em `aquarela_app`) e **N** (ajustes, ✅ — OPS-01…OPS-05
-concluídos em 02/08/2026).
+por decisão do usuário), **M** (mural de fotos — ✅ concluído 03/08/2026,
+back-end aqui + front FOT-06/07 em `aquarela_app`) e **N** (ajustes, ✅ —
+OPS-01…OPS-05 concluídos em 02/08/2026).
 Contrato em [`docs/03-Backend.md`](./docs/03-Backend.md), modelo em
 [`docs/04-Banco-de-Dados.md`](./docs/04-Banco-de-Dados.md), tarefas e AC em
 [`docs/06-Backlog.md`](./docs/06-Backlog.md). As decisões que mudam código já
@@ -152,6 +152,14 @@ existente:
   técnico de publicação. Evento sem `turmaId` (global) é exclusivo do admin;
   professor só gerencia evento de turma onde está em `turma.professorIds`
   (`src/services/shared/eventoAccess.ts`).
+- **✅ `PUT /eventos/{id}/fotos`** (`src/services/eventos/atualizarFotos.ts`):
+  acrescentado durante o front (FOT-06) para reordenar e editar legenda das
+  fotos **já vinculadas** — o contrato original só previa `POST` (vincular
+  fotos novas) e `DELETE` por `fotoKey` (remover), sem jeito de o professor
+  reordenar depois de subir. A lista de `{ key, legenda?, ordem }` no corpo
+  precisa bater **exatamente** com as `key` já no evento (`422
+  FOTOS_DIVERGENTES` senão) — adicionar/remover continua exclusivo das rotas
+  dedicadas, essa rota só reordena/edita o que já existe.
 - **Pendências de produto antes de codar:** carência de 36 dias até virar
   inadimplente · cobrança precisa de canal além do push (iPhone sem PWA não
   recebe).
