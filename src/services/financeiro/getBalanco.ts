@@ -1,9 +1,5 @@
 import { db } from "../../libs/mongo";
-import { PagamentoRepository } from "../../repositories/pagamento.repository";
-import { DespesaRepository } from "../../repositories/despesa.repository";
-import { inicioMesBrasil } from "../../utils/date";
-
-const TIMEZONE_BRASIL = "America/Sao_Paulo";
+import { getMesesDoAno } from "./mesesDoAno";
 
 export interface IBalancoMes {
   ano: number;
@@ -30,47 +26,28 @@ const parsePeriodo = (periodo?: string): { ano: number; mes?: number } => {
   return { ano: new Date().getUTCFullYear() };
 };
 
+/**
+ * Balanço em regime de caixa. Reaproveita `getMesesDoAno` — a mesma fonte do
+ * relatório anual —, então ano já expurgado pelo cron `limparDadosAnoAnterior`
+ * continua respondendo do snapshot em vez de devolver zeros. O gráfico do
+ * dashboard navega até 2020, então isso não é hipótese.
+ */
 export const getBalancoService = async (
   periodo?: string,
 ): Promise<IBalancoMes[]> => {
   const { ano, mes } = parsePeriodo(periodo);
-  const mesesFiltro = mes ? [mes] : Array.from({ length: 12 }, (_, i) => i + 1);
 
   await db();
 
-  const inicioPeriodo = inicioMesBrasil(ano, mes ?? 1);
-  const fimPeriodo = inicioMesBrasil(ano, (mes ?? 12) + 1);
+  const { meses } = await getMesesDoAno(ano);
 
-  const entradasPorMes = await PagamentoRepository.model.aggregate([
-    { $match: { status: "pago", pagoEm: { $gte: inicioPeriodo, $lt: fimPeriodo } } },
-    {
-      $group: {
-        _id: { $month: { date: "$pagoEm", timezone: TIMEZONE_BRASIL } },
-        total: { $sum: "$valor" },
-      },
-    },
-  ]);
-
-  const despesasPorMes = await DespesaRepository.model.aggregate([
-    { $match: { data: { $gte: inicioPeriodo, $lt: fimPeriodo } } },
-    {
-      $group: {
-        _id: { $month: { date: "$data", timezone: TIMEZONE_BRASIL } },
-        total: { $sum: "$valor" },
-      },
-    },
-  ]);
-
-  const entradasPorMesMap = new Map<number, number>(
-    entradasPorMes.map((item) => [item._id, item.total]),
-  );
-  const despesasPorMesMap = new Map<number, number>(
-    despesasPorMes.map((item) => [item._id, item.total]),
-  );
-
-  return mesesFiltro.map((mesAtual) => {
-    const entradas = entradasPorMesMap.get(mesAtual) ?? 0;
-    const despesas = despesasPorMesMap.get(mesAtual) ?? 0;
-    return { ano, mes: mesAtual, entradas, despesas, saldo: entradas - despesas };
-  });
+  return meses
+    .filter((item) => (mes ? item.mes === mes : true))
+    .map((item) => ({
+      ano,
+      mes: item.mes,
+      entradas: item.pagamentos,
+      despesas: item.despesas,
+      saldo: item.saldo,
+    }));
 };

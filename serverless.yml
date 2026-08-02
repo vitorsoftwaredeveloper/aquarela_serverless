@@ -127,6 +127,8 @@ functions:
   - ${file(src/handlers/dispositivos/functions.yml)}
   - ${file(src/handlers/anexos/functions.yml)}
   - ${file(src/handlers/mensagens/functions.yml)}
+  - ${file(src/handlers/relatorios/functions.yml)}
+  - ${file(src/handlers/manutencao/functions.yml)}
 
 resources:
   Resources:

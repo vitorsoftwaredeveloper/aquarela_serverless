@@ -27,6 +27,11 @@ describe("listTurmasService", () => {
       { _id: "prof-1", nome: "Ana", email: "ana@example.com" },
       { _id: "prof-2", nome: "Bruno", email: "bruno@example.com" },
     ]);
+    (CriancaRepository.find as jest.Mock).mockResolvedValue([
+      { turmaId: "turma-1" },
+      { turmaId: "turma-1" },
+      { turmaId: "turma-2" },
+    ]);
 
     const result = await listTurmasService(admin);
 
@@ -36,12 +41,14 @@ describe("listTurmasService", () => {
         nome: "Flor",
         professorId: "prof-1",
         professor: { _id: "prof-1", nome: "Ana", email: "ana@example.com" },
+        totalCriancas: 2,
       },
       {
         _id: "turma-2",
         nome: "Girassóis",
         professorId: "prof-2",
         professor: { _id: "prof-2", nome: "Bruno", email: "bruno@example.com" },
+        totalCriancas: 1,
       },
     ]);
     expect(ProfessorRepository.find).toHaveBeenCalledWith(
@@ -55,6 +62,7 @@ describe("listTurmasService", () => {
       { _id: "turma-1", nome: "Flor", professorId: "prof-orfao" },
     ]);
     (ProfessorRepository.find as jest.Mock).mockResolvedValue([]);
+    (CriancaRepository.find as jest.Mock).mockResolvedValue([]);
 
     const result = await listTurmasService(admin);
 
@@ -64,6 +72,7 @@ describe("listTurmasService", () => {
         nome: "Flor",
         professorId: "prof-orfao",
         professor: null,
+        totalCriancas: 0,
       },
     ]);
   });

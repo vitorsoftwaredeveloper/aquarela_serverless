@@ -273,13 +273,65 @@ Base: `/v1`. Todos exigem JWT, exceto os marcados como público.
 > backend passar a projetar a foto do professor nessa rota; até lá o avatar cai
 > no fallback de iniciais (`components/Avatar`).
 >
-> **Cron `removerAgendasAnoAnterior`** (1º de janeiro, 00:00 GMT-3 —
-> `cron(0 3 1 1 ? *)` UTC): apaga de `agendasDiarias` todo registro com
-> `data` anterior ao dia 1º de janeiro do ano corrente (UTC), de todas as
-> crianças. Não é só o ano que passou — qualquer resíduo de anos ainda mais
-> antigos (ex.: cron que falhou) também é limpo, já que agenda diária velha
-> não tem valor depois da virada do ano. Hard delete, sem soft delete, sem
-> volta.
+> **Cron `limparDadosAnoAnterior`** (`src/handlers/manutencao/`, 1º de janeiro,
+> 00:00 GMT-3 — `cron(0 3 1 1 ? *)` UTC; era `removerAgendasAnoAnterior`,
+> renomeado quando deixou de ser só agenda): expurga, de todas as crianças,
+> tudo que for anterior ao dia 1º de janeiro do ano corrente (UTC) —
+> `agendasDiarias` por `data`, `mensagens` por `createdAt` e `pagamentos`
+> por **`pagoEm`** (só `status: "pago"`). Não é só o ano que passou: qualquer
+> resíduo de anos ainda mais antigos (ex.: cron que falhou) também cai.
+>
+> **Pagamento é filtrado por `pagoEm`, nunca por `createdAt`** — é o mesmo
+> critério da consolidação, então todo pagamento apagado está garantidamente
+> dentro de um fechamento. Por `createdAt`, o PIX gerado em 30/12 e baixado
+> em 02/01 seria apagado sem entrar em fechamento nenhum: some do caixa do
+> ano corrente, que é justamente o ano que ainda não foi consolidado.
+> Pagamento sem baixa não é problema deste cron — o `removerPagamentosNaoPagos`
+> (diário, 04:00 UTC) já apaga tudo que não é `pago`.
+>
+> A ordem importa. **Antes de qualquer `deleteMany`** o cron (1) consolida o
+> fechamento financeiro de cada ano que tem pagamento a ser expurgado, via
+> `gerarRelatorioAnualService` → `relatoriosAnuais`, e (2) busca os `anexos`
+> (fotos/documentos) de cada agenda e mensagem selecionada para apagar os
+> objetos do S3 (`removerAnexosDoBucket`). Invertido, o fechamento sairia
+> zerado e os anexos ficariam órfãos no bucket.
+>
+> **Não são tocados:** cadastro da criança (`criancas`), `mensalidades` e
+> `despesas`. Hard delete, sem soft delete, sem volta — depois da virada,
+> `relatoriosAnuais` é a única fonte do histórico financeiro daquele ano.
+>
+> ⚠️ **Este cron divide o horário com `gerarMensalidadesAno`** (`cron(0 3 1 1
+> ? *)` nos dois): um pré-gera as 12 mensalidades do ano que começa, o outro
+> expurga o ano que acabou. Não conflitam porque **`mensalidades` está fora do
+> expurgo** — as competências recém-criadas do ano novo não correm risco, e as
+> antigas também ficam (retenção fiscal). Quem mexer neste cron não pode
+> incluir `mensalidades` no `deleteMany` sem antes resolver essa sobreposição.
+>
+> Efeito colateral aceito: mensalidade paga de ano expurgado fica com
+> `pagamentoId` apontando para um pagamento que não existe mais. Nada
+> desreferencia esse campo na leitura (`listMensalidades` só devolve o valor),
+> então é referência pendurada inofensiva, não bug.
+
+### Relatórios
+| Método | Rota | Papel | Descrição |
+|---|---|---|---|
+| GET | `/financeiro/relatorio-anual` | admin | Relatório anual de pagamentos por criança × mês. Query `?ano=YYYY` (padrão: ano corrente) |
+
+> Resposta: `{ ano, consolidadoEm, origem, anosDisponiveis, totais, meses,
+> criancas }`. `totais` traz `pagamentos`, `despesas`, `saldo`,
+> `quantidadePagamentos`, `criancasComPagamento` e `ticketMedio`; `meses` são
+> sempre os 12 (mês sem movimento vem zerado); cada item de `criancas` traz
+> `{ criancaId, nome, turmaNome, total, meses[] }`.
+>
+> **`origem` diz de onde veio o número.** `"consolidado"` = ano já fechado
+> pelo cron `limparDadosAnoAnterior`, servido do snapshot em
+> `relatoriosAnuais` — recalcular devolveria zero, porque os `pagamentos`
+> daquele ano não existem mais. `"calculado"` = ano ainda aberto, agregado ao
+> vivo de `pagamentos` (`status: "pago"`, por `pagoEm`, fuso
+> `America/Sao_Paulo`) e `despesas`. O snapshot sempre ganha quando existe.
+>
+> Criança removida do cadastro depois do fechamento continua no relatório com
+> `nome: "Criança removida"` — o pagamento aconteceu e precisa somar.
 
 ### Notificações push (Web Push / FCM)
 | Método | Rota | Papel | Descrição |
@@ -656,6 +708,26 @@ Correção (**regime de caixa**, decisão travada em 01/08/2026):
 > (é a lista de meses dele). Só o balanço/dashboard do admin passa a ser caixa —
 > por isso o front rotula o card como "Entradas (regime de caixa — data do
 > pagamento)".
+
+**Balanço e relatório anual compartilham a agregação** (`agregarMesesDoAno` em
+`src/services/financeiro/mesesDoAno.ts`). Eram dois pipelines idênticos
+somando o mesmo número: `getBalanco.meses[].entradas` é exatamente
+`relatorio-anual.meses[].pagamentos`. Hoje existe um cálculo só; o relatório
+adiciona por cima a quebra por criança e os totais do ano.
+
+> ⚠️ **`getBalanco` também consulta o snapshot** (`getMesesDoAno`), pela mesma
+> razão do relatório: depois que o cron `limparDadosAnoAnterior` expurga os
+> `pagamentos` do ano, agregar ao vivo devolveria **zero**. E isso não é
+> hipótese — o gráfico do dashboard (`BalancoChart`) tem seletor de ano que
+> desce até **2020**. Sem essa leitura, todo ano já expurgado apareceria como
+> um ano inteiro vazio, sem erro nenhum na tela. Regra: ano com fechamento em
+> `relatoriosAnuais` vem do fechamento; ano aberto é agregado ao vivo. O
+> recorte `YYYY-MM` é aplicado depois, em cima da fonte escolhida.
+>
+> Os dois endpoints seguem separados de propósito: o dashboard precisa de 12
+> meses leves (e do recorte por mês), o relatório carrega a grade criança × mês
+> inteira. Unificar a rota faria o dashboard baixar o payload por criança sem
+> usar.
 
 **`/turmas` — múltiplos professores** (OPS-03).
 

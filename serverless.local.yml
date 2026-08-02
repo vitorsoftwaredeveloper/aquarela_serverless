@@ -335,6 +335,13 @@ functions:
           method: POST
           path: /v1/financeiro/cobrancas/disparar
 
+  getRelatorioAnual:
+    handler: src/handlers/relatorios/getRelatorioAnual.execute
+    events:
+      - httpApi:
+          method: GET
+          path: /v1/financeiro/relatorio-anual
+
   getConfigPrecos:
     handler: src/handlers/configPrecos/getConfigPrecos.execute
     events:

@@ -207,6 +207,25 @@ Uma por criança + competência (mês/ano).
   createdAt, updatedAt }
 ```
 
+### `relatoriosAnuais` — fechamento financeiro do ano
+```
+{ _id, ano: number (unique), consolidadoEm: Date,
+  totais: { pagamentos, despesas, saldo, quantidadePagamentos,
+            criancasComPagamento, ticketMedio },
+  meses: [{ mes: 1..12, pagamentos, despesas, saldo,
+            quantidadePagamentos }],
+  criancas: [{ criancaId: ObjectId, nome: string,
+               turmaNome?: string, total: number,
+               meses: [{ mes, valor, quantidadePagamentos }] }],
+  createdAt, updatedAt }
+```
+Gravado pelo cron `limparDadosAnoAnterior` **antes** de apagar os `pagamentos`
+do ano, e servido por `GET /financeiro/relatorio-anual`. Depois do expurgo é a
+única fonte do histórico financeiro daquele ano. `nome`/`turmaNome` são
+desnormalizados de propósito: a criança pode ser removida do cadastro depois, e
+o fechamento não pode mudar retroativamente. Upsert por `ano` — reexecutar o
+cron sobrescreve em vez de duplicar.
+
 ### `configPrecos` (singleton)
 ```
 { _id, planos: [{ nome, tipo:"integral"|"meioPeriodo",
@@ -415,6 +434,7 @@ inadimplencia: { diaCorte: number, mesesCarencia: number }
 | turmas | `professorIds` | "minhas turmas" com mais de um professor por turma |
 | mensalidades | `inadimplenteDesde` | lista de inadimplentes e KPI do dashboard |
 | pagamentos | `{status, pagoEm}` | balanço em regime de caixa (agrega por data do pagamento) |
+| relatoriosAnuais | `ano` unique | leitura do fechamento e upsert idempotente do cron anual |
 
 ---
 
@@ -430,7 +450,7 @@ inadimplencia: { diaCorte: number, mesesCarencia: number }
 ---
 
 ## 6. Integridade & regras
-- **Hard delete** em todas as entidades — não existe soft delete/`ativo` no sistema. `criancas` remove em cadeia (agenda, mensalidades, pagamentos); `turmas` bloqueia a remoção enquanto houver crianças vinculadas.
+- **Hard delete** em todas as entidades — não existe soft delete/`ativo` no sistema. `criancas` remove em cadeia (agenda, mensalidades, pagamentos); `turmas` bloqueia a remoção enquanto houver crianças vinculadas. `relatoriosAnuais` é a exceção deliberada: sobrevive à remoção da criança, e por isso desnormaliza `nome`/`turmaNome`.
 - **Transações** (replicaSet) ao gerar mensalidade + baixa de pagamento.
 - Geração mensal de `mensalidades` por job agendado a partir de `configPrecos`/`criancas.financeiro`.
 - **Anexo nunca vive no Mongo.** `mensagens.anexos[]`, `agendasDiarias.anexos[]` e
@@ -446,5 +466,6 @@ inadimplencia: { diaCorte: number, mesesCarencia: number }
 
 ## 7. Retenção & LGPD
 - Dados de saúde e documentos apenas enquanto a criança estiver ativa + período legal; anonimização/expurgo após o prazo.
+- **Expurgo anual de histórico** (cron `limparDadosAnoAnterior`, ver `docs/03-Backend.md`): todo `agendasDiarias`, `mensagens` e `pagamentos` (+ os anexos no S3) de todas as crianças com mais de um ano é apagado em definitivo, todo 1º de janeiro. Pagamento sai por `pagoEm` (+ `status: "pago"`), não por `createdAt` — o mesmo critério da consolidação. Preserva o cadastro (`criancas`), `mensalidades` e `despesas`; `mensalidades` fica de fora também porque o cron `gerarMensalidadesAno` roda no mesmo horário criando as competências do ano novo. O fechamento financeiro do ano é gravado em `relatoriosAnuais` **antes** do expurgo — sem isso, apagar `pagamentos` zeraria o balanço histórico e o relatório anual.
 - Consentimento dos responsáveis registrado no cadastro (`criancas.consentimentoLgpd`), obrigatório em `POST /criancas`, imutável depois.
 - Backups criptografados; acesso segregado por papel na aplicação (o banco não expõe dados diretamente ao cliente).

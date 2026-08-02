@@ -1,0 +1,10 @@
+getRelatorioAnual:
+  handler: src/handlers/relatorios/getRelatorioAnual.execute
+  iamRoleStatementsInherit: true
+  iamRoleStatements: ${self:custom.encryptionKeyIamStatements}
+  events:
+    - httpApi:
+        method: GET
+        path: /v1/financeiro/relatorio-anual
+        authorizer:
+          name: cognitoAuthorizer
