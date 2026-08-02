@@ -3,6 +3,7 @@ import { ICreateAgendaPayload, IAgendaDiaria } from "../../types/agendas";
 import { IUsuario } from "../../types/usuarios";
 import { resolveProfessorId } from "../../utils/requester";
 import { loadCriancaDaTurmaDoProfessor } from "../shared/agendaAccess";
+import { validarAnexosVinculados } from "../anexos/validarAnexoVinculado";
 import {
   httpError,
   STATUS_CODE,
@@ -18,6 +19,10 @@ export const createAgendaService = async (
     payload.criancaId,
   );
   const professorId = await resolveProfessorId(requester);
+
+  if (payload.anexos && payload.anexos.length > 0) {
+    await validarAnexosVinculados("agenda", payload.anexos);
+  }
 
   try {
     const created = await AgendaRepository.insertOne({
@@ -36,6 +41,9 @@ export const createAgendaService = async (
         notificado: item.notificado ?? false,
       })),
       observacoes: payload.observacoes,
+      tarefaCasa: payload.tarefaCasa,
+      presenca: payload.presenca,
+      anexos: payload.anexos ?? [],
     });
 
     return (await AgendaRepository.findById(created._id)) as IAgendaDiaria;

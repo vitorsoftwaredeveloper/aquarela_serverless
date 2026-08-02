@@ -3,6 +3,7 @@ import { IUpdateAgendaPayload, IAgendaDiaria } from "../../types/agendas";
 import { IUsuario } from "../../types/usuarios";
 import { loadCriancaDaTurmaDoProfessor } from "../shared/agendaAccess";
 import { enviarNotificacao } from "../notificacoes/enviarNotificacao";
+import { validarAnexosVinculados } from "../anexos/validarAnexoVinculado";
 import { httpError, STATUS_CODE } from "../../utils/errors";
 
 /**
@@ -31,6 +32,10 @@ export const updateAgendaService = async (
     agenda.criancaId,
   );
 
+  if (payload.anexos && payload.anexos.length > 0) {
+    await validarAnexosVinculados("agenda", payload.anexos);
+  }
+
   const update: Record<string, unknown> = {
     alimentacao: payload.alimentacao ?? [],
     sono: payload.sono ?? [],
@@ -43,6 +48,9 @@ export const updateAgendaService = async (
       notificado: item.notificado ?? false,
     })),
     observacoes: payload.observacoes ?? null,
+    tarefaCasa: payload.tarefaCasa ?? null,
+    presenca: payload.presenca ?? null,
+    anexos: payload.anexos ?? [],
   };
 
   const jaFoiEnviada = Boolean(agenda.enviadaEm);

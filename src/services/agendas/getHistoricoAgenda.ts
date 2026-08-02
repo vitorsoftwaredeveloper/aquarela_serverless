@@ -4,6 +4,10 @@ import { IAgendaDiaria } from "../../types/agendas";
 import { IUsuario } from "../../types/usuarios";
 import { loadCriancaParaLeituraAgenda } from "../shared/agendaAccess";
 import { withFotoUrls } from "../shared/fotoProfessor";
+import {
+  IAgendaComAnexosUrl,
+  withAgendaAnexosUrls,
+} from "./withAgendaAnexosUrl";
 
 export interface IHistoricoAgendaFilters {
   de?: string;
@@ -14,7 +18,7 @@ export const getHistoricoAgendaService = async (
   requester: IUsuario,
   criancaId: string,
   filters: IHistoricoAgendaFilters,
-): Promise<IAgendaDiaria[]> => {
+): Promise<IAgendaComAnexosUrl[]> => {
   await loadCriancaParaLeituraAgenda(requester, criancaId);
 
   const query: Record<string, unknown> = { criancaId };
@@ -40,7 +44,9 @@ export const getHistoricoAgendaService = async (
     ]),
   );
 
-  return agendas.map((agenda) => ({
+  const comAnexosUrl = await withAgendaAnexosUrls(agendas);
+
+  return comAnexosUrl.map((agenda) => ({
     ...agenda,
     professor: professorPorId.get(String(agenda.registradoPor)),
   }));

@@ -57,6 +57,41 @@ const IntercorrenciaSchema = new Schema(
   { _id: false },
 );
 
+const TarefaCasaSchema = new Schema(
+  {
+    status: {
+      type: String,
+      enum: ["feito", "nao_feito", "incompleto"],
+      required: true,
+    },
+    observacao: { type: String },
+  },
+  { _id: false },
+);
+
+const PresencaSchema = new Schema(
+  {
+    status: {
+      type: String,
+      enum: ["presente", "falta", "atrasado"],
+      required: true,
+    },
+    horaChegada: { type: String },
+    justificativa: { type: String },
+  },
+  { _id: false },
+);
+
+const AnexoAgendaSchema = new Schema(
+  {
+    key: { type: String, required: true },
+    nome: { type: String, required: true },
+    contentType: { type: String, required: true },
+    tamanho: { type: Number, required: true },
+  },
+  { _id: false },
+);
+
 export const AgendaDiariaSchema = new Schema(
   {
     criancaId: {
@@ -83,6 +118,9 @@ export const AgendaDiariaSchema = new Schema(
     medicacoesAdministradas: { type: [MedicacaoAdministradaSchema], default: [] },
     intercorrencias: { type: [IntercorrenciaSchema], default: [] },
     observacoes: { type: String },
+    tarefaCasa: { type: TarefaCasaSchema },
+    presenca: { type: PresencaSchema },
+    anexos: { type: [AnexoAgendaSchema], default: [] },
     enviadaEm: { type: Date, default: null },
     ultimoEnvioEm: { type: Date, default: null },
     enviosCount: { type: Number, default: 0 },

@@ -1,7 +1,11 @@
+import { IAnexoReferencia } from "../anexos";
+
 export type Refeicao = "cafe" | "almoco" | "lanche" | "janta";
 export type Aceitacao = "tudo" | "parte" | "recusou";
 export type Humor = "feliz" | "tranquilo" | "neutro" | "choroso";
 export type TipoIntercorrencia = "febre" | "queda" | "doenca" | "outro";
+export type StatusTarefaCasa = "feito" | "nao_feito" | "incompleto";
+export type StatusPresenca = "presente" | "falta" | "atrasado";
 
 export interface IAlimentacaoItem {
   refeicao: Refeicao;
@@ -33,6 +37,17 @@ export interface IIntercorrencia {
   notificado?: boolean;
 }
 
+export interface ITarefaCasa {
+  status: StatusTarefaCasa;
+  observacao?: string;
+}
+
+export interface IPresenca {
+  status: StatusPresenca;
+  horaChegada?: string;
+  justificativa?: string;
+}
+
 export interface IProfessorResumo {
   _id: string;
   nome: string;
@@ -54,6 +69,9 @@ export interface IAgendaDiaria {
   medicacoesAdministradas: IMedicacaoAdministrada[];
   intercorrencias: IIntercorrencia[];
   observacoes?: string;
+  tarefaCasa?: ITarefaCasa;
+  presenca?: IPresenca;
+  anexos: IAnexoReferencia[];
   enviadaEm?: Date | null;
   ultimoEnvioEm?: Date | null;
   enviosCount?: number;
@@ -72,6 +90,9 @@ export interface ICreateAgendaPayload {
   medicacoesAdministradas?: IMedicacaoAdministrada[];
   intercorrencias?: IIntercorrencia[];
   observacoes?: string;
+  tarefaCasa?: ITarefaCasa;
+  presenca?: IPresenca;
+  anexos?: IAnexoReferencia[];
 }
 
 export interface IUpdateAgendaPayload {
@@ -83,4 +104,7 @@ export interface IUpdateAgendaPayload {
   medicacoesAdministradas?: IMedicacaoAdministrada[];
   intercorrencias?: IIntercorrencia[];
   observacoes?: string;
+  tarefaCasa?: ITarefaCasa;
+  presenca?: IPresenca;
+  anexos?: IAnexoReferencia[];
 }

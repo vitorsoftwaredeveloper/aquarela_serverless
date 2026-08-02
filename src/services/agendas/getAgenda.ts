@@ -4,13 +4,17 @@ import { IAgendaDiaria } from "../../types/agendas";
 import { IUsuario } from "../../types/usuarios";
 import { loadCriancaParaLeituraAgenda } from "../shared/agendaAccess";
 import { withFotoUrl } from "../shared/fotoProfessor";
+import {
+  IAgendaComAnexosUrl,
+  withAgendaAnexosUrl,
+} from "./withAgendaAnexosUrl";
 import { httpError, STATUS_CODE } from "../../utils/errors";
 
 export const getAgendaService = async (
   requester: IUsuario,
   criancaId: string,
   data: string,
-): Promise<IAgendaDiaria> => {
+): Promise<IAgendaComAnexosUrl> => {
   await loadCriancaParaLeituraAgenda(requester, criancaId);
 
   const agenda = (await AgendaRepository.findOne({
@@ -35,5 +39,5 @@ export const getAgendaService = async (
     agenda.professor = { _id: String(professor._id), nome: professor.nome, fotoUrl };
   }
 
-  return agenda;
+  return withAgendaAnexosUrl(agenda);
 };

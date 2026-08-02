@@ -369,7 +369,7 @@ presenca?: {
   horaChegada?: string,           // "HH:mm" — obrigatório quando status = "atrasado"
   justificativa?: string
 },
-anexos?: [{ key, nome, contentType, tamanho, enviadoEm }],  // máx. 5
+anexos?: [{ key, nome, contentType, tamanho }],  // máx. 5, mesmo shape de mensagens.anexos[]
 ultimoEnvioEm?: Date | null,      // AG2-01 — último (re)envio; enviadaEm segue sendo o 1º
 enviosCount: number               // default 0
 ```

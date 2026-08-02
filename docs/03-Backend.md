@@ -237,10 +237,24 @@ Base: `/v1`. Todos exigem JWT, exceto os marcados como público.
 | POST | `/agenda/{id}/enviar` | professor | Gatilho **"Enviar para os pais"** — dispara a notificação push (ver §Notificações push abaixo). Só a professora da turma (mesma regra de `PUT /agenda/{id}`); **renotifica em toda chamada** ("agenda atualizada" a partir da 2ª), com debounce de 10 min por agenda (`200 { notificado: false, motivo: "DEBOUNCE" }` dentro da janela). Resposta é a agenda com `enviadaEm`/`ultimoEnvioEm`/`enviosCount` + `{ notificado, motivo? }` |
 | DELETE | `/agenda/{id}` | professor | Remover registro do dia. Mesma guarda de `PUT /agenda/{id}` (só a professora da turma; senão `403 FORBIDDEN`); agenda inexistente → `404 NOT_FOUND`. **Hard delete** — registro diário não tem soft delete |
 
+> **Épico L (AG2) — `tarefaCasa`, `presenca` e `anexos` no registro diário
+> (`POST`/`PUT /agenda`).** `tarefaCasa?: { status: "feito"|"nao_feito"|"incompleto", observacao? }`
+> e `presenca?: { status: "presente"|"falta"|"atrasado", horaChegada?, justificativa? }`
+> — `horaChegada` é **obrigatório** quando `status === "atrasado"` (ajv `if/then`,
+> `422` sem ele). `anexos?: {key, nome, contentType, tamanho}[]` reusa 100% a
+> infra de anexo do Épico K (mesmo `escopo: "agenda"` já aceito em
+> `POST /anexos/upload-url`, mesma whitelist e teto de 10MB, `maxItems: 5`) —
+> `createAgenda`/`updateAgenda` chamam `validarAnexosVinculados("agenda", …)`
+> antes de gravar (key forjada/de outro escopo → `422 ANEXO_INVALIDO`).
+> `GET /agenda` e `GET /agenda/historico` devolvem cada anexo já com `url`
+> pré-assinada de leitura (1h, `withAgendaAnexosUrl(s)` em
+> `src/services/agendas/withAgendaAnexosUrl.ts`, mesmo padrão de
+> `withAnexosUrl` em mensagens).
+>
 > **`PUT /agenda/{id}` substitui por completo os campos opcionais — não é patch parcial.**
 > `updateAgendaService` monta o `$set` sempre com todos os campos (`alimentacao`, `sono`,
 > `atividades`, `humor`, `higiene`, `medicacoesAdministradas`, `intercorrencias`,
-> `observacoes`), usando `[]`/`null` como default pra qualquer campo ausente no payload — nunca
+> `observacoes`, `tarefaCasa`, `presenca`, `anexos`), usando `[]`/`null` como default pra qualquer campo ausente no payload — nunca
 > faz spread cru do `payload` no `$set`. Antes, campo omitido no corpo simplesmente não era
 > tocado no Mongo (`$set` parcial de verdade): a tela do professor já reconstrói o payload
 > inteiro a cada "Salvar" e omite (`undefined`) qualquer campo que o professor deixou vazio, daí

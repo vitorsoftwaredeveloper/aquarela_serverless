@@ -470,16 +470,19 @@ das 11h e não sabe que mudou. A rota passa a ser **"notificar (re)envio"**:
 | ------ | ----------------------------------------------------------------------------------- | ---- | --- | ------ | --------------- | ------------------------------------------------------------------------------------------------ |
 | AG2-01 | ✅ `enviarAgenda` renotifica em toda edição + debounce de 10 min; remove o `409`        | 🔴   | 5   | BE     | NOT-08          | 2º envio após 10 min notifica "atualizada"; dentro da janela responde 200 sem notificar        |
 | AG2-02 | ✅ Front: novo contrato (sem `409`) + estado "atualização enviada" na tela do professor | 🔴   | 2   | FE     | AG2-01, NOT-15  | Professor vê 1º envio e último reenvio; falha de envio não bloqueia o salvamento (best-effort) |
-| AG2-03 | `agendasDiarias.tarefaCasa { status, observacao? }` + schema ajv                     | 🔴   | 2   | BE     | AGD-01          | `status ∈ feito \| nao_feito \| incompleto`; campo ausente no `PUT` = esvaziado (regra vigente) |
-| AG2-04 | Chips de **tarefa de casa** no registro + destaque na leitura do responsável         | 🔴   | 3   | FE     | AG2-03, AGD-05  | 3 estados com ícone + texto (nunca só cor); observação opcional                                |
-| AG2-05 | `agendasDiarias.presenca { status, horaChegada?, justificativa? }` + validação       | 🔴   | 3   | BE     | AGD-01          | `status ∈ presente \| falta \| atrasado`; `horaChegada` **obrigatório** se `atrasado` (ajv `if/then`) |
-| AG2-06 | Seletor de presença/atraso na agenda + destaque na leitura                           | 🔴   | 3   | FE     | AG2-05, AGD-05  | `falta` colapsa os blocos de alimentação/sono/atividade na UI (não faz sentido preencher)      |
-| AG2-07 | `agendasDiarias.anexos[]` + `GET /agenda` devolvendo URL pré-assinada                | 🔴   | 3   | BE     | MSG-01, AGD-01  | Máx. 5 anexos/dia; mesma whitelist e teto do Épico K; leitura por presigned de 1h              |
-| AG2-08 | Anexar documento na agenda (professor) e baixar (responsável)                        | 🔴   | 5   | FE     | AG2-07, MSG-08  | Reusa `UploadAnexo`; responsável baixa da tela de agenda e do histórico                        |
-| AG2-09 | `GET /agenda/frequencia?criancaId=&de=&ate=` (presente/falta/atrasado no período)    | 🟢   | 3   | FS     | AG2-05          | Contagem por status; usado no histórico e num futuro relatório de frequência                   |
-| AG2-10 | Atualizar `docs/03-Backend.md` e `docs/04-Banco-de-Dados.md`                         | 🔴   | 1   | BE     | AG2-01…AG2-07   | Novo contrato de `/agenda/{id}/enviar` + campos novos documentados                             |
+| AG2-03 | ✅ `agendasDiarias.tarefaCasa { status, observacao? }` + schema ajv                     | 🔴   | 2   | BE     | AGD-01          | `status ∈ feito \| nao_feito \| incompleto`; campo ausente no `PUT` = esvaziado (regra vigente) |
+| AG2-04 | ✅ Chips de **tarefa de casa** no registro + destaque na leitura do responsável         | 🔴   | 3   | FE     | AG2-03, AGD-05  | 3 estados com ícone + texto (nunca só cor); observação opcional                                |
+| AG2-05 | ✅ `agendasDiarias.presenca { status, horaChegada?, justificativa? }` + validação       | 🔴   | 3   | BE     | AGD-01          | `status ∈ presente \| falta \| atrasado`; `horaChegada` **obrigatório** se `atrasado` (ajv `if/then`) |
+| AG2-06 | ✅ Seletor de presença/atraso na agenda + destaque na leitura                           | 🔴   | 3   | FE     | AG2-05, AGD-05  | `falta` colapsa os blocos de alimentação/sono/atividade na UI (não faz sentido preencher)      |
+| AG2-07 | ✅ `agendasDiarias.anexos[]` + `GET /agenda` devolvendo URL pré-assinada                | 🔴   | 3   | BE     | MSG-01, AGD-01  | Máx. 5 anexos/dia; mesma whitelist e teto do Épico K; leitura por presigned de 1h              |
+| AG2-08 | ✅ Anexar documento na agenda (professor) e baixar (responsável)                        | 🔴   | 5   | FE     | AG2-07, MSG-08  | Reusa `UploadAnexo`; responsável baixa da tela de agenda e do histórico                        |
+| AG2-09 | `GET /agenda/frequencia?criancaId=&de=&ate=` (presente/falta/atrasado no período)    | 🟢   | 3   | FS     | AG2-05          | Contagem por status; usado no histórico e num futuro relatório de frequência — **adiado** (decisão do usuário, sem tela consumidora ainda) |
+| AG2-10 | ✅ Atualizar `docs/03-Backend.md` e `docs/04-Banco-de-Dados.md`                         | 🔴   | 1   | BE     | AG2-01…AG2-07   | Novo contrato de `/agenda/{id}/enviar` + campos novos documentados                             |
 
 **Subtotal Épico L:** 30 pts (MVP deste épico: 27 pts sem AG2-09).
+
+> **MVP do épico (AG2-01…AG2-08, AG2-10) concluído em 02/08/2026.** AG2-09
+> segue adiado — decisão do usuário, sem tela consumidora definida ainda.
 
 ---
 
