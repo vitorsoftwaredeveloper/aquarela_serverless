@@ -94,7 +94,7 @@ Detalhes: [`docs/03-Backend.md`](./docs/03-Backend.md).
 
 14 pedidos da operação viraram os épicos **J** (cobrança/inadimplência, ✅),
 **K** (recados com anexo, ✅), **L** (agenda v2, ✅ — MVP fechado, AG2-09 adiado
-por decisão do usuário), **M** (mural de fotos — ✅ concluído 03/08/2026,
+por decisão do usuário), **M** (mural de fotos — ✅ concluído 02/08/2026,
 back-end aqui + front FOT-06/07 em `aquarela_app`) e **N** (ajustes, ✅ —
 OPS-01…OPS-05 concluídos em 02/08/2026).
 Contrato em [`docs/03-Backend.md`](./docs/03-Backend.md), modelo em
@@ -163,6 +163,26 @@ existente:
 - **Pendências de produto antes de codar:** carência de 36 dias até virar
   inadimplente · cobrança precisa de canal além do push (iPhone sem PWA não
   recebe).
+
+### 5.2 O que falta (02/08/2026)
+
+Épicos 0–N ✅. Em aberto que toca este repo:
+
+- **QA-09** — `src/services/avisos/` e `src/services/eventos/` não têm nenhum
+  teste, e não existe suíte de integração: os 28 arquivos de teste mockam
+  Mongo/S3/FCM sem exceção (QA-01 em si está ✅). Único 🔴 aberto que não
+  depende de decisão de produto.
+- **QA-03 (resto)** — revisão de acesso por papel + política de retenção/expurgo
+  escrita (consentimento LGPD já implementado).
+- **INF-11 CI/CD** e **INF-12 observabilidade** — nunca feitos; deploy manual,
+  sem log estruturado nem alarme de 5xx.
+- **NOT-01 (resíduo)** — `firebase_service_account` só existe no SSM de
+  `staging`; falta dev e prod.
+- **AG2-09** adiado; **Épico O** represado.
+- **Decisão de produto travando código:** carência de 36 dias da inadimplência
+  (COB-07) e canal de cobrança além do push (COB-01).
+
+Quadro completo em [`docs/06-Backlog.md`](./docs/06-Backlog.md) §"Situação atual".
 
 ## 6. Modelo de dados (MongoDB)
 

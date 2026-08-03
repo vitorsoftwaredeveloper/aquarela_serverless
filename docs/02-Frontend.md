@@ -53,7 +53,7 @@ src/
 │  └─ layout.tsx                  # providers globais
 ├─ components/                    # design system (Button, Input, Card, QRCode…)
 ├─ features/                      # componentes por domínio (agenda, financeiro…)
-├─ contexts/                      # Auth, Theme, Dashboard, Charge, Birthday, Topbar, Coach
+├─ contexts/                      # Auth, Theme, Notifications, Responsavel
 ├─ services/                      # api.ts (axios), criancas.ts, agenda.ts, financeiro.ts…
 ├─ hooks/                         # useAuth, useCriancas, useAgenda…
 ├─ schemas/                       # yup schemas
@@ -97,11 +97,13 @@ api.interceptors.request.use(async (config) => {
 |---|---|
 | `AuthContext` | usuário, papel, sessão Cognito |
 | `ThemeContext` | tema claro/escuro, tokens |
-| `DashboardContext` | dados agregados do admin (entradas, despesas, KPIs) |
-| `ChargeContext` | cobranças/mensalidades e status de pagamento PIX |
-| `TopbarContext` | título/ações da barra superior por página |
-| `BirthdayContext` | aniversariantes do dia (widget lúdico) |
-| `CoachContext` | dicas/onboarding contextual |
+| `NotificationsContext` | permissão de push, token FCM, toast de `onMessage` (épico I) |
+| `ResponsavelContext` | filho ativo do responsável (troca entre múltiplos filhos) |
+
+> **São os únicos quatro contextos que existem** em `src/contexts/` do
+> `aquarela_app`. `Dashboard`, `Charge`, `Topbar`, `Birthday` e `Coach` eram
+> planejados e nunca foram criados — as telas resolveram direto pelos
+> `services/*`.
 
 Regra: Context para estado compartilhado entre telas; estado local (`useState`) para o que é da própria tela. Dados de servidor passam por `services/*` e são cacheados no context quando fizer sentido.
 
@@ -306,9 +308,8 @@ pode remover uma entrada que já tem `podeRetirar: true`. No admin
 
 ### Aniversário (OPS-05)
 
-⚠️ `BirthdayContext` está listado em §4 como contexto planejado, mas **não existe
-em `src/contexts/`** (só `Auth`, `Notifications`, `Responsavel`, `Theme`). Nesta
-escala não vale criar um contexto só para isso: o card de aniversariante lê
+⚠️ Decidido **não criar `BirthdayContext`** (§4 já corrigida). Nesta
+escala não vale um contexto só para isso: o card de aniversariante lê
 direto do `GET /criancas` já carregado na Início do responsável e na lista de
 alunos do professor. O push é disparado por cron no backend (08:00 GMT-3); o
 front só exibe.

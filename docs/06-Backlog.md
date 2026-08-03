@@ -34,22 +34,48 @@ Resumo de esforço do MVP no fim do documento.
 
 ---
 
+## Situação atual — 02/08/2026
+
+Épicos **0–N concluídos**, salvo os itens abaixo. Épico O segue represado.
+
+### Aberto de verdade
+
+| Item | Camada | Por que ainda está aberto |
+| --- | --- | --- |
+| **QA-09** — sessão dedicada de testes | BE | QA-01 ✅ (28 arquivos), mas `src/services/avisos/` e `src/services/eventos/` seguem sem nenhum teste e não existe suíte de integração — 100% dos testes mockam Mongo/S3/FCM. Único 🔴 aberto que não depende de decisão de produto |
+| **QA-03 (resto)** | FS | Consentimento LGPD ✅; faltam a revisão de acesso por papel e a política de retenção/expurgo escrita |
+| **INF-11** — CI/CD | INFRA | Nenhum `.github/workflows` nos dois repos; deploy é manual |
+| **INF-12** — observabilidade | INFRA | Sem logs estruturados, sem alarme de 5xx |
+| **NOT-01 (resíduo)** | INFRA | `firebase_service_account` só existe no SSM de `staging`; falta replicar em dev e prod |
+
+### Adiado por decisão do usuário
+
+- **AG2-09** — `GET /agenda/frequencia`: sem tela consumidora definida.
+- **Épico O** (DOC-01…04, E2E-01…04): só depois que as três visões pararem de mudar.
+
+### Decisão de produto pendente
+
+Detalhe em §"Pendências de decisão antes de codar", no fim do documento: carência de
+36 dias da inadimplência (COB-07) e canal de cobrança além do push (COB-01).
+
+---
+
 ## Épico 0 — Fundação técnica (INFRA)
 
 Base para todos os demais épicos. Não entrega valor ao usuário final, mas destrava o desenvolvimento.
 
 | ID     | Tarefa                                                                               | Prio | Pts | Camada | Dep.           | AC                                                                        |
 | ------ | ------------------------------------------------------------------------------------ | ---- | --- | ------ | -------------- | ------------------------------------------------------------------------- |
-| INF-01 | Setup do monorepo/repos (front e back) + convenções (lint, prettier, commit)         | 🔴   | 3   | INFRA  | —              | Repo com CI de lint/build; padrão de branch e PR definido                 |
-| INF-02 | Provisionar AWS: Cognito User Pool + grupos (admin/professor/responsavel)            | 🔴   | 5   | INFRA  | —              | User Pool criado; 3 grupos; app client; login de teste funciona           |
-| INF-03 | Base Serverless v3 (esbuild, offline, prune) + estrutura de handlers                 | 🔴   | 5   | BE     | INF-01         | `serverless-offline` sobe local;                                          |
-| INF-04 | Conexão MongoDB (Atlas + docker-compose local com replicaSet) reutilizável em Lambda | 🔴   | 3   | BE     | INF-03         | Conexão cacheada entre invocações; `callbackWaitsForEmptyEventLoop=false` |
-| INF-05 | SSM Parameter Store por stage (`config/<stage>.json`) para segredos                  | 🔴   | 2   | BE     | INF-03         | Segredos lidos de SSM; nada sensível no repo                              |
-| INF-06 | Middlewares base: auth JWT, roleGuard, validação ajv, errorHandler                   | 🔴   | 5   | BE     | INF-03, INF-02 | Rota protegida exige token; papel errado → 403; erro padronizado          |
-| INF-07 | Base Next.js 16 (App Router) + ThemeContext + tokens/CSS Modules                     | 🔴   | 3   | FE     | INF-01         | App sobe; tema claro/escuro; tokens aplicados                             |
-| INF-08 | AuthContext + integração Amplify v6 (login/logout/sessão/role)                       | 🔴   | 5   | FE     | INF-07, INF-02 | Login real no Cognito; guardas por grupo de rota funcionam                |
-| INF-09 | Camada `services/api.ts` (axios + axios-retry + interceptor JWT)                     | 🔴   | 2   | FE     | INF-08         | Token anexado automaticamente; retry em falha transitória                 |
-| INF-10 | Design System base (Button, Input, Select, Card, Modal, Toast, Badge)                | 🔴   | 8   | UX/FE  | INF-07         | Componentes documentados e reutilizáveis                                  |
+| INF-01 | ✅ Setup dos repos (front e back) + convenções (lint, prettier, commit) — **sem a parte de CI**, ver INF-11 | 🔴   | 3   | INFRA  | —              | Repo com CI de lint/build; padrão de branch e PR definido                 |
+| INF-02 | ✅ Provisionar AWS: Cognito User Pool + grupos (admin/professor/responsavel)            | 🔴   | 5   | INFRA  | —              | User Pool criado; 3 grupos; app client; login de teste funciona           |
+| INF-03 | ✅ Base Serverless v3 (esbuild, offline, prune) + estrutura de handlers                 | 🔴   | 5   | BE     | INF-01         | `serverless-offline` sobe local;                                          |
+| INF-04 | ✅ Conexão MongoDB (Atlas + docker-compose local com replicaSet) reutilizável em Lambda | 🔴   | 3   | BE     | INF-03         | Conexão cacheada entre invocações; `callbackWaitsForEmptyEventLoop=false` |
+| INF-05 | ✅ SSM Parameter Store por stage (`config/<stage>.json`) para segredos                  | 🔴   | 2   | BE     | INF-03         | Segredos lidos de SSM; nada sensível no repo                              |
+| INF-06 | ✅ Middlewares base: auth JWT, roleGuard, validação ajv, errorHandler                   | 🔴   | 5   | BE     | INF-03, INF-02 | Rota protegida exige token; papel errado → 403; erro padronizado          |
+| INF-07 | ✅ Base Next.js 16 (App Router) + ThemeContext + tokens/CSS Modules                     | 🔴   | 3   | FE     | INF-01         | App sobe; tema claro/escuro; tokens aplicados                             |
+| INF-08 | ✅ AuthContext + integração Amplify v6 (login/logout/sessão/role)                       | 🔴   | 5   | FE     | INF-07, INF-02 | Login real no Cognito; guardas por grupo de rota funcionam                |
+| INF-09 | ✅ Camada `services/api.ts` (axios + axios-retry + interceptor JWT)                     | 🔴   | 2   | FE     | INF-08         | Token anexado automaticamente; retry em falha transitória                 |
+| INF-10 | ✅ Design System base (Button, Input, Select, Card, Modal, Toast, Badge)                | 🔴   | 8   | UX/FE  | INF-07         | Componentes documentados e reutilizáveis                                  |
 | INF-11 | Pipeline CI/CD (deploy dev/staging/prod)                                             | 🟡   | 5   | INFRA  | INF-03, INF-07 | Merge na main → deploy automático em staging                              |
 | INF-12 | Observabilidade: logs estruturados + CloudWatch + alarmes básicos                    | 🟡   | 3   | INFRA  | INF-03         | Logs em JSON por request; alarme de erro 5xx                              |
 
@@ -175,7 +201,7 @@ Base para todos os demais épicos. Não entrega valor ao usuário final, mas des
 
 | ID    | Tarefa                                                             | Prio | Pts | Camada | Dep.           | AC                                                                |
 | ----- | ------------------------------------------------------------------ | ---- | --- | ------ | -------------- | ----------------------------------------------------------------- |
-| QA-01 | Testes unitários de services/validações (Jest) — cobertura crítica | 🔴   | 5   | BE     | Épicos A–D     | Cobertura em agenda, financeiro, auth                             |
+| QA-01 | ✅ Testes unitários de services/validações (Jest) — cobertura crítica (28 arquivos: `auth`, `agendas/enviarAgenda`, `financeiro/*`, `mensalidades/*`, `criancas/*`…) | 🔴   | 5   | BE     | Épicos A–D     | Cobertura em agenda, financeiro, auth — débito residual (`avisos`, `eventos`, integração) migrou para QA-09 |
 | QA-02 | ✅ Testes de componentes críticos (agenda, pagamento) (aquarela_app) | 🟡   | 3   | FE     | AGD-05, FIN-08 | RTL nos fluxos-chave                                              |
 | QA-03 | ✅ Revisão **LGPD**: consentimento, acesso, criptografia, retenção | 🔴   | 5   | FS     | CAD-08         | Consentimento no cadastro; acesso por papel; política de retenção |
 | QA-04 | ✅ Trilha de auditoria (cadastro de criança + baixas financeiras)  | 🟡   | 3   | BE     | CAD-09, FIN-05 | Log de quem alterou o quê e quando                                |
@@ -223,7 +249,8 @@ Base para todos os demais épicos. Não entrega valor ao usuário final, mas des
 > `removeMensagem.test.ts` — Jest + repository/S3 mockados, sem Mongo real):
 > - `avisos`: zero teste hoje (`createAviso`, `listAvisos` com escopo por
 >   papel, `updateAviso`, `removeAviso`).
-> - `mensagens`: falta `listMensagens.test.ts` (paginação/`antesDe`/`desde`).
+> - `mensagens`: ✅ quitado — `createMensagem`, `listMensagens` e
+>   `removeMensagem` já têm teste.
 > - `eventos` (Épico M, implementado 02/08/2026 sem teste — ver
 >   `src/services/eventos/` e `src/services/shared/eventoAccess.ts`):
 >   - `eventoAccess`: professor sem `turmaId` no create → `403`; professor
@@ -255,7 +282,7 @@ Base para todos os demais épicos. Não entrega valor ao usuário final, mas des
 > Escopo grande de propósito — por isso vira sessão própria (QA-09), não um
 > apêndice da próxima feature.
 
-**Subtotal Épico G:** 29 pts + 8 pts (QA-09, ainda não commitado no MVP) = 37 pts.
+**Subtotal Épico G:** 29 pts + 8 pts (QA-09, ainda em aberto) = 37 pts.
 
 ---
 
@@ -325,8 +352,8 @@ Front (`aquarela_app`) tem tela de criação (`AvisosScreen.tsx`, admin) e leitu
 > para os pais" ficou em `RegistrarAgendaScreen.tsx` (não na lista de alunos)
 > — só aparece depois que a agenda do dia já foi salva. Ícones do manifest
 > foram gerados (gota em gradiente, mesma identidade do `Logo.tsx`) já que não
-> havia asset PNG da marca no repo. **NOT-18 (teste em dispositivo real) segue
-> em aberto** — QA manual, fora do que dá pra automatizar.
+> havia asset PNG da marca no repo. **NOT-18 (teste em dispositivo real) ✅
+> concluído em 30/07/2026** — QA manual, fora do que dá pra automatizar.
 
 ### Veredito do NOT-00 (28/07/2026) — ✅ **aprovado, seguir com o épico**
 
@@ -420,13 +447,13 @@ Spike executado com página estática (`public/spike-push.html` + `public/fireba
 | COB-02 | ✅ Agregar por responsável (1 push por pessoa, não por mensalidade) + deep link para `/financeiro` | 🔴   | 3   | BE     | COB-01          | Responsável com 3 filhos × 4 meses em aberto recebe **1** notificação, não 12; `dados.tipo = "cobranca"`; 1 chamada de `enviarNotificacao` por responsável (motor não mudou de assinatura) |
 | COB-03 | ✅ `mensalidades.cobrancas[]` + idempotência por `(gatilho, disparado hoje)`                   | 🔴   | 2   | BE     | COB-01          | Cron reexecutado no mesmo dia não redispara; histórico capado nas últimas 12 entradas                    |
 | COB-04 | ✅ `POST /financeiro/cobrancas/disparar` (admin) com `dryRun`                                  | 🟡   | 3   | BE     | COB-01          | `dryRun:true` devolve **contagens** (notificados/sem token) sem enviar nada; `false` dispara e grava em `cobrancas[]`. `GET /financeiro/cobrancas` (histórico) **não implementado** — fora do escopo desses IDs |
-| COB-05 | Tela admin: botão "Disparar cobranças agora" + prévia da lista                                | 🟡   | 3   | FE     | COB-04          | Prévia (dryRun) antes de confirmar; feedback de quantos foram notificados e quantos **sem token válido**  |
+| COB-05 | ✅ Tela admin: botão "Disparar cobranças agora" + prévia da lista                                | 🟡   | 3   | FE     | COB-04          | Prévia (dryRun) antes de confirmar; feedback de quantos foram notificados e quantos **sem token válido**  |
 | COB-06 | ✅ `configPrecos.inadimplencia { diaCorte, mesesCarencia }` + campo na tela de config           | 🔴   | 3   | FS     | SIM-01          | Admin edita o corte (default `{ diaCorte: 10, mesesCarencia: 1 }`); validação `1 ≤ diaCorte ≤ 28`         |
 | COB-07 | ✅ Cron diário `marcarInadimplentes` + `mensalidades.inadimplenteDesde`                        | 🔴   | 5   | BE     | COB-06          | Roda 00:05 GMT-3 (`cron(5 3 * * ? *)`); cron só **marca** (pagar é quem limpa `inadimplenteDesde`, na mesma transação da baixa — ver `docs/03-Backend.md`) |
 | COB-08 | ✅ `GET /financeiro/inadimplentes` passa a filtrar `inadimplenteDesde` (não mais `status`) + KPI | 🔴   | 3   | FS     | COB-07, FIN-12  | Mensalidade `atrasado` dentro da carência **some** da lista; KPI do dashboard conta **crianças distintas** (automático — front já agrupa por `criancaId` antes de contar) |
 | COB-09 | ✅ Badge "Inadimplente" na lista de crianças + faixa no financeiro do responsável (`aquarela_app`) | 🟡   | 3   | FE     | COB-08          | Ícone + texto (nunca só cor); responsável vê desde quando está inadimplente e o valor total; também: pontinho na tab "Financeiro" e banner na Início |
 
-**Subtotal Épico J:** 30 pts.
+**Subtotal Épico J:** 30 pts — ✅ concluído (01/08/2026).
 
 ---
 
@@ -468,19 +495,19 @@ provisionar bucket novo.
 
 | ID     | Tarefa                                                                                | Prio | Pts | Camada | Dep.           | AC                                                                                                  |
 | ------ | ------------------------------------------------------------------------------------- | ---- | --- | ------ | -------------- | ----------------------------------------------------------------------------------------------------- |
-| MSG-01 | `POST /anexos/upload-url` — presigned PUT + whitelist de tipo + teto de 10MB          | 🔴   | 5   | BE     | CAD-12         | `Content-Type`/`Content-Length` na assinatura; 5 min de validade; tipo fora da whitelist → `422`      |
-| MSG-02 | Validação `HeadObject` no vínculo + cron diário `limparAnexosOrfaos`                  | 🔴   | 3   | BE     | MSG-01         | Key forjada/de outro escopo → `422 ANEXO_INVALIDO`; órfão > 24h é apagado do bucket                  |
-| MSG-03 | Modelo `mensagens` + índice `{criancaId, createdAt:-1}`                              | 🔴   | 3   | BE     | CAD-08         | Estrutura da doc de banco; `turmaId` derivado da criança no back, **nunca** do payload               |
-| MSG-04 | `POST /mensagens` e `GET /mensagens?criancaId=&desde=` com ownership                   | 🔴   | 5   | BE     | MSG-03, MSG-02 | Responsável só do próprio filho, professor só de criança da sua turma, admin tudo; senão `403`; `desde` filtra por `createdAt >` para fetch incremental pós-push |
+| MSG-01 | ✅ `POST /anexos/upload-url` — presigned PUT + whitelist de tipo + teto de 10MB          | 🔴   | 5   | BE     | CAD-12         | `Content-Type`/`Content-Length` na assinatura; 5 min de validade; tipo fora da whitelist → `422`      |
+| MSG-02 | ✅ Validação `HeadObject` no vínculo + cron diário `limparAnexosOrfaos`                  | 🔴   | 3   | BE     | MSG-01         | Key forjada/de outro escopo → `422 ANEXO_INVALIDO`; órfão > 24h é apagado do bucket                  |
+| MSG-03 | ✅ Modelo `mensagens` + índice `{criancaId, createdAt:-1}`                              | 🔴   | 3   | BE     | CAD-08         | Estrutura da doc de banco; `turmaId` derivado da criança no back, **nunca** do payload               |
+| MSG-04 | ✅ `POST /mensagens` e `GET /mensagens?criancaId=&desde=` com ownership                   | 🔴   | 5   | BE     | MSG-03, MSG-02 | Responsável só do próprio filho, professor só de criança da sua turma, admin tudo; senão `403`; `desde` filtra por `createdAt >` para fetch incremental pós-push |
 | ~~MSG-05~~ | ~~`POST /mensagens/{id}/lida` + `GET /mensagens/nao-lidas`~~ — **removido (01/08/2026)** | ⚪ | – | – | – | Quem leu não é dado de negócio; badge vira cálculo local no cliente (ver MSG-10). Sem write nem query extra por abertura de thread |
-| MSG-06 | `DELETE /mensagens/{id}` (autor ou admin) apagando o anexo no S3                       | 🟡   | 2   | BE     | MSG-04         | Hard delete; objeto do S3 removido junto; terceiro → `403`                                           |
-| MSG-07 | Push ao professor quando o responsável envia (e vice-versa)                            | 🔴   | 2   | BE     | MSG-04, NOT-05 | Corpo genérico ("Novo recado sobre a Sofia"), **sem** o conteúdo da mensagem — LGPD, tela de bloqueio |
-| MSG-08 | Componente `UploadAnexo` (presigned PUT + progresso + resize de imagem)                | 🔴   | 5   | FE     | MSG-01, INF-10 | Reusa `utils/imagem.ts` para imagem; PDF sobe cru; erro de rede é retentável sem perder o texto      |
-| MSG-09 | Tela **Recados** do responsável (thread por filho + anexo), push-driven                | 🔴   | 5   | FE     | MSG-04, MSG-08 | Entrada pela tela da criança; lista desc paginada; sem polling — busca em `desde` ao abrir/receber push; anexo baixa por URL pré-assinada |
-| MSG-10 | Tela **Recados** do professor + badge de não lidas na lista de alunos                  | 🔴   | 5   | FE     | MSG-09         | `AlunosScreen` mostra contador por aluno calculado **no cliente** (mensagens com `createdAt` após a última abertura salva localmente); abrir a thread atualiza a marca |
-| MSG-11 | Atualizar `docs/03-Backend.md` e `docs/04-Banco-de-Dados.md` com o contrato            | 🔴   | 1   | BE     | MSG-01…MSG-07  | `/anexos/upload-url`, `/mensagens` e a coleção `mensagens` documentados                              |
+| MSG-06 | ✅ `DELETE /mensagens/{id}` (autor ou admin) apagando o anexo no S3                       | 🟡   | 2   | BE     | MSG-04         | Hard delete; objeto do S3 removido junto; terceiro → `403`                                           |
+| MSG-07 | ✅ Push ao professor quando o responsável envia (e vice-versa)                            | 🔴   | 2   | BE     | MSG-04, NOT-05 | Corpo genérico ("Novo recado sobre a Sofia"), **sem** o conteúdo da mensagem — LGPD, tela de bloqueio |
+| MSG-08 | ✅ Componente `UploadAnexo` (presigned PUT + progresso + resize de imagem)                | 🔴   | 5   | FE     | MSG-01, INF-10 | Reusa `utils/imagem.ts` para imagem; PDF sobe cru; erro de rede é retentável sem perder o texto      |
+| MSG-09 | ✅ Tela **Recados** do responsável (thread por filho + anexo), push-driven                | 🔴   | 5   | FE     | MSG-04, MSG-08 | Entrada pela tela da criança; lista desc paginada; sem polling — busca em `desde` ao abrir/receber push; anexo baixa por URL pré-assinada |
+| MSG-10 | ✅ Tela **Recados** do professor + badge de não lidas na lista de alunos                  | 🔴   | 5   | FE     | MSG-09         | `AlunosScreen` mostra contador por aluno calculado **no cliente** (mensagens com `createdAt` após a última abertura salva localmente); abrir a thread atualiza a marca |
+| MSG-11 | ✅ Atualizar `docs/03-Backend.md` e `docs/04-Banco-de-Dados.md` com o contrato            | 🔴   | 1   | BE     | MSG-01…MSG-07  | `/anexos/upload-url`, `/mensagens` e a coleção `mensagens` documentados                              |
 
-**Subtotal Épico K:** 36 pts.
+**Subtotal Épico K:** 36 pts — ✅ concluído (01/08/2026), back-end e front-end.
 
 ---
 
@@ -565,7 +592,7 @@ criança por foto**:
 | FOT-07 | Tela do responsável: mural (grid + lightbox + download)                   | ✅   | 5   | FE     | FOT-02         | Agrupado por evento/data; lightbox com teclado; baixa a foto original                            |
 | FOT-08 | Atualizar `docs/03-Backend.md` e `docs/04-Banco-de-Dados.md`              | ✅   | 1   | BE     | FOT-01…FOT-05  | `/eventos`, coleção `eventos` e `consentimentoImagem` documentados                               |
 
-**Subtotal Épico M:** 33 pts — **✅ concluído (03/08/2026)**, back-end e front-end
+**Subtotal Épico M:** 33 pts — **✅ concluído (02/08/2026)**, back-end e front-end
 (front em `aquarela_app`). Reordenar/legenda pós-upload exigiu um endpoint novo
 não previsto no contrato original — `PUT /eventos/{id}/fotos` — ver §"Mural de
 fotos por evento" em `docs/03-Backend.md`.
@@ -724,11 +751,9 @@ que evita mais uma dependência e mais um caminho de código.
   agregado). Admin não recebe push — vê um card no dashboard.
 - **Idempotência:** `criancas.ultimoAniversarioNotificadoEm` — cron reexecutado
   no mesmo dia não duplica.
-- **Front:** `BirthdayContext` aparece em `docs/02-Frontend.md` §4 como contexto
-  planejado, mas **não existe em `src/contexts/`** (só `Auth`, `Notifications`,
-  `Responsavel`, `Theme`). Ou se cria o contexto, ou — mais simples nesta escala —
-  o card de aniversariante lê direto do `GET /criancas` já carregado na Início do
-  responsável e na lista de alunos do professor.
+- **Front:** decidido **não criar `BirthdayContext`** (`docs/02-Frontend.md` §4
+  já corrigido — `src/contexts/` tem só `Auth`, `Notifications`, `Responsavel`,
+  `Theme`). O card de aniversariante lê direto do `GET /criancas` já carregado.
 
 ---
 
@@ -736,14 +761,14 @@ que evita mais uma dependência e mais um caminho de código.
 
 | Fase | Tarefas                                        | Por quê                                                                              |
 | ---- | ---------------------------------------------- | ------------------------------------------------------------------------------------ |
-| 1    | OPS-01, OPS-02, AG2-01, AG2-02                 | Correções: furo de segurança, número errado no dashboard e agenda editada que não avisa |
-| 2    | MSG-01, MSG-02, MSG-08                         | Infra de anexo — destrava K, L e M de uma vez                                         |
-| 3    | COB-06, COB-07, COB-08, COB-09                 | Inadimplência precisa estar definida antes de cobrar                                  |
-| 4    | COB-01…COB-05                                  | Cobrança automática nos dias 05 e 20                                                  |
-| 5    | AG2-03…AG2-08, OPS-03                          | Agenda v2 + múltiplos professores                                                     |
-| 6    | MSG-03…MSG-07, MSG-09…MSG-11                   | Recados com anexo                                                                     |
-| 7    | ~~FOT-01…FOT-08~~ ✅                            | Mural de fotos — épico M concluído (03/08/2026), back-end e front-end                 |
-| 8    | OPS-04, OPS-05, AG2-09                         | Impressão, aniversário e frequência                                                   |
+| 1 ✅  | OPS-01, OPS-02, AG2-01, AG2-02                 | Correções: furo de segurança, número errado no dashboard e agenda editada que não avisa |
+| 2 ✅  | MSG-01, MSG-02, MSG-08                         | Infra de anexo — destrava K, L e M de uma vez                                         |
+| 3 ✅  | COB-06, COB-07, COB-08, COB-09                 | Inadimplência precisa estar definida antes de cobrar                                  |
+| 4 ✅  | COB-01…COB-05                                  | Cobrança automática nos dias 05 e 20                                                  |
+| 5 ✅  | AG2-03…AG2-08, OPS-03                          | Agenda v2 + múltiplos professores                                                     |
+| 6 ✅  | MSG-03…MSG-07, MSG-09…MSG-11                   | Recados com anexo                                                                     |
+| 7 ✅  | ~~FOT-01…FOT-08~~                              | Mural de fotos — épico M concluído (02/08/2026), back-end e front-end                 |
+| 8    | OPS-04 ✅, OPS-05 ✅, ~~AG2-09~~ adiado           | Impressão e aniversário concluídos; frequência adiada (sem tela consumidora)          |
 
 ## Pendências de decisão antes de codar
 
