@@ -21,8 +21,7 @@ const PlanoSchema = new Schema(
 
 const InadimplenciaSchema = new Schema(
   {
-    diaCorte: { type: Number, required: true, min: 1, max: 28 },
-    mesesCarencia: { type: Number, required: true, min: 0 },
+    diasCarencia: { type: Number, required: true, min: 0, max: 365 },
   },
   { _id: false },
 );

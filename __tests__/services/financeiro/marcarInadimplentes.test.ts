@@ -13,11 +13,13 @@ jest.mock("../../../src/services/configPrecos/getConfigPrecos", () => ({
   getConfigPrecosService: jest.fn(),
 }));
 
+const vencimento = (iso: string) => new Date(iso);
+
 describe("marcarInadimplentesService", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (getConfigPrecosService as jest.Mock).mockResolvedValue({
-      inadimplencia: { diaCorte: 10, mesesCarencia: 1 },
+      inadimplencia: { diasCarencia: 10 },
     });
   });
 
@@ -25,10 +27,16 @@ describe("marcarInadimplentesService", () => {
     jest.useRealTimers();
   });
 
-  it("marca inadimplenteDesde na mensalidade que já passou do corte (dia 10 do mês seguinte à carência)", async () => {
-    jest.useFakeTimers().setSystemTime(new Date("2026-09-10T03:00:00.000Z")); // 10/09 00:00 GMT-3
+  it("marca inadimplenteDesde quando a carência em dias já venceu", async () => {
+    jest.useFakeTimers().setSystemTime(new Date("2026-08-15T03:00:00.000Z")); // 15/08 00:00 GMT-3
     (MensalidadeRepository.find as jest.Mock).mockResolvedValue([
-      { _id: "m1", ano: 2026, mes: 8, status: "atrasado" }, // vencimento em agosto, corte 10/09
+      {
+        _id: "m1",
+        ano: 2026,
+        mes: 8,
+        status: "atrasado",
+        vencimento: vencimento("2026-08-05T00:00:00.000Z"),
+      },
     ]);
 
     const resultado = await marcarInadimplentesService();
@@ -41,17 +49,23 @@ describe("marcarInadimplentesService", () => {
         updateOne: {
           filter: { _id: "m1" },
           update: {
-            $set: { inadimplenteDesde: new Date("2026-09-10T03:00:00.000Z") },
+            $set: { inadimplenteDesde: new Date("2026-08-15T03:00:00.000Z") },
           },
         },
       },
     ]);
   });
 
-  it("não marca antes do corte (ainda dentro da carência)", async () => {
-    jest.useFakeTimers().setSystemTime(new Date("2026-09-09T23:00:00.000Z")); // 09/09 20:00 GMT-3, um dia antes do corte
+  it("não marca dentro da carência", async () => {
+    jest.useFakeTimers().setSystemTime(new Date("2026-08-14T23:00:00.000Z")); // 14/08 20:00 GMT-3
     (MensalidadeRepository.find as jest.Mock).mockResolvedValue([
-      { _id: "m1", ano: 2026, mes: 8, status: "atrasado" },
+      {
+        _id: "m1",
+        ano: 2026,
+        mes: 8,
+        status: "atrasado",
+        vencimento: vencimento("2026-08-05T00:00:00.000Z"),
+      },
     ]);
 
     const resultado = await marcarInadimplentesService();
@@ -60,10 +74,23 @@ describe("marcarInadimplentesService", () => {
     expect(MensalidadeRepository.model.bulkWrite).not.toHaveBeenCalled();
   });
 
-  it("respeita rollover de ano (mês 12 + carência de 1 mês → corte em janeiro do ano seguinte)", async () => {
-    jest.useFakeTimers().setSystemTime(new Date("2027-01-10T03:00:00.000Z"));
+  it("conta a partir do vencimento de cada criança, não de um corte comum", async () => {
+    jest.useFakeTimers().setSystemTime(new Date("2026-08-15T03:00:00.000Z"));
     (MensalidadeRepository.find as jest.Mock).mockResolvedValue([
-      { _id: "m1", ano: 2026, mes: 12, status: "aberto" },
+      {
+        _id: "vence-dia-05",
+        ano: 2026,
+        mes: 8,
+        status: "atrasado",
+        vencimento: vencimento("2026-08-05T00:00:00.000Z"),
+      },
+      {
+        _id: "vence-dia-10",
+        ano: 2026,
+        mes: 8,
+        status: "aberto",
+        vencimento: vencimento("2026-08-10T00:00:00.000Z"),
+      },
     ]);
 
     const resultado = await marcarInadimplentesService();
@@ -71,18 +98,44 @@ describe("marcarInadimplentesService", () => {
     expect(resultado).toEqual({ marcadas: 1 });
     const [operacoes] = (MensalidadeRepository.model.bulkWrite as jest.Mock)
       .mock.calls[0];
-    expect(
-      operacoes[0].updateOne.update.$set.inadimplenteDesde,
-    ).toEqual(new Date("2027-01-10T03:00:00.000Z"));
+    expect(operacoes[0].updateOne.filter).toEqual({ _id: "vence-dia-05" });
   });
 
-  it("diaCorte configurável muda a data do corte", async () => {
-    (getConfigPrecosService as jest.Mock).mockResolvedValue({
-      inadimplencia: { diaCorte: 1, mesesCarencia: 0 },
-    });
-    jest.useFakeTimers().setSystemTime(new Date("2026-08-01T03:00:00.000Z"));
+  it("respeita rollover de mês e de ano", async () => {
+    jest.useFakeTimers().setSystemTime(new Date("2027-01-04T03:00:00.000Z"));
     (MensalidadeRepository.find as jest.Mock).mockResolvedValue([
-      { _id: "m1", ano: 2026, mes: 8, status: "aberto" },
+      {
+        _id: "m1",
+        ano: 2026,
+        mes: 12,
+        status: "aberto",
+        vencimento: vencimento("2026-12-25T00:00:00.000Z"),
+      },
+    ]);
+
+    const resultado = await marcarInadimplentesService();
+
+    expect(resultado).toEqual({ marcadas: 1 });
+    const [operacoes] = (MensalidadeRepository.model.bulkWrite as jest.Mock)
+      .mock.calls[0];
+    expect(operacoes[0].updateOne.update.$set.inadimplenteDesde).toEqual(
+      new Date("2027-01-04T03:00:00.000Z"),
+    );
+  });
+
+  it("diasCarencia configurável muda a data do corte", async () => {
+    (getConfigPrecosService as jest.Mock).mockResolvedValue({
+      inadimplencia: { diasCarencia: 0 },
+    });
+    jest.useFakeTimers().setSystemTime(new Date("2026-08-05T03:00:00.000Z"));
+    (MensalidadeRepository.find as jest.Mock).mockResolvedValue([
+      {
+        _id: "m1",
+        ano: 2026,
+        mes: 8,
+        status: "aberto",
+        vencimento: vencimento("2026-08-05T00:00:00.000Z"),
+      },
     ]);
 
     const resultado = await marcarInadimplentesService();

@@ -14,10 +14,9 @@ const descontoSchema = {
 const inadimplenciaSchema = {
   type: "object",
   properties: {
-    diaCorte: { type: "number", minimum: 1, maximum: 28 },
-    mesesCarencia: { type: "number", minimum: 0 },
+    diasCarencia: { type: "number", minimum: 0, maximum: 365 },
   },
-  required: ["diaCorte", "mesesCarencia"],
+  required: ["diasCarencia"],
   additionalProperties: false,
 } as const;
 

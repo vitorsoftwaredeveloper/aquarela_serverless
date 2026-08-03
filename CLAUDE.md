@@ -132,9 +132,15 @@ existente:
   `listCriancasDaTurma`, `planosAula`, escopo de `avisos`). `planosAula.professorId`
   passa a significar **autor**, não "professor da turma".
 - **Inadimplência ≠ atraso** (COB-06/07): `configPrecos.inadimplencia
-  { diaCorte: 10, mesesCarencia: 1 }` + cron `marcarInadimplentes` gravando
+  { diasCarencia: 10 }` + cron `marcarInadimplentes` gravando
   `mensalidades.inadimplenteDesde`. `GET /financeiro/inadimplentes` deixa de
-  filtrar por `status: "atrasado"`.
+  filtrar por `status: "atrasado"`. **A carência é em dias corridos contados do
+  `vencimento` de cada mensalidade** (`somarDiasBrasil`, `src/utils/date.ts`) —
+  o formato antigo `{ diaCorte, mesesCarencia }`, um corte de calendário comum a
+  todas as crianças, saiu do contrato em 02/08/2026 e `PUT /config/precos`
+  rejeita esses campos. Não há script de migração: `getConfigPrecosService`
+  reconstrói `inadimplencia` com o default (`DIAS_CARENCIA_PADRAO = 10`) quando
+  o documento gravado ainda está no formato velho.
 - **Anexo grande sobe direto ao S3** (MSG-01): `POST /anexos/upload-url` (presigned
   PUT de 5 min, 10MB, whitelist de tipo) para recado/agenda/mural, validado por
   `HeadObject` no vínculo. A **foto de criança e de professor continua em base64**
@@ -160,9 +166,10 @@ existente:
   precisa bater **exatamente** com as `key` já no evento (`422
   FOTOS_DIVERGENTES` senão) — adicionar/remover continua exclusivo das rotas
   dedicadas, essa rota só reordena/edita o que já existe.
-- **Pendências de produto antes de codar:** carência de 36 dias até virar
-  inadimplente · cobrança precisa de canal além do push (iPhone sem PWA não
-  recebe).
+- **Pendências de produto — resolvidas em 02/08/2026:** carência passou a ser
+  em dias corridos a partir do vencimento (`{ diasCarencia: 10 }`) · cobrança
+  fica **só** em push + badge in-app, sem canal extra — quem não recebe (iPhone
+  sem PWA) é contatado pela escola por fora do sistema.
 
 ### 5.2 O que falta (02/08/2026)
 
@@ -179,8 +186,8 @@ existente:
 - **NOT-01 (resíduo)** — `firebase_service_account` só existe no SSM de
   `staging`; falta dev e prod.
 - **AG2-09** adiado; **Épico O** represado.
-- **Decisão de produto travando código:** carência de 36 dias da inadimplência
-  (COB-07) e canal de cobrança além do push (COB-01).
+- **Nenhuma decisão de produto pendente** — as duas últimas (carência e canal de
+  cobrança) foram resolvidas em 02/08/2026.
 
 Quadro completo em [`docs/06-Backlog.md`](./docs/06-Backlog.md) §"Situação atual".
 

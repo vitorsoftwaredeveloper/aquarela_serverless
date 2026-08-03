@@ -633,16 +633,17 @@ Base: `/v1`. Todos exigem JWT, exceto os marcados como público.
 > **carência configurável** e a rota passa a filtrar por
 > `inadimplenteDesde != null`:
 >
-> - Configuração em `configPrecos.inadimplencia = { diaCorte: 10, mesesCarencia: 1 }`
->   (`GET`/`PUT /config/precos`, admin). `1 ≤ diaCorte ≤ 28` — 29/30/31 não
->   existem em todo mês.
-> - Regra: a mensalidade `{ano, mes}` não paga vira inadimplente no **dia
->   `diaCorte` do mês `mes + mesesCarencia`**, às 00:00 GMT-3. O `diaVencimento`
->   individual da criança **continua valendo** para a transição
->   `aberto → atrasado`; o corte é uma segunda linha, depois dela.
-> - ⚠️ **Com o default, vencimento 05/08 só vira inadimplente em 10/09** (36
->   dias). É deliberado e configurável — baixar `mesesCarencia` para `0` joga o
->   corte para 10/08.
+> - Configuração em `configPrecos.inadimplencia = { diasCarencia: 10 }`
+>   (`GET`/`PUT /config/precos`, admin). `0 ≤ diasCarencia ≤ 365`.
+> - Regra: a mensalidade não paga vira inadimplente em
+>   **`vencimento + diasCarencia`**, às 00:00 GMT-3. A conta é por mensalidade —
+>   o `diaVencimento` individual da criança manda também aqui, não existe corte
+>   de calendário comum a todo mundo. Ele continua valendo, como antes, para a
+>   transição `aberto → atrasado`; a carência é uma segunda linha, depois dela.
+> - Com o default, vencimento 05/08 vira inadimplente em **15/08**.
+> - **Mudança de contrato (02/08/2026):** o formato anterior
+>   `{ diaCorte, mesesCarencia }` não existe mais — `PUT /config/precos` com
+>   esses campos responde `400` (`additionalProperties: false`).
 > - Cron diário `marcarInadimplentes` (00:05 GMT-3, `cron(5 3 * * ? *)`) grava/
 >   limpa `mensalidades.inadimplenteDesde`. Pagar (PIX, webhook ou manual) limpa
 >   o campo na mesma transação da baixa.

@@ -417,14 +417,19 @@ enviosCount: number               // default 0
 
 ### `configPrecos` — campo novo (COB-06)
 ```
-inadimplencia: { diaCorte: number, mesesCarencia: number }
-// default { diaCorte: 10, mesesCarencia: 1 }; 1 ≤ diaCorte ≤ 28
+inadimplencia: { diasCarencia: number }
+// default { diasCarencia: 10 }; 0 ≤ diasCarencia ≤ 365
 ```
 
-> `diaCorte` fica em 28 no máximo porque 29/30/31 não existem em todo mês.
-> Com o default, uma mensalidade com vencimento em **05/08 só vira inadimplente
-> em 10/09** (36 dias de carência) — deliberado e configurável:
-> `mesesCarencia: 0` joga o corte para 10/08.
+> **Formato novo desde 02/08/2026** — substitui `{ diaCorte, mesesCarencia }`,
+> que era um corte de calendário comum a todas as crianças. Agora a carência é
+> contada **a partir do `vencimento` de cada mensalidade**: com o default,
+> vencimento 05/08 vira inadimplente em **15/08**.
+>
+> Não há script de migração: o documento antigo continua no banco, mas o schema
+> do Mongoose descarta os campos que saíram e `getConfigPrecosService`
+> reconstrói `inadimplencia` com o default. O formato velho some de vez no
+> primeiro `PUT /config/precos`.
 
 ---
 

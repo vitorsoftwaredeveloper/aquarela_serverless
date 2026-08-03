@@ -14,8 +14,7 @@ export interface IPlano {
 }
 
 export interface IInadimplenciaConfig {
-  diaCorte: number;
-  mesesCarencia: number;
+  diasCarencia: number;
 }
 
 export interface IConfigPrecos {

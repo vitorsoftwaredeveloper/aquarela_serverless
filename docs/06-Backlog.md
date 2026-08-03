@@ -55,8 +55,10 @@ Resumo de esforço do MVP no fim do documento.
 
 ### Decisão de produto pendente
 
-Detalhe em §"Pendências de decisão antes de codar", no fim do documento: carência de
-36 dias da inadimplência (COB-07) e canal de cobrança além do push (COB-01).
+Nenhuma. As duas últimas foram resolvidas em 02/08/2026 — carência em dias
+corridos a partir do vencimento (`{ diasCarencia: 10 }`, COB-07) e cobrança só
+por push + badge in-app, sem canal extra (COB-01). Ver §"Pendências de decisão
+antes de codar" no fim do documento.
 
 ---
 
@@ -428,17 +430,17 @@ Spike executado com página estática (`public/spike-push.html` + `public/fireba
    podem aparecer (mesmo padrão do "A agenda de hoje da Sofia já está
    disponível"); **valor devido, não** — a notificação aparece na tela de
    bloqueio. Valor só dentro do app autenticado.
-3. **Inadimplência = vencimento da criança + carência até o dia de corte.** O
-   `diaVencimento` individual continua mandando; o dia 10 é o **corte**, não um
-   vencimento global. Regra: a mensalidade vira inadimplente no **dia 10 do mês
-   seguinte ao da competência**, se ainda não estiver `pago`.
-   - ⚠️ **Consequência a conferir com a escola:** mensalidade com vencimento em
-     05/08 só entra na lista de inadimplentes em **10/09** — 36 dias de carência.
-     Se o corte tiver que ser mais curto, `configPrecos.inadimplencia.mesesCarencia = 0`
-     joga o corte para 10/08. É por isso que a regra nasce **configurável**
-     (COB-06) em vez de constante no código.
-   - Entre o vencimento e o corte a mensalidade continua `atrasado` (cobrável,
-     aparece em vermelho para o responsável) mas **fora** da lista de
+3. **Inadimplência = vencimento da mensalidade + N dias de carência.**
+   ⚠️ **Revisado em 02/08/2026 (decisão do usuário)** — o formato original era
+   `{ diaCorte, mesesCarencia }`, um corte de calendário comum a todas as
+   crianças, que dava 36 dias de carência para quem vence dia 05 e 31 para quem
+   vence dia 10. Agora é `configPrecos.inadimplencia = { diasCarencia: 10 }`:
+   a mensalidade não paga vira inadimplente em `vencimento + diasCarencia`, às
+   00:00 GMT-3, contado por mensalidade. O `diaVencimento` individual da criança
+   manda também aqui — não existe mais data única de corte.
+   - Com o default, vencimento 05/08 vira inadimplente em **15/08**.
+   - Entre o vencimento e o fim da carência a mensalidade continua `atrasado`
+     (cobrável, aparece em vermelho para o responsável) mas **fora** da lista de
      inadimplentes e do KPI do dashboard.
 
 | ID     | Tarefa                                                                                       | Prio | Pts | Camada | Dep.            | AC                                                                                                       |
@@ -448,7 +450,7 @@ Spike executado com página estática (`public/spike-push.html` + `public/fireba
 | COB-03 | ✅ `mensalidades.cobrancas[]` + idempotência por `(gatilho, disparado hoje)`                   | 🔴   | 2   | BE     | COB-01          | Cron reexecutado no mesmo dia não redispara; histórico capado nas últimas 12 entradas                    |
 | COB-04 | ✅ `POST /financeiro/cobrancas/disparar` (admin) com `dryRun`                                  | 🟡   | 3   | BE     | COB-01          | `dryRun:true` devolve **contagens** (notificados/sem token) sem enviar nada; `false` dispara e grava em `cobrancas[]`. `GET /financeiro/cobrancas` (histórico) **não implementado** — fora do escopo desses IDs |
 | COB-05 | ✅ Tela admin: botão "Disparar cobranças agora" + prévia da lista                                | 🟡   | 3   | FE     | COB-04          | Prévia (dryRun) antes de confirmar; feedback de quantos foram notificados e quantos **sem token válido**  |
-| COB-06 | ✅ `configPrecos.inadimplencia { diaCorte, mesesCarencia }` + campo na tela de config           | 🔴   | 3   | FS     | SIM-01          | Admin edita o corte (default `{ diaCorte: 10, mesesCarencia: 1 }`); validação `1 ≤ diaCorte ≤ 28`         |
+| COB-06 | ✅ `configPrecos.inadimplencia { diasCarencia }` + campo na tela de config (revisado 02/08/2026) | 🔴   | 3   | FS     | SIM-01          | Admin edita a carência em dias (default `{ diasCarencia: 10 }`); validação `0 ≤ diasCarencia ≤ 365`; conta a partir do `vencimento` de cada mensalidade |
 | COB-07 | ✅ Cron diário `marcarInadimplentes` + `mensalidades.inadimplenteDesde`                        | 🔴   | 5   | BE     | COB-06          | Roda 00:05 GMT-3 (`cron(5 3 * * ? *)`); cron só **marca** (pagar é quem limpa `inadimplenteDesde`, na mesma transação da baixa — ver `docs/03-Backend.md`) |
 | COB-08 | ✅ `GET /financeiro/inadimplentes` passa a filtrar `inadimplenteDesde` (não mais `status`) + KPI | 🔴   | 3   | FS     | COB-07, FIN-12  | Mensalidade `atrasado` dentro da carência **some** da lista; KPI do dashboard conta **crianças distintas** (automático — front já agrupa por `criancaId` antes de contar) |
 | COB-09 | ✅ Badge "Inadimplente" na lista de crianças + faixa no financeiro do responsável (`aquarela_app`) | 🟡   | 3   | FE     | COB-08          | Ícone + texto (nunca só cor); responsável vê desde quando está inadimplente e o valor total; também: pontinho na tab "Financeiro" e banner na Início |
@@ -774,9 +776,9 @@ que evita mais uma dependência e mais um caminho de código.
 
 | # | Pendência                                                                 | Bloqueia | Default se ninguém decidir                       |
 | - | ------------------------------------------------------------------------- | -------- | ------------------------------------------------ |
-| 1 | Carência de 36 dias até virar inadimplente é o que a escola quer?         | COB-07   | `{ diaCorte: 10, mesesCarencia: 1 }`, configurável |
+| 1 | ~~Carência de 36 dias até virar inadimplente é o que a escola quer?~~ **Resolvido 02/08/2026: carência em dias corridos a partir do vencimento**, `{ diasCarencia: 10 }` — o formato `{ diaCorte, mesesCarencia }` foi removido do contrato. | COB-07 ✅ | — |
 | 2 | ~~Marcação de criança por foto é obrigatória na publicação do mural?~~ **Resolvido 02/08/2026: sem marcação nenhuma** — consentimento é só registro, sem `criancasIds`/bloqueio técnico. | FOT-05 ✅ | — |
-| 3 | Cobrança precisa alcançar quem não instalou o PWA (e-mail/WhatsApp)?      | COB-01   | Só push + badge in-app nesta fase                 |
+| 3 | ~~Cobrança precisa alcançar quem não instalou o PWA (e-mail/WhatsApp)?~~ **Resolvido 02/08/2026: não.** Push + badge in-app bastam; quem não recebe é contatado pela escola por fora do sistema. | COB-01 ✅ | — |
 
 ---
 
