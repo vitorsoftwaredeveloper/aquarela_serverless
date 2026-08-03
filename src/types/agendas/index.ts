@@ -108,3 +108,14 @@ export interface IUpdateAgendaPayload {
   presenca?: IPresenca;
   anexos?: IAnexoReferencia[];
 }
+
+/** Contagem de presença por status num período (AG2-09). */
+export interface IFrequenciaAgenda {
+  criancaId: string;
+  de: string;
+  ate: string;
+  presente: number;
+  falta: number;
+  atrasado: number;
+  total: number;
+}

@@ -75,6 +75,23 @@ getHistoricoAgenda:
         authorizer:
           name: cognitoAuthorizer
 
+getFrequenciaAgenda:
+  handler: src/handlers/agendas/getFrequenciaAgenda.execute
+  iamRoleStatementsInherit: true
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - ssm:GetParameter
+      Resource:
+        - ${self:custom.ssmParameterArn}/encryption_key
+        - ${self:custom.ssmParameterArn}/*/encryption_key
+  events:
+    - httpApi:
+        method: GET
+        path: /v1/agenda/frequencia
+        authorizer:
+          name: cognitoAuthorizer
+
 enviarAgenda:
   handler: src/handlers/agendas/enviarAgenda.execute
   environment:

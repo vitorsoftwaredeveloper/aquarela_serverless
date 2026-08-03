@@ -251,9 +251,22 @@ Base: `/v1`. Todos exigem JWT, exceto os marcados como público.
 | PUT | `/agenda/{id}` | professor | Editar registro do dia |
 | GET | `/agenda?criancaId=&data=` | professor/responsavel* | Registro por dia |
 | GET | `/agenda/historico?criancaId=&de=&ate=` | professor/responsavel* | Histórico |
+| GET | `/agenda/frequencia?criancaId=&de=&ate=` | professor/responsavel* | Contagem de presença (`presente`/`falta`/`atrasado`) no período — AG2-09 |
 | POST | `/agenda/{id}/enviar` | professor | Gatilho **"Enviar para os pais"** — dispara a notificação push (ver §Notificações push abaixo). Só a professora da turma (mesma regra de `PUT /agenda/{id}`); **renotifica em toda chamada** ("agenda atualizada" a partir da 2ª), com debounce de 10 min por agenda (`200 { notificado: false, motivo: "DEBOUNCE" }` dentro da janela). Resposta é a agenda com `enviadaEm`/`ultimoEnvioEm`/`enviosCount` + `{ notificado, motivo? }` |
 | DELETE | `/agenda/{id}` | professor | Remover registro do dia. Mesma guarda de `PUT /agenda/{id}` (só a professora da turma; senão `403 FORBIDDEN`); agenda inexistente → `404 NOT_FOUND`. **Hard delete** — registro diário não tem soft delete |
 
+> **AG2-09 — `GET /agenda/frequencia?criancaId=&de=&ate=`** (`src/services/agendas/getFrequenciaAgenda.ts`).
+> `de`/`ate` são **obrigatórios** (`400 BAD_REQUEST` sem algum dos três parâmetros
+> ou com data inválida) — diferente de `GET /agenda/historico`, que aceita
+> período opcional; aqui um período sem limite cruzaria com anos já expurgados
+> pelo cron `limparDadosAnoAnterior` sem nenhum aviso. Mesma guarda de acesso
+> de `GET /agenda/historico` (`loadCriancaParaLeituraAgenda`: professor da
+> turma da criança ou responsável pelo próprio filho). Resposta:
+> `{ criancaId, de, ate, presente, falta, atrasado, total }`, contando só dias
+> com `presenca` registrada (agenda anterior ao Épico L, sem esse campo, não
+> entra em nenhum total). Consumida pela tela de Histórico (chip de resumo do
+> período) e por um futuro relatório de frequência.
+>
 > **Épico L (AG2) — `tarefaCasa`, `presenca` e `anexos` no registro diário
 > (`POST`/`PUT /agenda`).** `tarefaCasa?: { status: "feito"|"nao_feito"|"incompleto", observacao? }`
 > e `presenca?: { status: "presente"|"falta"|"atrasado", horaChegada?, justificativa? }`

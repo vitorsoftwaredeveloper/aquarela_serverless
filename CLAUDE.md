@@ -148,6 +148,14 @@ existente:
 - **Crons novos:** `dispararCobrancas` (dias 05 e 20, 09:00 GMT-3) ·
   `marcarInadimplentes` (diário 00:05 GMT-3) · `notificarAniversariantes`
   (diário 08:00 GMT-3) · `limparAnexosOrfaos` (diário).
+- **✅ AG2-09 — `GET /agenda/frequencia?criancaId=&de=&ate=`** implementado em
+  03/08/2026 (`src/services/agendas/getFrequenciaAgenda.ts`). `de`/`ate` são
+  **obrigatórios** (diferente de `GET /agenda/historico`, que os aceita
+  opcionais) — sem limite o agregado cruzaria com anos já expurgados pelo
+  cron `limparDadosAnoAnterior` sem aviso nenhum. Mesma guarda de
+  `loadCriancaParaLeituraAgenda` de `GET /agenda/historico`. Só conta dias com
+  `presenca` registrada; devolve `{ criancaId, de, ate, presente, falta,
+  atrasado, total }`.
 - **✅ Mural de fotos** (FOT-01…05, 08): `/eventos` (CRUD + escopo por papel,
   igual `/avisos`), `POST /eventos/{id}/fotos` (reaproveita
   `validarAnexosVinculados("mural", ...)`), `POST /eventos/{id}/publicar`
@@ -176,7 +184,7 @@ existente:
 Épicos 0–N ✅. Em aberto que toca este repo:
 
 - **QA-09** — `src/services/avisos/` e `src/services/eventos/` não têm nenhum
-  teste, e não existe suíte de integração: os 28 arquivos de teste mockam
+  teste, e não existe suíte de integração: os 29 arquivos de teste mockam
   Mongo/S3/FCM sem exceção (QA-01 em si está ✅). Único 🔴 aberto que não
   depende de decisão de produto.
 - **QA-03 (resto)** — revisão de acesso por papel + política de retenção/expurgo
@@ -185,7 +193,7 @@ existente:
   sem log estruturado nem alarme de 5xx.
 - **NOT-01 (resíduo)** — `firebase_service_account` só existe no SSM de
   `staging`; falta dev e prod.
-- **AG2-09** adiado; **Épico O** represado.
+- **Épico O** represado.
 - **Nenhuma decisão de produto pendente** — as duas últimas (carência e canal de
   cobrança) foram resolvidas em 02/08/2026.
 

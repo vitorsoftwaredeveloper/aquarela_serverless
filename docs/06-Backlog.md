@@ -42,7 +42,7 @@ Resumo de esforço do MVP no fim do documento.
 
 | Item | Camada | Por que ainda está aberto |
 | --- | --- | --- |
-| **QA-09** — sessão dedicada de testes | BE | QA-01 ✅ (28 arquivos), mas `src/services/avisos/` e `src/services/eventos/` seguem sem nenhum teste e não existe suíte de integração — 100% dos testes mockam Mongo/S3/FCM. Único 🔴 aberto que não depende de decisão de produto |
+| **QA-09** — sessão dedicada de testes | BE | QA-01 ✅ (29 arquivos), mas `src/services/avisos/` e `src/services/eventos/` seguem sem nenhum teste e não existe suíte de integração — 100% dos testes mockam Mongo/S3/FCM. Único 🔴 aberto que não depende de decisão de produto |
 | **QA-03 (resto)** | FS | Consentimento LGPD ✅; faltam a revisão de acesso por papel e a política de retenção/expurgo escrita |
 | **INF-11** — CI/CD | INFRA | Nenhum `.github/workflows` nos dois repos; deploy é manual |
 | **INF-12** — observabilidade | INFRA | Sem logs estruturados, sem alarme de 5xx |
@@ -50,7 +50,6 @@ Resumo de esforço do MVP no fim do documento.
 
 ### Adiado por decisão do usuário
 
-- **AG2-09** — `GET /agenda/frequencia`: sem tela consumidora definida.
 - **Épico O** (DOC-01…04, E2E-01…04): só depois que as três visões pararem de mudar.
 
 ### Decisão de produto pendente
@@ -544,13 +543,15 @@ das 11h e não sabe que mudou. A rota passa a ser **"notificar (re)envio"**:
 | AG2-06 | ✅ Seletor de presença/atraso na agenda + destaque na leitura                           | 🔴   | 3   | FE     | AG2-05, AGD-05  | `falta` colapsa os blocos de alimentação/sono/atividade na UI (não faz sentido preencher)      |
 | AG2-07 | ✅ `agendasDiarias.anexos[]` + `GET /agenda` devolvendo URL pré-assinada                | 🔴   | 3   | BE     | MSG-01, AGD-01  | Máx. 5 anexos/dia; mesma whitelist e teto do Épico K; leitura por presigned de 1h              |
 | AG2-08 | ✅ Anexar documento na agenda (professor) e baixar (responsável)                        | 🔴   | 5   | FE     | AG2-07, MSG-08  | Reusa `UploadAnexo`; responsável baixa da tela de agenda e do histórico                        |
-| AG2-09 | `GET /agenda/frequencia?criancaId=&de=&ate=` (presente/falta/atrasado no período)    | 🟢   | 3   | FS     | AG2-05          | Contagem por status; usado no histórico e num futuro relatório de frequência — **adiado** (decisão do usuário, sem tela consumidora ainda) |
+| AG2-09 | ✅ `GET /agenda/frequencia?criancaId=&de=&ate=` (presente/falta/atrasado no período)    | 🟢   | 3   | FS     | AG2-05          | Contagem por status; usado no histórico e num futuro relatório de frequência |
 | AG2-10 | ✅ Atualizar `docs/03-Backend.md` e `docs/04-Banco-de-Dados.md`                         | 🔴   | 1   | BE     | AG2-01…AG2-07   | Novo contrato de `/agenda/{id}/enviar` + campos novos documentados                             |
 
-**Subtotal Épico L:** 30 pts (MVP deste épico: 27 pts sem AG2-09).
+**Subtotal Épico L:** 30 pts — **concluído em 03/08/2026**.
 
 > **MVP do épico (AG2-01…AG2-08, AG2-10) concluído em 02/08/2026.** AG2-09
-> segue adiado — decisão do usuário, sem tela consumidora definida ainda.
+> implementado em 03/08/2026 — `GET /agenda/frequencia` (`de`/`ate`
+> obrigatórios) consumido pelo chip de resumo na tela de Histórico
+> (professor e responsável).
 
 ---
 
@@ -770,7 +771,7 @@ que evita mais uma dependência e mais um caminho de código.
 | 5 ✅  | AG2-03…AG2-08, OPS-03                          | Agenda v2 + múltiplos professores                                                     |
 | 6 ✅  | MSG-03…MSG-07, MSG-09…MSG-11                   | Recados com anexo                                                                     |
 | 7 ✅  | ~~FOT-01…FOT-08~~                              | Mural de fotos — épico M concluído (02/08/2026), back-end e front-end                 |
-| 8    | OPS-04 ✅, OPS-05 ✅, ~~AG2-09~~ adiado           | Impressão e aniversário concluídos; frequência adiada (sem tela consumidora)          |
+| 8    | OPS-04 ✅, OPS-05 ✅, AG2-09 ✅                    | Impressão, aniversário e frequência concluídos                                        |
 
 ## Pendências de decisão antes de codar
 

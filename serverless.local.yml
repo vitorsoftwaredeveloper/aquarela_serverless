@@ -258,6 +258,13 @@ functions:
           method: GET
           path: /v1/agenda/historico
 
+  getFrequenciaAgenda:
+    handler: src/handlers/agendas/getFrequenciaAgenda.execute
+    events:
+      - httpApi:
+          method: GET
+          path: /v1/agenda/frequencia
+
   enviarAgenda:
     handler: src/handlers/agendas/enviarAgenda.execute
     events:
