@@ -1,7 +1,18 @@
 createAgenda:
   handler: src/handlers/agendas/createAgenda.execute
   iamRoleStatementsInherit: true
-  iamRoleStatements: ${self:custom.encryptionKeyIamStatements}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - ssm:GetParameter
+      Resource:
+        - ${self:custom.ssmParameterArn}/encryption_key
+        - ${self:custom.ssmParameterArn}/*/encryption_key
+    - Effect: Allow
+      Action:
+        - s3:GetObject
+      Resource:
+        - ${self:custom.fotosObjectArn}
   events:
     - httpApi:
         method: POST
@@ -12,7 +23,18 @@ createAgenda:
 updateAgenda:
   handler: src/handlers/agendas/updateAgenda.execute
   iamRoleStatementsInherit: true
-  iamRoleStatements: ${self:custom.encryptionKeyIamStatements}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - ssm:GetParameter
+      Resource:
+        - ${self:custom.ssmParameterArn}/encryption_key
+        - ${self:custom.ssmParameterArn}/*/encryption_key
+    - Effect: Allow
+      Action:
+        - s3:GetObject
+      Resource:
+        - ${self:custom.fotosObjectArn}
   events:
     - httpApi:
         method: PUT

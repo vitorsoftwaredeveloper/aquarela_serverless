@@ -490,6 +490,14 @@ Base: `/v1`. Todos exigem JWT, exceto os marcados como público.
 >   declarado, e a `key` precisa ter o prefixo emitido por ele. Não bateu →
 >   `422 ANEXO_INVALIDO`. Sem isso, um cliente sobe um `.exe` renomeado ou
 >   referencia a key de outro escopo.
+> - ⚠️ **Toda Lambda que vincula anexo precisa de `s3:GetObject` no
+>   `functions.yml`** — `HeadObject` é autorizado por essa action, não existe
+>   `s3:HeadObject`. Sem ela o S3 responde **403 sem corpo**, o SDK levanta um
+>   erro `message: "UnknownError"` e a rota vira `500 INTERNAL_SERVER_ERROR` em
+>   vez de `422 ANEXO_INVALIDO`. Foi exatamente o que quebrou
+>   `POST /agenda` com anexo em 03/08/2026: `createAgenda`/`updateAgenda`
+>   tinham só o statement de `encryption_key`. `UnknownError` num 500 é a
+>   assinatura desse erro — procure IAM antes de procurar bug de validação.
 > - Objeto que subiu e nunca foi vinculado é lixo: cron diário
 >   `limparAnexosOrfaos` apaga o que passou de 24h sem referência em nenhuma
 >   coleção.
