@@ -15,8 +15,8 @@ export interface IAgendaComAnexosUrl extends Omit<IAgendaDiaria, "anexos"> {
 export const withAgendaAnexosUrl = async (
   agenda: IAgendaDiaria,
 ): Promise<IAgendaComAnexosUrl> => {
-  if (agenda.anexos.length === 0 || !getFotosBucket()) {
-    return agenda as IAgendaComAnexosUrl;
+  if (!agenda.anexos || agenda.anexos.length === 0 || !getFotosBucket()) {
+    return { ...agenda, anexos: agenda.anexos ?? [] } as IAgendaComAnexosUrl;
   }
 
   const anexos = await Promise.all(
