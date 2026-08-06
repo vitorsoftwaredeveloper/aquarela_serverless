@@ -391,6 +391,65 @@ describe("updateCriancaService", () => {
           expect(resultado.acessosResponsaveis).toEqual([]);
         });
       });
+
+      describe("sincronização de criancasVinculadas", () => {
+        const joaoComUsuario = {
+          usuarioId: "usuario-joao",
+          nome: "Joao",
+          cpf: "111.444.777-35",
+          parentesco: "Pai",
+          telefone: "11999991111",
+          email: "joao@example.com",
+          podeRetirar: true,
+        };
+
+        it("desvincula o responsável removido da criança", async () => {
+          mockCrianca({ responsaveis: [anaComUsuario, joaoComUsuario] });
+
+          await updateCriancaService(admin, "crianca-1", {
+            responsaveis: [anaComUsuario],
+          });
+
+          expect(UsuarioRepository.updateOne).toHaveBeenCalledWith(
+            { _id: "usuario-joao" },
+            { $pull: { criancasVinculadas: "crianca-1" } },
+          );
+        });
+
+        it("não mexe em quem continua na lista", async () => {
+          mockCrianca({ responsaveis: [anaComUsuario, joaoComUsuario] });
+
+          await updateCriancaService(admin, "crianca-1", {
+            responsaveis: [anaComUsuario],
+          });
+
+          const alvos = (
+            UsuarioRepository.updateOne as jest.Mock
+          ).mock.calls.map(([filtro]) => filtro._id);
+          expect(alvos).not.toContain("usuario-9");
+        });
+
+        it("não toca no vínculo quando o payload não traz responsaveis", async () => {
+          mockCrianca({ responsaveis: [anaComUsuario, joaoComUsuario] });
+
+          await updateCriancaService(admin, "crianca-1", { nome: "Diego" });
+
+          expect(UsuarioRepository.updateOne).not.toHaveBeenCalled();
+        });
+
+        it("ignora usuarioId forjado no payload e mantém o gravado no banco", async () => {
+          mockCrianca({ responsaveis: [anaComUsuario] });
+
+          await updateCriancaService(admin, "crianca-1", {
+            responsaveis: [{ ...anaComUsuario, usuarioId: "usuario-intruso" }],
+          });
+
+          const [, update] = (CriancaRepository.updateOne as jest.Mock).mock
+            .calls[0];
+          expect(update.$set.responsaveis[0].usuarioId).toBe("usuario-9");
+          expect(UsuarioRepository.updateOne).not.toHaveBeenCalled();
+        });
+      });
     });
   });
 

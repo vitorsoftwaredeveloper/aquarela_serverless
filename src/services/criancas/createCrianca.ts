@@ -1,9 +1,12 @@
 import { Types } from "mongoose";
 import { CriancaRepository } from "../../repositories/crianca.repository";
 import { TurmaRepository } from "../../repositories/turma.repository";
-import { UsuarioRepository } from "../../repositories/usuario.repository";
 import { gerarMensalidadesIniciaisService } from "../mensalidades/gerarMensalidadesIniciais";
 import { ensureResponsavelUsuario } from "../shared/responsavelAcesso";
+import {
+  sincronizarCriancasVinculadas,
+  usuarioIdsVinculados,
+} from "../shared/vinculoResponsavel";
 import { hashForLookup } from "../../libs/crypto";
 import { diaMesDeData } from "../../utils/date";
 import {
@@ -83,13 +86,11 @@ export const createCriancaService = async (
   const fotoBytes = payload.foto ? validarFotoBase64(payload.foto) : undefined;
 
   const acessosResponsaveis: IAcessoResponsavelCriado[] = [];
-  const usuarioIds: string[] = [];
   const responsaveisComAcesso: IResponsavel[] = [];
 
   for (const responsavel of payload.responsaveis) {
     const { usuarioId, acessoCriado } =
       await ensureResponsavelUsuario(responsavel);
-    usuarioIds.push(usuarioId);
     if (acessoCriado) acessosResponsaveis.push(acessoCriado);
     responsaveisComAcesso.push({ ...responsavel, usuarioId });
   }
@@ -142,13 +143,10 @@ export const createCriancaService = async (
     throw error;
   }
 
-  await Promise.all(
-    usuarioIds.map((usuarioId) =>
-      UsuarioRepository.updateOne(
-        { _id: usuarioId },
-        { $addToSet: { criancasVinculadas: crianca._id } },
-      ),
-    ),
+  await sincronizarCriancasVinculadas(
+    String(crianca._id),
+    [],
+    usuarioIdsVinculados(responsaveisComAcesso),
   );
 
   return { crianca: await withFotoUrl(crianca), acessosResponsaveis };

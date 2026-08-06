@@ -9,7 +9,8 @@
     "remove:staging": "serverless remove --stage staging",
     "remove:prod": "serverless remove --stage prod",
     "test": "jest --coverage",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "migrate": "ts-node --compiler-options '{\"module\":\"CommonJS\"}'"
   },
   "keywords": [],
   "author": "",

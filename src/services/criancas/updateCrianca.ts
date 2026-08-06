@@ -1,5 +1,4 @@
 import { CriancaRepository } from "../../repositories/crianca.repository";
-import { UsuarioRepository } from "../../repositories/usuario.repository";
 import {
   IAcessoResponsavelCriado,
   ICrianca,
@@ -23,6 +22,10 @@ import {
   withFotoUrl,
 } from "../shared/fotoCrianca";
 import { ensureResponsavelUsuario } from "../shared/responsavelAcesso";
+import {
+  sincronizarCriancasVinculadas,
+  usuarioIdsVinculados,
+} from "../shared/vinculoResponsavel";
 
 export const updateCriancaService = async (
   requester: IUsuario,
@@ -56,7 +59,6 @@ export const updateCriancaService = async (
   }
 
   const acessosResponsaveis: IAcessoResponsavelCriado[] = [];
-  const usuarioIdsNovos: string[] = [];
   let responsaveisComAcesso: IResponsavel[] | undefined;
 
   if (payload.responsaveis) {
@@ -72,13 +74,15 @@ export const updateCriancaService = async (
       const existente = porCpfExistente.get(onlyDigits(responsavel.cpf));
 
       if (existente) {
-        responsaveisComAcesso.push(responsavel);
+        responsaveisComAcesso.push({
+          ...responsavel,
+          usuarioId: existente.usuarioId,
+        });
         continue;
       }
 
       const { usuarioId, acessoCriado } =
         await ensureResponsavelUsuario(responsavel);
-      usuarioIdsNovos.push(usuarioId);
       if (acessoCriado) acessosResponsaveis.push(acessoCriado);
       responsaveisComAcesso.push({ ...responsavel, usuarioId });
     }
@@ -123,14 +127,13 @@ export const updateCriancaService = async (
     await removerFotoDoBucket(fotoAnterior);
   }
 
-  await Promise.all(
-    usuarioIdsNovos.map((usuarioId) =>
-      UsuarioRepository.updateOne(
-        { _id: usuarioId },
-        { $addToSet: { criancasVinculadas: crianca._id } },
-      ),
-    ),
-  );
+  if (responsaveisComAcesso) {
+    await sincronizarCriancasVinculadas(
+      String(crianca._id),
+      usuarioIdsVinculados(crianca.responsaveis),
+      usuarioIdsVinculados(responsaveisComAcesso),
+    );
+  }
 
   const criancaAtualizada = withFotoUrl(
     (await CriancaRepository.findById(criancaId)) as ICrianca,
