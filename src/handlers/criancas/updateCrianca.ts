@@ -18,12 +18,12 @@ export const execute = withErrorHandling(
       parseRequestBody(event.body),
     );
 
-    const crianca = await updateCriancaService(
+    const resultado = await updateCriancaService(
       requester,
       event.pathParameters.id,
       payload,
     );
 
-    return sendSuccessResponse(crianca);
+    return sendSuccessResponse(resultado);
   }),
 );

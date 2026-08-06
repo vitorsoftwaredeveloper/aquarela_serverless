@@ -2,8 +2,8 @@ import { Types } from "mongoose";
 import { CriancaRepository } from "../../repositories/crianca.repository";
 import { TurmaRepository } from "../../repositories/turma.repository";
 import { UsuarioRepository } from "../../repositories/usuario.repository";
-import { createUsuarioService } from "../usuarios/createUsuario";
 import { gerarMensalidadesIniciaisService } from "../mensalidades/gerarMensalidadesIniciais";
+import { ensureResponsavelUsuario } from "../shared/responsavelAcesso";
 import { hashForLookup } from "../../libs/crypto";
 import { diaMesDeData } from "../../utils/date";
 import {
@@ -25,36 +25,6 @@ import {
   validarFotoBase64,
   withFotoUrl,
 } from "../shared/fotoCrianca";
-
-const ensureResponsavelUsuario = async (
-  responsavel: IResponsavel,
-): Promise<{ usuarioId: string; acessoCriado?: IAcessoResponsavelCriado }> => {
-  const email = responsavel.email.toLowerCase();
-
-  const existente = (await UsuarioRepository.findOne({
-    email,
-  })) as IUsuario | null;
-
-  if (existente) {
-    return { usuarioId: existente._id };
-  }
-
-  const criado = await createUsuarioService({
-    nome: responsavel.nome,
-    email,
-    papel: "responsavel",
-    telefone: responsavel.telefone,
-  });
-
-  return {
-    usuarioId: criado._id,
-    acessoCriado: {
-      nome: criado.nome,
-      email: criado.email,
-      senhaTemporaria: criado.senhaTemporaria,
-    },
-  };
-};
 
 export const createCriancaService = async (
   requester: IUsuario,
@@ -112,8 +82,6 @@ export const createCriancaService = async (
 
   const fotoBytes = payload.foto ? validarFotoBase64(payload.foto) : undefined;
 
-  // Garante o acesso (usuário papel=responsavel) de cada responsável e vincula
-  // o `usuarioId` no responsável embutido, antes de gravar a criança.
   const acessosResponsaveis: IAcessoResponsavelCriado[] = [];
   const usuarioIds: string[] = [];
   const responsaveisComAcesso: IResponsavel[] = [];
@@ -174,7 +142,6 @@ export const createCriancaService = async (
     throw error;
   }
 
-  // Vincula a criança aos usuários responsáveis (lista em usuarios).
   await Promise.all(
     usuarioIds.map((usuarioId) =>
       UsuarioRepository.updateOne(

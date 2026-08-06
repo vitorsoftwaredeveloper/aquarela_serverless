@@ -110,3 +110,8 @@ export interface IUpdateCriancaPayload {
   financeiro?: IFinanceiroCrianca;
   consentimentoImagem?: boolean;
 }
+
+export interface IUpdateCriancaResult {
+  crianca: ICrianca;
+  acessosResponsaveis: IAcessoResponsavelCriado[];
+}

@@ -1,5 +1,7 @@
 import { updateCriancaService } from "../../../src/services/criancas/updateCrianca";
 import { CriancaRepository } from "../../../src/repositories/crianca.repository";
+import { UsuarioRepository } from "../../../src/repositories/usuario.repository";
+import { createUsuarioService } from "../../../src/services/usuarios/createUsuario";
 import {
   removerFotoDoBucket,
   salvarFotoBase64,
@@ -7,6 +9,10 @@ import {
 import { sincronizarMensalidadesNaoPagas } from "../../../src/services/mensalidades/sincronizarMensalidadesNaoPagas";
 
 jest.mock("../../../src/repositories/crianca.repository");
+jest.mock("../../../src/repositories/usuario.repository");
+jest.mock("../../../src/services/usuarios/createUsuario", () => ({
+  createUsuarioService: jest.fn(),
+}));
 jest.mock(
   "../../../src/services/mensalidades/sincronizarMensalidadesNaoPagas",
   () => ({ sincronizarMensalidadesNaoPagas: jest.fn() }),
@@ -41,6 +47,15 @@ describe("updateCriancaService", () => {
     (salvarFotoBase64 as jest.Mock).mockResolvedValue(
       "criancas/crianca-1/nova.jpg",
     );
+    (UsuarioRepository.findOne as jest.Mock).mockResolvedValue(null);
+    (UsuarioRepository.updateOne as jest.Mock).mockResolvedValue(undefined);
+    (createUsuarioService as jest.Mock).mockResolvedValue({
+      _id: "usuario-novo",
+      nome: "Beatriz",
+      email: "bia@example.com",
+      papel: "responsavel",
+      senhaTemporaria: "Temp123!",
+    });
   });
 
   it("grava a nova foto, audita e apaga a anterior", async () => {
@@ -305,6 +320,76 @@ describe("updateCriancaService", () => {
         });
 
         expect(CriancaRepository.updateOne).toHaveBeenCalled();
+      });
+
+      describe("acesso automático (novo responsável no admin)", () => {
+        it("cria o usuário e devolve a senha temporária em acessosResponsaveis", async () => {
+          mockCrianca({ responsaveis: [anaComUsuario] });
+
+          const resultado = await updateCriancaService(admin, "crianca-1", {
+            responsaveis: [anaComUsuario, avoSemUsuario],
+          });
+
+          expect(createUsuarioService).toHaveBeenCalledWith({
+            nome: avoSemUsuario.nome,
+            email: avoSemUsuario.email,
+            papel: "responsavel",
+            telefone: avoSemUsuario.telefone,
+          });
+          expect(resultado.acessosResponsaveis).toEqual([
+            {
+              nome: "Beatriz",
+              email: "bia@example.com",
+              senhaTemporaria: "Temp123!",
+            },
+          ]);
+
+          const [, update] = (CriancaRepository.updateOne as jest.Mock).mock
+            .calls[0];
+          expect(update.$set.responsaveis).toEqual([
+            anaComUsuario,
+            { ...avoSemUsuario, usuarioId: "usuario-novo" },
+          ]);
+
+          expect(UsuarioRepository.updateOne).toHaveBeenCalledWith(
+            { _id: "usuario-novo" },
+            { $addToSet: { criancasVinculadas: "crianca-1" } },
+          );
+        });
+
+        it("reaproveita usuário existente por email, sem gerar acesso novo", async () => {
+          mockCrianca({ responsaveis: [anaComUsuario] });
+          (UsuarioRepository.findOne as jest.Mock).mockResolvedValue({
+            _id: "usuario-existente",
+            email: avoSemUsuario.email,
+          });
+
+          const resultado = await updateCriancaService(admin, "crianca-1", {
+            responsaveis: [anaComUsuario, avoSemUsuario],
+          });
+
+          expect(createUsuarioService).not.toHaveBeenCalled();
+          expect(resultado.acessosResponsaveis).toEqual([]);
+
+          const [, update] = (CriancaRepository.updateOne as jest.Mock).mock
+            .calls[0];
+          expect(update.$set.responsaveis).toEqual([
+            anaComUsuario,
+            { ...avoSemUsuario, usuarioId: "usuario-existente" },
+          ]);
+        });
+
+        it("não cria acesso para responsável já vinculado (mesmo CPF)", async () => {
+          mockCrianca({ responsaveis: [anaComUsuario] });
+
+          const resultado = await updateCriancaService(admin, "crianca-1", {
+            responsaveis: [{ ...anaComUsuario, nome: "Ana Souza" }],
+          });
+
+          expect(createUsuarioService).not.toHaveBeenCalled();
+          expect(UsuarioRepository.findOne).not.toHaveBeenCalled();
+          expect(resultado.acessosResponsaveis).toEqual([]);
+        });
       });
     });
   });
