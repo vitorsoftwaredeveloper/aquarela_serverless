@@ -80,8 +80,18 @@ getCriancaById:
 
 updateCrianca:
   handler: src/handlers/criancas/updateCrianca.execute
+  environment:
+    USER_POOL_ID: ${self:custom.environment.USER_POOL_ID}
   iamRoleStatementsInherit: true
   iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - cognito-idp:AdminCreateUser
+        - cognito-idp:AdminAddUserToGroup
+        - cognito-idp:AdminGetUser
+        - cognito-idp:AdminDeleteUser
+      Resource:
+        - ${self:custom.environment.COGNITO_USER_POOL_ARN}
     - Effect: Allow
       Action:
         - s3:GetObject
@@ -104,8 +114,15 @@ updateCrianca:
 
 removeCrianca:
   handler: src/handlers/criancas/removeCrianca.execute
+  environment:
+    USER_POOL_ID: ${self:custom.environment.USER_POOL_ID}
   iamRoleStatementsInherit: true
   iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - cognito-idp:AdminDeleteUser
+      Resource:
+        - ${self:custom.environment.COGNITO_USER_POOL_ARN}
     - Effect: Allow
       Action:
         - s3:GetObject

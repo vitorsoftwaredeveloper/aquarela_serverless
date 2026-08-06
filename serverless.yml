@@ -64,6 +64,7 @@ provider:
     ENCRYPTION_KEY: ${self:custom.environment.ENCRYPTION_KEY}
     FOTOS_BUCKET: ${self:custom.fotosBucket}
     REGION: ${self:custom.environment.REGION}
+    USER_POOL_ID: ${self:custom.environment.USER_POOL_ID}
 
   httpApi:
     cors:
