@@ -14,7 +14,7 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "description": "Aquarela Kids — back-end serverless (API, regra de negocio, acesso ao banco)",
   "devDependencies": {
     "@types/aws-lambda": "^8.10.159",
